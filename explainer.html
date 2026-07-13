@@ -199,6 +199,11 @@
   .capacity{margin-top:16px;border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:12px;
     background:var(--card-2);padding:18px 20px;font-size:14.5px;color:var(--ink)}
   .capacity strong{color:var(--gold)}
+  sup.fnref{color:var(--gold);font-weight:700;font-size:.68em;margin-left:1px}
+  .footnote{margin-top:22px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);
+    font-size:13px;line-height:1.55;max-width:78ch;display:flex;gap:9px}
+  .footnote .n{color:var(--gold);font-weight:700;flex:none}
+  .footnote b{color:var(--ink);font-weight:600}
 
   /* reveal */
   .reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
@@ -369,7 +374,7 @@
       <div class="setup reveal">
         <div class="setup-k">Cloud</div>
         <h3>Hosted on Supabase's cloud</h3>
-        <p>Supabase provides the database, a secure auto-generated API, and login as managed cloud services. The web page can be served from any static host or CDN &mdash; nothing runs on our own hardware.</p>
+        <p>Supabase provides the database, a secure auto-generated API, and login as managed cloud services. The web page can be served from any static host or CDN<sup class="fnref">1</sup> &mdash; nothing runs on our own hardware.</p>
       </div>
     </div>
     <div class="capacity reveal"><strong>Capacity.</strong> A single managed instance comfortably covers the pilot &mdash; dozens of concurrent users and thousands of groups, with headroom to spare. Growing to national volumes (hundreds of thousands of records and hundreds of simultaneous users) is a matter of moving to a larger instance tier and adding read replicas &mdash; not a redesign.</div>
@@ -391,6 +396,7 @@
         <p>Data is already encrypted in transit and at rest. For sensitive records, extra layers slot on top: real passwords with two-factor or single sign-on, encryption of personal fields, full audit logging, network restrictions, and periodic security testing.</p>
       </div>
     </div>
+    <div class="footnote reveal"><span class="n">1</span><span><b>Content Delivery Network (CDN).</b> A CDN copies the website's static files to servers all over the world. When a user visits, they download the page from the server closest to them, dramatically reducing load-time latency.</span></div>
   </div>
 </section>
 
