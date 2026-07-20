@@ -1,0 +1,528 @@
+<title>PAMOJA CMG Loan Tracker &mdash; Overview</title>
+<style>
+  :root{
+    --ground:#eef1ea; --card:#ffffff; --card-2:#f5f7f1;
+    --ink:#17241d; --muted:#5b6b60; --faint:#8a978c;
+    --line:#dbe0d5; --line-strong:#c6cdbe;
+    --primary:#1c5a3f; --primary-deep:#0f3d29; --primary-soft:#dcebe1;
+    --gold:#a8741f; --gold-soft:#ecd6a8; --gold-bg:#f6ecd6;
+    --role-chair:#1c5a3f; --role-lga:#2f6f7d; --role-fi:#a8741f; --role-tam:#4a5b74; --role-admin:#6b4f7a;
+    --ok:#2f7d4f; --warn:#b9791b; --bad:#b23b2e;
+    --shadow:0 1px 2px rgba(20,40,28,.06),0 8px 24px -12px rgba(20,40,28,.18);
+    --shadow-lg:0 2px 4px rgba(20,40,28,.08),0 24px 60px -24px rgba(20,40,28,.30);
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#0d1411; --card:#15201a; --card-2:#111a15;
+      --ink:#eaf0e8; --muted:#9db0a4; --faint:#6f8175;
+      --line:#243029; --line-strong:#31413a;
+      --primary:#57b485; --primary-deep:#3d9067; --primary-soft:#173226;
+      --gold:#d7a441; --gold-soft:#5a4a20; --gold-bg:#241d10;
+      --role-chair:#57b485; --role-lga:#5aa7b6; --role-fi:#d7a441; --role-tam:#8a9cc0; --role-admin:#b092c0;
+      --ok:#4bbd7a; --warn:#d99f3a; --bad:#e0705f;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -14px rgba(0,0,0,.6);
+      --shadow-lg:0 2px 6px rgba(0,0,0,.5),0 30px 70px -28px rgba(0,0,0,.75);
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#eef1ea; --card:#ffffff; --card-2:#f5f7f1;
+    --ink:#17241d; --muted:#5b6b60; --faint:#8a978c;
+    --line:#dbe0d5; --line-strong:#c6cdbe;
+    --primary:#1c5a3f; --primary-deep:#0f3d29; --primary-soft:#dcebe1;
+    --gold:#a8741f; --gold-soft:#ecd6a8; --gold-bg:#f6ecd6;
+    --role-chair:#1c5a3f; --role-lga:#2f6f7d; --role-fi:#a8741f; --role-tam:#4a5b74; --role-admin:#6b4f7a;
+    --ok:#2f7d4f; --warn:#b9791b; --bad:#b23b2e;
+  }
+  :root[data-theme="dark"]{
+    --ground:#0d1411; --card:#15201a; --card-2:#111a15;
+    --ink:#eaf0e8; --muted:#9db0a4; --faint:#6f8175;
+    --line:#243029; --line-strong:#31413a;
+    --primary:#57b485; --primary-deep:#3d9067; --primary-soft:#173226;
+    --gold:#d7a441; --gold-soft:#5a4a20; --gold-bg:#241d10;
+    --role-chair:#57b485; --role-lga:#5aa7b6; --role-fi:#d7a441; --role-tam:#8a9cc0; --role-admin:#b092c0;
+    --ok:#4bbd7a; --warn:#d99f3a; --bad:#e0705f;
+  }
+
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);font-family:var(--sans);
+    line-height:1.6;-webkit-font-smoothing:antialiased;margin:0}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 clamp(20px,5vw,48px)}
+  h1,h2,h3{font-family:var(--serif);font-weight:600;text-wrap:balance;line-height:1.12;margin:0}
+  p{margin:0}
+  a{color:inherit}
+  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .eyebrow{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--gold)}
+  .lede{color:var(--muted);font-size:clamp(16px,2.1vw,19px);max-width:60ch}
+
+  /* HERO */
+  .hero{position:relative;overflow:hidden;
+    background:
+      radial-gradient(120% 120% at 82% -10%,color-mix(in srgb,var(--primary) 22%,transparent),transparent 55%),
+      linear-gradient(178deg,var(--card-2),var(--ground));
+    border-bottom:1px solid var(--line)}
+  .hero .wrap{padding-top:clamp(48px,9vw,96px);padding-bottom:clamp(48px,9vw,88px)}
+  .brandline{display:flex;align-items:center;gap:12px;margin-bottom:clamp(28px,6vw,52px)}
+  .seal{width:38px;height:38px;border-radius:9px;flex:none;display:grid;place-items:center;
+    background:var(--primary);color:#fff;font-family:var(--serif);font-weight:600;font-size:19px;
+    box-shadow:var(--shadow)}
+  .brandtxt{font-weight:700;letter-spacing:.02em;font-size:15px}
+  .brandtxt span{color:var(--muted);font-weight:500}
+  .hero h1{font-size:clamp(34px,6.4vw,66px);letter-spacing:-.015em;max-width:16ch}
+  .hero h1 em{font-style:normal;color:var(--primary);position:relative;white-space:nowrap}
+  .hero h1 em::after{content:"";position:absolute;left:0;right:0;bottom:.06em;height:.16em;
+    background:var(--gold-soft);z-index:-1;border-radius:2px}
+  .hero .lede{margin-top:clamp(20px,3vw,28px);font-size:clamp(17px,2.3vw,21px)}
+  .facts{display:flex;flex-wrap:wrap;gap:10px 12px;margin-top:clamp(28px,4vw,40px)}
+  .fact{display:flex;align-items:baseline;gap:8px;background:var(--card);border:1px solid var(--line);
+    border-radius:999px;padding:8px 15px;box-shadow:var(--shadow);font-size:13.5px}
+  .fact b{font-family:var(--serif);font-size:18px;color:var(--primary);font-weight:600}
+  .fact-dark b{color:var(--gold)}
+
+  /* SECTION scaffold */
+  section{padding:clamp(52px,9vw,88px) 0}
+  .sec-head{max-width:60ch;margin-bottom:clamp(28px,4vw,44px)}
+  .sec-head h2{font-size:clamp(26px,4.2vw,40px);letter-spacing:-.01em;margin-top:12px}
+  .sec-head p{margin-top:14px}
+  .divider{border:none;border-top:1px solid var(--line)}
+
+  /* ROLE-LENS INTERACTIVE */
+  .lens{background:var(--card-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .roletabs{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:26px}
+  .roletab{appearance:none;cursor:pointer;font-family:var(--sans);font-size:14px;font-weight:600;
+    color:var(--ink);background:var(--card);border:1.5px solid var(--line-strong);border-radius:11px;
+    padding:11px 15px;display:flex;align-items:center;gap:9px;transition:transform .12s,border-color .15s,background .15s;
+    box-shadow:var(--shadow)}
+  .roletab:hover{transform:translateY(-1px)}
+  .roletab .dot{width:10px;height:10px;border-radius:3px;flex:none;background:var(--rc)}
+  .roletab[aria-pressed="true"]{border-color:var(--rc);background:color-mix(in srgb,var(--rc) 12%,var(--card))}
+  .roletab:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+  .lens-caption{display:flex;gap:12px;align-items:flex-start;margin-bottom:22px;min-height:44px;
+    padding:14px 16px;border-radius:12px;background:var(--card);border:1px solid var(--line);
+    border-left:4px solid var(--rc,var(--primary));box-shadow:var(--shadow)}
+  .lens-caption .k{font-weight:700}
+  .lens-caption .m{color:var(--muted);font-size:14.5px}
+  .grid5{display:grid;grid-template-columns:repeat(auto-fill,minmax(184px,1fr));gap:14px}
+  .gcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;
+    box-shadow:var(--shadow);transition:opacity .3s,filter .3s,transform .2s;position:relative}
+  .gcard .gname{font-family:var(--serif);font-size:18px;font-weight:600;margin-bottom:3px}
+  .gcard .gid{font-size:12px;color:var(--faint);margin-bottom:12px}
+  .gcard .grow{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:3px 0}
+  .gcard .grow span:first-child{color:var(--muted)}
+  .gcard .grow span:last-child{font-weight:600;text-align:right}
+  .gcard.hidden{opacity:.16;filter:grayscale(.7)}
+  .gcard.visible::after{content:"\2713 visible";position:absolute;top:12px;right:12px;font-size:10.5px;
+    font-weight:700;letter-spacing:.04em;color:var(--rc);text-transform:uppercase}
+  .locknote{margin-top:20px;font-size:13.5px;color:var(--muted);display:flex;gap:9px;align-items:center}
+  .locknote svg{flex:none;color:var(--primary)}
+
+  /* JOURNEY — compact 3-column grid, all rows left->right in numbered order */
+  .journey{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .stage{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:18px;box-shadow:var(--shadow);position:relative}
+  .stage .stop{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .stage .num{width:30px;height:30px;border-radius:9px;flex:none;display:grid;place-items:center;
+    font-family:var(--serif);font-weight:600;font-size:15px;color:#fff;background:var(--rc,var(--primary));
+    box-shadow:var(--shadow)}
+  .stage .rchip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
+    letter-spacing:.04em;text-transform:uppercase;color:var(--rc)}
+  .stage .rchip .d{width:8px;height:8px;border-radius:2px;background:var(--rc)}
+  .stage h3{font-size:17px;margin-bottom:5px;text-wrap:balance}
+  .stage p{color:var(--muted);font-size:13.5px}
+  .stage .tag{align-self:flex-start;margin-top:12px;font-size:12px;font-weight:600;color:var(--primary);
+    background:var(--primary-soft);border-radius:7px;padding:3px 9px}
+
+  /* GUARDRAILS */
+  .guards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+  .guard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;
+    box-shadow:var(--shadow)}
+  .guard .gi{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;margin-bottom:14px;
+    background:var(--gold-bg);color:var(--gold)}
+  .guard h3{font-size:18px;margin-bottom:7px}
+  .guard p{color:var(--muted);font-size:14px}
+
+  /* LIVE LOAN CARD */
+  .showcase{display:grid;grid-template-columns:1.1fr 1fr;gap:clamp(24px,4vw,48px);align-items:center}
+  .loancard{background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden;
+    box-shadow:var(--shadow-lg)}
+  .loancard .lc-head{background:linear-gradient(135deg,var(--primary-deep),var(--primary));color:#fff;
+    padding:20px 22px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .loancard .lc-head .t{font-size:12px;letter-spacing:.1em;text-transform:uppercase;opacity:.85;font-weight:700}
+  .loancard .lc-head .n{font-family:var(--serif);font-size:22px;font-weight:600;margin-top:2px}
+  .pill{font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px;white-space:nowrap;
+    background:rgba(255,255,255,.16);color:#fff;display:inline-flex;align-items:center;gap:6px}
+  .pill .d{width:7px;height:7px;border-radius:50%;background:#8ff0b4;box-shadow:0 0 0 3px rgba(143,240,180,.25)}
+  .lc-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--line)}
+  .lc-cell{background:var(--card);padding:15px 16px}
+  .lc-cell .k{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--faint);font-weight:700}
+  .lc-cell .v{font-family:var(--serif);font-size:19px;font-weight:600;margin-top:4px}
+  .lc-cell .v.ok{color:var(--ok)} .lc-cell .v.bad{color:var(--bad)}
+  .lc-foot{padding:16px 20px 20px}
+  .bar{height:9px;border-radius:999px;background:var(--card-2);overflow:hidden;border:1px solid var(--line)}
+  .bar>i{display:block;height:100%;width:8%;border-radius:999px;
+    background:linear-gradient(90deg,var(--gold),var(--primary))}
+  .lc-foot .cap{font-size:12.5px;color:var(--muted);margin-top:9px}
+  .showcase-copy h2{font-size:clamp(24px,3.6vw,34px)}
+  .showcase-copy p{color:var(--muted);margin-top:14px}
+  .showcase-copy ul{list-style:none;padding:0;margin:20px 0 0;display:grid;gap:11px}
+  .showcase-copy li{display:flex;gap:11px;font-size:15px}
+  .showcase-copy li svg{flex:none;color:var(--primary);margin-top:3px}
+
+  /* POSSIBLE / close */
+  .possible{background:
+      radial-gradient(120% 130% at 15% 0%,color-mix(in srgb,var(--primary) 16%,transparent),transparent 50%),
+      var(--card-2);border-top:1px solid var(--line)}
+  .poss-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:22px;margin-top:8px}
+  .poss{padding-top:20px;border-top:2px solid var(--gold)}
+  .poss h3{font-size:19px;margin-bottom:8px}
+  .poss p{color:var(--muted);font-size:14.5px}
+  footer{padding:36px 0 48px;border-top:1px solid var(--line);color:var(--faint);font-size:13px}
+  footer b{color:var(--muted)}
+
+  /* HOW IT'S BUILT */
+  .setup-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .setup{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:var(--shadow)}
+  .setup-k{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+  .setup h3{font-size:18px;margin-bottom:8px;text-wrap:balance}
+  .setup p{color:var(--muted);font-size:14px}
+  .capacity{margin-top:16px;border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:12px;
+    background:var(--card-2);padding:18px 20px;font-size:14.5px;color:var(--ink)}
+  .capacity strong{color:var(--gold)}
+  sup.fnref{color:var(--gold);font-weight:700;font-size:.68em;margin-left:1px}
+  .footnote{margin-top:22px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);
+    font-size:13px;line-height:1.55;max-width:78ch;display:flex;gap:9px}
+  .footnote .n{color:var(--gold);font-weight:700;flex:none}
+  .footnote b{color:var(--ink);font-weight:600}
+
+  /* reveal */
+  .reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
+
+  @media (max-width:720px){
+    .showcase{grid-template-columns:1fr}
+    .lc-grid{grid-template-columns:1fr 1fr}
+    .journey{grid-template-columns:1fr}
+    .setup-grid{grid-template-columns:1fr}
+  }
+  @media (max-width:440px){
+    .lc-grid{grid-template-columns:1fr 1fr}
+    .fact{font-size:12.5px}
+  }
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="brandline">
+      <div class="seal">P</div>
+      <div class="brandtxt">PAMOJA &middot; <span>CMG Loan Tracker</span></div>
+    </div>
+    <div class="eyebrow reveal">A working beta &middot; Tanzania community microfinance</div>
+    <h1 class="reveal" style="margin-top:14px">One record. <em>Five lenses.</em> A loan's whole journey.</h1>
+    <p class="lede reveal">Village savings groups, local government, and banks all work from the
+      same live record &mdash; each seeing exactly their slice, and only their slice. From a group's
+      first registration to the last repayment, every step is captured and visible to the people who need it.</p>
+    <div class="facts reveal">
+      <div class="fact"><b>5</b><span>roles, one shared truth</span></div>
+      <div class="fact"><b>8</b><span>tracked lifecycle stages</span></div>
+      <div class="fact fact-dark"><b>0</b><span>records ever deleted</span></div>
+      <div class="fact"><b>~10 min</b><span>register &#8594; active loan</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- INTERACTIVE ROLE LENS -->
+<section class="lens">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">See it for yourself</div>
+      <h2>Pick a role. Watch the data reveal only what that role is allowed to see.</h2>
+      <p>These are five real groups across two district councils. Choose who's logged in &mdash; the groups
+        that person <em>cannot</em> see fade away. This is how row-level data security is enforced in the database.
+        Note the last lens: one group's bank has been suspended, and only the Administrator can still see its book.</p>
+    </div>
+
+    <div class="roletabs reveal" id="roletabs">
+      <button class="roletab" data-role="chair" style="--rc:var(--role-chair)" aria-pressed="true">
+        <span class="dot"></span>Chairperson &middot; Tumaini Wanawake</button>
+      <button class="roletab" data-role="lga" style="--rc:var(--role-lga)" aria-pressed="false">
+        <span class="dot"></span>LGA Officer &middot; Arusha DC</button>
+      <button class="roletab" data-role="fi" style="--rc:var(--role-fi)" aria-pressed="false">
+        <span class="dot"></span>FI Lender &middot; CRDB Bank</button>
+      <button class="roletab" data-role="tam" style="--rc:var(--role-tam)" aria-pressed="false">
+        <span class="dot"></span>TAMISEMI &middot; National</button>
+      <button class="roletab" data-role="admin" style="--rc:var(--role-admin)" aria-pressed="false">
+        <span class="dot"></span>Administrator &middot; Custody</button>
+    </div>
+
+    <div class="lens-caption reveal" id="lensCaption" style="--rc:var(--role-chair)">
+      <div>
+        <div class="k" id="capK">The chairperson sees one group &mdash; her own.</div>
+        <div class="m" id="capM">A group's leader has full detail on their own CMG, at any status, and nothing else.</div>
+      </div>
+    </div>
+
+    <div class="grid5" id="groupGrid"></div>
+  </div>
+</section>
+
+<!-- THE JOURNEY -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Registration to repayment</div>
+      <h2>Eight steps, three actors, one unbroken chain</h2>
+      <p>Every handoff between a group, its council, and its bank is a step in the system &mdash;
+        each one recorded, time-stamped, and gated by the right approval.</p>
+    </div>
+    <div class="journey" id="journey"></div>
+  </div>
+</section>
+
+<!-- GUARDRAILS -->
+<section class="lens">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Why it can be trusted</div>
+      <h2>The rules that protect the money are built in</h2>
+    </div>
+    <div class="guards" id="guards"></div>
+  </div>
+</section>
+
+<!-- LIVE LOAN SHOWCASE -->
+<section>
+  <div class="wrap showcase">
+    <div class="loancard reveal">
+      <div class="lc-head">
+        <div>
+          <div class="t">External loan &middot; CRDB Bank</div>
+          <div class="n">Tumaini Wanawake</div>
+        </div>
+        <span class="pill"><span class="d"></span>Active &mdash; On Track</span>
+      </div>
+      <div class="lc-grid">
+        <div class="lc-cell"><div class="k">Loan amount</div><div class="v mono">3,500,000</div></div>
+        <div class="lc-cell"><div class="k">Total repayable</div><div class="v mono">4,550,000</div></div>
+        <div class="lc-cell"><div class="k">Repaid</div><div class="v mono ok">380,000</div></div>
+        <div class="lc-cell"><div class="k">Outstanding</div><div class="v mono bad">4,170,000</div></div>
+        <div class="lc-cell"><div class="k">Interest / mo</div><div class="v mono">2.5%</div></div>
+        <div class="lc-cell"><div class="k">Next due</div><div class="v">9 Aug 2026</div></div>
+      </div>
+      <div class="lc-foot">
+        <div class="bar"><i></i></div>
+        <div class="cap">8% repaid &middot; due every 30 days from 10 Jul 2026 &middot; TZS throughout</div>
+      </div>
+    </div>
+    <div class="showcase-copy reveal">
+      <h2>The loan status is recomputed on every read &mdash; users always see an accurate picture.</h2>
+      <p>Once a loan is disbursed, its health is calculated fresh each time anyone opens it:
+        on track, falling behind, overdue, or delinquent. Updates are reflected after every
+        meeting the group logs.</p>
+      <ul>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6 9 17l-5-5"/></svg>The chairperson sees it on their dashboard the moment a meeting is saved.</li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6 9 17l-5-5"/></svg>CRDB Bank sees repayment progress for every group it funds.</li>
+        <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6 9 17l-5-5"/></svg>The council and TAMISEMI see the same figures rolled up by district and nation.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT THIS MAKES POSSIBLE -->
+<section class="possible">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Where it goes</div>
+      <h2>What this makes possible</h2>
+    </div>
+    <div class="poss-grid">
+      <div class="poss reveal"><h3>National visibility, live</h3><p>Government can watch group formation and loan health across every region in real time, instead of waiting for quarterly returns.</p></div>
+      <div class="poss reveal"><h3>Faster, safer lending</h3><p>Banks act on a verified group profile and a clean application trail &mdash; approval to disbursal in one auditable flow.</p></div>
+      <div class="poss reveal"><h3>Every decision accountable</h3><p>Nothing is deleted, quorate meetings gate the big choices, and every step names who did it and when.</p></div>
+      <div class="poss reveal"><h3>Built to grow</h3><p>The design is scalable &mdash; subject to some hardware upgrades for security, from four demo groups to hundreds of real ones with the same rules, the same structure. No software redesign or upgrades are needed.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT'S BUILT -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Under the hood</div>
+      <h2>How it's built</h2>
+      <p class="lede">A deliberately small, modern stack &mdash; managed services do the heavy lifting, with almost nothing to run ourselves.</p>
+    </div>
+    <div class="setup-grid">
+      <div class="setup reveal">
+        <div class="setup-k">Software</div>
+        <h3>A browser app, no server to run</h3>
+        <p>The interface is a single self-contained web page (HTML &amp; JavaScript). There's no custom application server to build or maintain &mdash; it talks straight to the managed backend.</p>
+      </div>
+      <div class="setup reveal">
+        <div class="setup-k">Database</div>
+        <h3>PostgreSQL, managed by Supabase</h3>
+        <p>Every record &mdash; groups, meetings, loans &mdash; lives in one PostgreSQL database. The rules for who can see and change what are enforced inside the database itself (Row-Level Security).</p>
+      </div>
+      <div class="setup reveal">
+        <div class="setup-k">Cloud</div>
+        <h3>Hosted on Supabase's cloud</h3>
+        <p>Supabase provides the database, a secure auto-generated API, and login as managed cloud services. The web page can be served from any static host or CDN<sup class="fnref">1</sup> &mdash; nothing runs on our own hardware.</p>
+      </div>
+    </div>
+    <div class="capacity reveal"><strong>Capacity.</strong> A single managed instance comfortably covers the pilot &mdash; dozens of concurrent users and thousands of groups, with headroom to spare. Growing to national volumes (hundreds of thousands of records and hundreds of simultaneous users) is a matter of moving to a larger instance tier and adding read replicas &mdash; not a redesign.</div>
+
+    <div class="setup-grid" style="margin-top:16px">
+      <div class="setup reveal">
+        <div class="setup-k">Cost</div>
+        <h3>Little to no running cost</h3>
+        <p>A pilot or demo of this size runs on free tiers at effectively zero cost. Production scale needs only a modest managed plan (on the order of tens of dollars a month) for backups and support &mdash; no servers, licences or infrastructure to buy.</p>
+      </div>
+      <div class="setup reveal">
+        <div class="setup-k">Portability</div>
+        <h3>Can move on-premise</h3>
+        <p>It's standard PostgreSQL plus a static web page, and Supabase is open-source &mdash; so it can be rehosted on a government server or private cloud. That's mainly setup and IT effort, not a rewrite; the app and data carry across unchanged.</p>
+      </div>
+      <div class="setup reveal">
+        <div class="setup-k">Security</div>
+        <h3>Room for stronger safeguards</h3>
+        <p>Data is already encrypted in transit and at rest. For sensitive records, extra layers slot on top: real passwords with two-factor or single sign-on, encryption of personal fields, full audit logging, network restrictions, and periodic security testing.</p>
+      </div>
+    </div>
+    <div class="footnote reveal"><span class="n">1</span><span><b>Content Delivery Network (CDN).</b> A CDN copies the website's static files to servers all over the world. When a user visits, they download the page from the server closest to them, dramatically reducing load-time latency.</span></div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <b>PAMOJA CMG Loan Tracker &mdash; Beta.</b> Community Microfinance Groups (Tier-4, GN 678/2019) &middot;
+    Chairperson &middot; LGA Officer &middot; FI Lender &middot; TAMISEMI. An overview of a working system, not a mock-up.
+  </div>
+</footer>
+
+<script>
+(function(){
+  // Data: five real groups
+  var GROUPS=[
+    {id:"C1005",name:"Tumaini Wanawake",district:"Arusha DC",fi:"CRDB Bank",status:"Active loan",chair:true},
+    {id:"C1001",name:"Imani Women",district:"Arusha DC",fi:"AccessBank",status:"Active"},
+    {id:"C1002",name:"Furaha Savings",district:"Arusha DC",fi:"VisionFund &mdash; suspended",status:"Active",suspendedFi:true},
+    {id:"C1004",name:"Maarifa Savings",district:"Singida DC",fi:"CRDB Bank",status:"Active"},
+    {id:"C1003",name:"Kilimo Bora",district:"Singida DC",fi:"FINCA",status:"Active"}
+  ];
+  var ROLES={
+    chair:{rc:"var(--role-chair)",k:"The chairperson sees one group &mdash; her own.",
+      m:"A group's leader has full detail on their own CMG, at any status, and nothing else.",
+      sees:function(g){return g.id==="C1005";}},
+    lga:{rc:"var(--role-lga)",k:"The Arusha council officer sees every group in Arusha DC.",
+      m:"An LGA officer reads, verifies and manages only the groups inside their own district.",
+      sees:function(g){return g.district==="Arusha DC";}},
+    fi:{rc:"var(--role-fi)",k:"CRDB Bank sees only the groups it funds.",
+      m:"A lender sees an aggregated view of the CMGs its own institution has financed &mdash; across districts.",
+      sees:function(g){return g.fi==="CRDB Bank";}},
+    tam:{rc:"var(--role-tam)",k:"TAMISEMI sees all groups, nationally.",
+      m:"The national office reads every group across every region and district &mdash; and decides which institutions may lend at all.",
+      sees:function(){return true;}},
+    admin:{rc:"var(--role-admin)",k:"The Administrator sees only a suspended lender's book.",
+      m:"When TAMISEMI suspends an institution, its groups stay visible to one role &mdash; read-only custody, so nothing is lost and nobody else gains access.",
+      sees:function(g){return !!g.suspendedFi;}}
+  };
+  var grid=document.getElementById("groupGrid");
+  GROUPS.forEach(function(g){
+    var el=document.createElement("div");
+    el.className="gcard"; el.dataset.id=g.id;
+    el.innerHTML=
+      '<div class="gname">'+g.name+'</div>'+
+      '<div class="gid mono">'+g.id+'</div>'+
+      '<div class="grow"><span>District</span><span>'+g.district+'</span></div>'+
+      '<div class="grow"><span>Partner bank</span><span>'+g.fi+'</span></div>'+
+      '<div class="grow"><span>Status</span><span>'+g.status+'</span></div>';
+    grid.appendChild(el);
+  });
+  var capK=document.getElementById("capK"),capM=document.getElementById("capM"),
+      caption=document.getElementById("lensCaption");
+  function apply(role){
+    var R=ROLES[role];
+    caption.style.setProperty("--rc",R.rc);
+    grid.style.setProperty("--rc",R.rc);
+    capK.innerHTML=R.k; capM.innerHTML=R.m;
+    Array.prototype.forEach.call(grid.children,function(el){
+      var g=GROUPS.filter(function(x){return x.id===el.dataset.id;})[0];
+      var vis=R.sees(g);
+      el.classList.toggle("hidden",!vis);
+      el.classList.toggle("visible",vis);
+    });
+  }
+  var tabs=document.querySelectorAll(".roletab");
+  Array.prototype.forEach.call(tabs,function(t){
+    t.addEventListener("click",function(){
+      Array.prototype.forEach.call(tabs,function(x){x.setAttribute("aria-pressed","false");});
+      t.setAttribute("aria-pressed","true");
+      apply(t.dataset.role);
+    });
+  });
+  apply("chair");
+
+  // Journey
+  var STAGES=[
+    {rc:"var(--role-chair)",role:"Chairperson",t:"A group registers itself",d:"The chair applies with the group's details and gets a CMG ID instantly &mdash; able to log in and track status straight away.",tag:"New ID: C1005"},
+    {rc:"var(--role-lga)",role:"LGA Officer",t:"The council verifies it",d:"The district officer reviews the application and approves it &mdash; or rejects it with a reason the group can act on."},
+    {rc:"var(--role-lga)",role:"LGA Officer",t:"A partner bank is assigned",d:"Once active, the officer links the group to its financing institution. The bank is notified in-app."},
+    {rc:"var(--role-chair)",role:"Chairperson",t:"The group applies for a loan",d:"Amount, purpose, group savings and years active &mdash; member count and loan history fill in automatically."},
+    {rc:"var(--role-fi)",role:"FI Lender",t:"The bank decides",d:"Approve in full or in part, set the monthly rate and tenure; the total repayable computes itself. Or decline with a reason.",tag:"3,500,000 @ 2.5% &times; 12"},
+    {rc:"var(--role-chair)",role:"Chairperson + group",t:"The group accepts &mdash; in a meeting",d:"A loan can only be accepted (or declined) in a quorate meeting, with a recorded declaration. No leader acts alone.",tag:"Quorum required"},
+    {rc:"var(--role-fi)",role:"FI Lender",t:"The bank disburses",d:"The lender records the disbursal date, amount and account &mdash; and only now does the loan become active."},
+    {rc:"var(--role-chair)",role:"Chairperson",t:"Repayment is tracked",d:"Each meeting logs repayments; the loan's health updates for the group, the bank, the council and the nation.",tag:"Visible to all four roles"}
+  ];
+  var j=document.getElementById("journey");
+  STAGES.forEach(function(s,i){
+    var el=document.createElement("div");
+    el.className="stage reveal"; el.style.setProperty("--rc",s.rc);
+    el.innerHTML=
+      '<div class="stop">'+
+        '<span class="num">'+(i+1)+'</span>'+
+        '<span class="rchip"><span class="d"></span>'+s.role+'</span>'+
+      '</div>'+
+      '<h3>'+s.t+'</h3><p>'+s.d+'</p>'+
+      (s.tag?'<span class="tag">'+s.tag+'</span>':'');
+    j.appendChild(el);
+  });
+
+  // Guardrails
+  var ic={
+    quorum:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+    dup:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M8 11h6"/>',
+    audit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+    rls:'<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+    badge:'<path d="M12 2 4 6v6c0 5 3.4 9.4 8 10 4.6-.6 8-5 8-10V6Z"/><path d="m9 12 2 2 4-4"/>',
+    shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="M12 8v4"/><path d="M12 16h.01"/>'
+  };
+  var GUARDS=[
+    {i:ic.quorum,t:"No one acts alone",d:"Accepting or declining a loan requires a quorate meeting and a recorded group declaration &mdash; the chair can't decide unilaterally."},
+    {i:ic.dup,t:"No duplicate groups",d:"A registration is blocked if the phone number, or the chair-plus-ward-plus-village, already belongs to an existing group."},
+    {i:ic.audit,t:"Nothing is ever deleted",d:"A mistaken meeting is annulled with a reason and kept, struck through, for audit &mdash; never erased. The trail is complete by design."},
+    {i:ic.rls,t:"Scope of roles is defined in the database",d:"Who can see and touch which group is enforced at the data layer."},
+    {i:ic.badge,t:"Only authorised banks can lend",d:"TAMISEMI keeps the register of lending institutions. A council officer can only assign a bank the national office has authorised &mdash; and authorising one creates its login in the same action, so a bank is never assignable without someone able to sign in as it."},
+    {i:ic.shield,t:"A suspended bank loses access, not its record",d:"TAMISEMI can suspend a lender with a written reason; it is locked out at once. Its groups carry on meeting and repaying, and the book stays visible to an Administrator alone. A bank that has lent to a group can never simply be removed &mdash; an outstanding debt stays traceable to whoever issued it."}
+  ];
+  var gc=document.getElementById("guards");
+  GUARDS.forEach(function(g){
+    var el=document.createElement("div");
+    el.className="guard reveal";
+    el.innerHTML='<div class="gi"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+g.i+'</svg></div>'+
+      '<h3>'+g.t+'</h3><p>'+g.d+'</p>';
+    gc.appendChild(el);
+  });
+
+  // Reveal on scroll
+  var els=document.querySelectorAll(".reveal");
+  if("IntersectionObserver" in window && !matchMedia("(prefers-reduced-motion:reduce)").matches){
+    var io=new IntersectionObserver(function(en){
+      en.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target);} });
+    },{rootMargin:"0px 0px -8% 0px",threshold:.05});
+    els.forEach(function(e){io.observe(e);});
+  } else { els.forEach(function(e){e.classList.add("in");}); }
+})();
+</script>
