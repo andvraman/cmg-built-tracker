@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>CMG voice input — capability spike</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --green:#1a6b3c; --green-dark:#134f2d; --green-light:#e8f5ee;
+  --ink:#111827; --muted:#6b7280; --line:#e5e7eb; --bg:#f0f4f0;
+  --ok:#15803d; --bad:#b91c1c; --warn:#b45309;
+}
+body{font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);
+  background:var(--bg);padding:16px 16px calc(16px + env(safe-area-inset-bottom));
+  max-width:560px;margin:0 auto}
+h1{font-size:20px;font-weight:800;color:var(--green-dark);margin-bottom:4px}
+.sub{font-size:13px;color:var(--muted);margin-bottom:18px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.card h2{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:12px}
+.row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;
+  border-bottom:1px solid #f3f4f6;font-size:14px}
+.row:last-child{border-bottom:0}
+.row span:first-child{color:var(--muted)}
+.row span:last-child{font-weight:600;text-align:right;word-break:break-word}
+.yes{color:var(--ok)} .no{color:var(--bad)} .maybe{color:var(--warn)}
+button{font:inherit;cursor:pointer;border-radius:12px;border:1px solid var(--line);
+  background:#fff;padding:12px 16px}
+.big{width:100%;padding:18px;font-size:17px;font-weight:700;background:var(--green);
+  color:#fff;border-color:var(--green);margin-bottom:10px}
+.big:disabled{opacity:.45}
+.mic{width:100%;padding:26px;font-size:18px;font-weight:800;background:var(--green);
+  color:#fff;border-color:var(--green);touch-action:none;user-select:none}
+.mic.live{background:var(--bad);border-color:var(--bad);transform:scale(.99)}
+.hint{font-size:12.5px;color:var(--muted);margin-top:8px;text-align:center}
+.out{background:var(--green-light);border:1px solid #bbe0cb;border-radius:10px;
+  padding:14px;margin-top:12px;font-size:17px;min-height:56px;word-break:break-word}
+.out.interim{color:var(--muted);font-style:italic}
+.err{background:#fee2e2;border-color:#fecaca;color:var(--bad);font-size:14px}
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.pill{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:14px}
+.pill.on{background:var(--green-dark);color:#fff;border-color:var(--green-dark)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pad button{padding:20px 0;font-size:22px;font-weight:700}
+.pad button.wide{grid-column:span 2}
+.amt{font-size:30px;font-weight:800;text-align:right;padding:14px 16px;background:var(--green-light);
+  border:1px solid #bbe0cb;border-radius:10px;margin-bottom:10px;font-variant-numeric:tabular-nums}
+.words{font-size:13px;color:var(--muted);text-align:right;margin:-4px 0 12px;min-height:18px}
+textarea{width:100%;height:120px;font:12px/1.45 ui-monospace,Menlo,monospace;padding:10px;
+  border:1px solid var(--line);border-radius:10px;background:#fff}
+</style></head><body>
+
+<h1>Voice input — capability spike</h1>
+<div class="sub">Open this on each device you care about. Nothing here is the real
+prototype; it exists to find out what your phone and browser will actually allow
+before any of it gets designed around.</div>
+
+<div class="card">
+  <h2>1 · This device</h2>
+  <div id="env"></div>
+</div>
+
+<div class="card">
+  <h2>2 · Speech to text — the thing that might not work</h2>
+  <div class="pills" id="langs">
+    <button class="pill on" data-lang="en-US">English (en-US)</button>
+    <button class="pill" data-lang="sw-TZ">Kiswahili (sw-TZ)</button>
+    <button class="pill" data-lang="sw-KE">Kiswahili (sw-KE)</button>
+  </div>
+  <button class="mic" id="mic">Press and hold to talk</button>
+  <div class="hint">Hold, say something, let go. On a phone this is more reliable
+    than tapping once and waiting.</div>
+  <div class="out" id="said">—</div>
+  <div class="out err" id="sterr" style="display:none"></div>
+</div>
+
+<div class="card">
+  <h2>3 · Offline — can speech work with no connection?</h2>
+  <div id="ond"></div>
+  <div class="note" style="background:var(--green-light);border:1px solid #bbe0cb;border-radius:10px;padding:14px;margin-top:12px;font-size:14px;line-height:1.5">
+    <b>The test that actually settles it:</b> turn off Wi-Fi <i>and</i> mobile data,
+    then come back to section 2 and hold the button. If words appear, this device
+    can recognise speech on its own. If you get a network error, it cannot.
+  </div>
+</div>
+
+<div class="card">
+  <h2>4 · Read aloud — offline, uses your device's own voices</h2>
+  <button class="big" id="speak">Say a test sentence</button>
+  <div id="tts"></div>
+</div>
+
+<div class="card">
+  <h2>5 · How a number pad feels on this screen</h2>
+  <div class="amt" id="amt">0</div>
+  <div class="words" id="amtw">&nbsp;</div>
+  <div class="pad" id="pad"></div>
+</div>
+
+<div class="card">
+  <h2>6 · Send me this</h2>
+  <button class="big" id="copy">Copy the report</button>
+  <textarea id="report" readonly></textarea>
+</div>
+
+<script>
+(function(){
+"use strict";
+var $=function(s){return document.querySelector(s);};
+var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+var rows=[];
+function row(k,v,cls){
+  rows.push(k+": "+v);
+  return '<div class="row"><span>'+k+'</span><span class="'+(cls||'')+'">'+v+'</span></div>';
+}
+function yn(b){ return b ? ['yes','yes'] : ['no','no']; }
+
+/* ── 1. environment ────────────────────────────────────────────── */
+var secure = window.isSecureContext;
+var mic    = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+var ua     = navigator.userAgent;
+var isiOS  = /iPad|iPhone|iPod/.test(ua) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+var html='';
+html+=row('Address', location.protocol+'//'+location.host || '(file)');
+html+=row('Secure context', secure?'yes':'NO — the mic will be refused', secure?'yes':'no');
+html+=row('Microphone API', mic?'present':'absent', mic?'yes':'no');
+html+=row('SpeechRecognition', SR?'present':'ABSENT — no speech on this browser', SR?'yes':'no');
+html+=row('Speech synthesis', window.speechSynthesis?'present':'absent', window.speechSynthesis?'yes':'no');
+html+=row('Looks like iOS', isiOS?'yes':'no');
+html+=row('Browser', ua.slice(0,70)+(ua.length>70?'…':''));
+if(!secure){
+  html+='<div class="out err" style="margin-top:10px">This page is not in a secure '+
+    'context, so the microphone cannot be used. Serve it over <b>https</b>, or over '+
+    '<b>http://localhost</b> on this same device.</div>';
+}
+$('#env').innerHTML=html;
+
+/* ── 2. speech to text ─────────────────────────────────────────── */
+var lang='en-US', rec=null, holding=false;
+document.querySelectorAll('#langs .pill').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.querySelectorAll('#langs .pill').forEach(function(x){x.classList.remove('on');});
+    b.classList.add('on'); lang=b.getAttribute('data-lang');
+    say('Language set to '+lang+'. Hold the button and speak.');
+  });
+});
+function say(t,interim){
+  var el=$('#said'); el.textContent=t; el.className='out'+(interim?' interim':'');
+}
+function fail(msg){
+  var el=$('#sterr'); el.style.display='block'; el.textContent=msg;
+  rows.push('STT error: '+msg);
+  buildReport();
+}
+function start(){
+  if(!SR){ fail('This browser has no SpeechRecognition at all. On iPhone use Safari; on Android use Chrome. Firefox does not support it.'); return; }
+  if(holding) return;
+  $('#sterr').style.display='none';
+  try{
+    rec=new SR();
+    rec.lang=lang;
+    rec.interimResults=true;
+    rec.continuous=false;          /* iOS is unreliable with continuous */
+    rec.maxAlternatives=1;
+    rec.onresult=function(e){
+      var fin='', int='';
+      for(var i=e.resultIndex;i<e.results.length;i++){
+        var r=e.results[i];
+        if(r.isFinal) fin+=r[0].transcript; else int+=r[0].transcript;
+      }
+      if(fin){ say(fin); rows.push('heard ('+lang+'): '+fin); buildReport(); }
+      else if(int) say(int,true);
+    };
+    rec.onerror=function(e){
+      var m={
+        'not-allowed':'Permission refused. Allow the microphone for this site and try again.',
+        'service-not-allowed':'The browser blocked the speech service. Usually means the page is not on https.',
+        'no-speech':'Nothing was heard. Hold the button while you speak.',
+        'audio-capture':'No microphone was found.',
+        'network':'The speech service could not be reached. This API sends audio to the browser vendor, so it needs internet.',
+        'aborted':'Cancelled.'
+      }[e.error] || ('Error: '+e.error);
+      fail(m);
+      holding=false; $('#mic').classList.remove('live'); $('#mic').textContent='Press and hold to talk';
+    };
+    rec.onend=function(){
+      holding=false; $('#mic').classList.remove('live'); $('#mic').textContent='Press and hold to talk';
+    };
+    rec.start();
+    holding=true;
+    $('#mic').classList.add('live'); $('#mic').textContent='Listening — let go when done';
+    say('…', true);
+  }catch(err){ fail('Could not start: '+err.message); }
+}
+function stop(){ if(rec && holding){ try{ rec.stop(); }catch(e){} } }
+var m=$('#mic');
+/* pointer events cover mouse and touch; the gesture requirement on iOS is met
+   because start() runs inside the pointerdown handler */
+m.addEventListener('pointerdown', function(e){ e.preventDefault(); start(); });
+m.addEventListener('pointerup',   function(e){ e.preventDefault(); stop();  });
+m.addEventListener('pointercancel', stop);
+m.addEventListener('pointerleave',  stop);
+
+/* ── 3. on-device speech ───────────────────────────────────────── */
+(function(){
+  var h='';
+  h+=row('Currently online', navigator.onLine!==false ? 'yes' : 'NO — good, test the mic now',
+         navigator.onLine!==false ? 'yes':'maybe');
+  var api = SR && (SR.available || SR.availableOnDevice);
+  if(!api){
+    h+=row('On-device speech API', 'not offered by this browser', 'no');
+    h+=row('So, offline voice', 'no — speech is sent to the browser vendor', 'no');
+    $('#ond').innerHTML=h; buildReport(); return;
+  }
+  h+=row('On-device speech API', 'present — checking languages…', 'maybe');
+  $('#ond').innerHTML=h; buildReport();
+  var langs=['en-GB','en-US','sw-TZ','sw-KE'];
+  Promise.all(langs.map(function(L){
+    try{
+      var r = SR.available ? SR.available({langs:[L], processLocally:true})
+                           : SR.availableOnDevice(L);
+      return Promise.resolve(r).then(function(v){return [L,String(v)];},
+                                     function(e){return [L,'error'];});
+    }catch(e){ return Promise.resolve([L,'error']); }
+  })).then(function(res){
+    var h2=row('On-device speech API','present','yes');
+    res.forEach(function(pair){
+      var ok = pair[1]==='available' || pair[1]==='true';
+      var dl = pair[1]==='downloadable' || pair[1]==='downloading';
+      h2+=row('  on-device '+pair[0], pair[1], ok?'yes':(dl?'maybe':'no'));
+    });
+    $('#ond').innerHTML=h2; buildReport();
+  });
+})();
+
+/* ── 4. read aloud ─────────────────────────────────────────────── */
+function listVoices(){
+  var v=[]; try{ v=speechSynthesis.getVoices()||[]; }catch(e){}
+  var sw=v.filter(function(x){return /^sw/i.test(x.lang);});
+  var en=v.filter(function(x){return /^en/i.test(x.lang);});
+  var h='';
+  h+=row('Voices installed', v.length);
+  h+=row('English voices', en.length, en.length?'yes':'no');
+  h+=row('Kiswahili voices', sw.length? sw.map(function(x){return x.name;}).join(', ')
+        : 'none — spoken prompts would have to stay English', sw.length?'yes':'maybe');
+  $('#tts').innerHTML=h;
+  buildReport();
+}
+if(window.speechSynthesis){
+  listVoices();
+  speechSynthesis.onvoiceschanged=listVoices;   /* they load late on some browsers */
+}
+$('#speak').addEventListener('click', function(){
+  try{
+    var u=new SpeechSynthesisUtterance(
+      lang.indexOf('sw')===0
+        ? 'Watu wangapi walihudhuria mkutano?'
+        : 'How many people came to the meeting?');
+    u.lang=lang;
+    speechSynthesis.speak(u);
+  }catch(e){ alert('Could not speak: '+e.message); }
+});
+
+/* ── 5. the number pad ─────────────────────────────────────────── */
+var digits='';
+var ONES=['','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve',
+  'thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+var TENS=['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+function words(n){
+  if(n===0) return 'zero';
+  if(n>=1000000){ var m=Math.floor(n/1000000); return words(m)+' million'+(n%1000000?' '+words(n%1000000):''); }
+  if(n>=1000){ var t=Math.floor(n/1000); return words(t)+' thousand'+(n%1000?' '+words(n%1000):''); }
+  if(n>=100){ var h=Math.floor(n/100); return ONES[h]+' hundred'+(n%100?' and '+words(n%100):''); }
+  if(n>=20) return TENS[Math.floor(n/10)]+(n%10?'-'+ONES[n%10]:'');
+  return ONES[n];
+}
+function draw(){
+  var n=parseInt(digits||'0',10);
+  $('#amt').textContent=n.toLocaleString('en-GB');
+  $('#amtw').textContent=digits? words(n)+' shillings' : ' ';
+}
+var keys=['1','2','3','4','5','6','7','8','9','000','0','⌫'];
+var pad=$('#pad');
+keys.forEach(function(k){
+  var b=document.createElement('button');
+  b.textContent=k;
+  b.addEventListener('click', function(){
+    if(k==='⌫') digits=digits.slice(0,-1);
+    else if(digits.length<10) digits=(digits==='0'?'':digits)+k;
+    draw();
+    if(navigator.vibrate) navigator.vibrate(8);
+  });
+  pad.appendChild(b);
+});
+draw();
+
+/* ── 6. the report ─────────────────────────────────────────────── */
+function buildReport(){ $('#report').value=rows.join('\n'); }
+buildReport();
+$('#copy').addEventListener('click', function(){
+  var t=$('#report');
+  t.select(); t.setSelectionRange(0,99999);
+  var ok=false;
+  try{ ok=document.execCommand('copy'); }catch(e){}
+  if(navigator.clipboard){ navigator.clipboard.writeText(t.value).then(function(){},function(){}); ok=true; }
+  this.textContent = ok ? 'Copied' : 'Select the text above and copy it';
+  var b=this; setTimeout(function(){ b.textContent='Copy the report'; },1800);
+});
+})();
+</script>
+</body></html>

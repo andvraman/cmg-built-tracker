@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#134f2d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>CMG — voice entry prototype</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --green:#1a6b3c; --green-dark:#134f2d; --green-mid:#2d8a52; --green-light:#e8f5ee;
+  --ink:#111827; --muted:#5b6b60; --line:#dfe5e0; --bg:#f0f4f0;
+  --ok:#15803d; --bad:#b91c1c; --bad-bg:#fee2e2; --warn:#8a5a00; --warn-bg:#fdf6e3;
+  --tap:56px;                      /* nothing tappable is smaller than this */
+}
+html,body{height:100%}
+body{font:17px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);
+  background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+
+/* ── header ─────────────────────────────────────────────── */
+header{background:var(--green-dark);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;
+  display:flex;align-items:center;gap:10px;flex:none}
+header .who{font-size:13px;font-weight:700;letter-spacing:.02em;flex:1}
+header button{background:rgba(255,255,255,.14);color:#fff;border:0;border-radius:9px;
+  width:40px;height:36px;font-size:16px;cursor:pointer}
+header button.on{background:#fff;color:var(--green-dark)}
+.bar{height:4px;background:rgba(255,255,255,.2);flex:none}
+.bar i{display:block;height:100%;background:#e3a72c;width:0;transition:width .35s ease}
+
+#offline{display:none;background:var(--warn-bg);color:var(--warn);border-bottom:1px solid #eedcae;
+  font:600 13.5px/1.35 system-ui,sans-serif;padding:9px 14px;text-align:center;flex:none}
+body.offline #offline{display:block}
+
+/* ── the one question ───────────────────────────────────── */
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:20px 18px calc(18px + env(safe-area-inset-bottom))}
+.step{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.04em;margin-bottom:10px}
+h1{font-size:26px;line-height:1.25;font-weight:800;color:var(--green-dark);margin-bottom:8px}
+.help{font-size:15px;color:var(--muted);margin-bottom:20px}
+
+/* ── answers ────────────────────────────────────────────── */
+.answer{font-size:32px;font-weight:800;text-align:right;padding:16px 18px;
+  background:#fff;border:2px solid var(--line);border-radius:14px;
+  font-variant-numeric:tabular-nums;min-height:68px;word-break:break-word}
+.answer.empty{color:#c3ccc6}
+.words{font-size:14px;color:var(--muted);text-align:right;margin:8px 2px 0;min-height:20px}
+input.text,textarea.text,select.sel{width:100%;font:inherit;padding:16px;
+  border:2px solid var(--line);border-radius:14px;background:#fff;color:var(--ink)}
+textarea.text{height:130px;resize:none}
+select.sel{height:var(--tap);font-size:18px;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 21px) 24px,calc(100% - 15px) 24px;
+  background-size:6px 6px,6px 6px;background-repeat:no-repeat}
+input.text:focus,textarea.text:focus,select.sel:focus{outline:none;border-color:var(--green-mid)}
+
+/* ── keypad ─────────────────────────────────────────────── */
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:14px}
+.pad button{min-height:var(--tap);font:700 24px/1 system-ui,sans-serif;background:#fff;
+  border:1px solid var(--line);border-radius:13px;cursor:pointer;color:var(--ink)}
+.pad button:active{background:var(--green-light);border-color:var(--green-mid)}
+.pad button.util{font-size:19px;color:var(--muted)}
+
+/* ── voice ──────────────────────────────────────────────── */
+.mic{width:100%;min-height:78px;margin-top:14px;border-radius:16px;border:0;cursor:pointer;
+  background:var(--green);color:#fff;font:800 19px/1 system-ui,sans-serif;
+  display:flex;align-items:center;justify-content:center;gap:11px;
+  touch-action:none;user-select:none;-webkit-user-select:none}
+.mic:active,.mic.live{background:var(--bad)}
+.mic.live{animation:pulse 1.1s ease-in-out infinite}
+@keyframes pulse{50%{filter:brightness(1.18)}}
+.mic[disabled]{background:#9aa8a0;cursor:default;animation:none}
+.or{text-align:center;font-size:14px;color:var(--muted);margin:14px 0 10px}
+.heard{background:var(--green-light);border:2px solid #a9d3ba;border-radius:14px;
+  padding:16px;margin-top:14px}
+.heard .lbl{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.05em;margin-bottom:6px}
+.heard .val{font-size:23px;font-weight:700;line-height:1.3}
+.heard.interim .val{color:var(--muted);font-style:italic;font-weight:500}
+.pairs{display:flex;gap:10px;margin-top:12px}
+.pairs button{flex:1;min-height:var(--tap);border-radius:13px;font:700 17px/1 system-ui,sans-serif;
+  cursor:pointer;border:1px solid var(--line);background:#fff}
+.pairs button.yes{background:var(--green);color:#fff;border-color:var(--green)}
+
+/* ── date ───────────────────────────────────────────────── */
+.choices{display:flex;flex-direction:column;gap:11px}
+.choices button{min-height:64px;border-radius:14px;border:1px solid var(--line);background:#fff;
+  font:700 19px/1.3 system-ui,sans-serif;cursor:pointer;color:var(--ink);padding:12px 16px;text-align:left}
+.choices button small{display:block;font-weight:400;font-size:14px;color:var(--muted);margin-top:3px}
+.choices button.on{background:var(--green);color:#fff;border-color:var(--green)}
+.choices button.on small{color:rgba(255,255,255,.85)}
+
+/* ── notices ────────────────────────────────────────────── */
+.note{border-radius:13px;padding:14px 16px;font-size:15px;line-height:1.45;margin-top:14px}
+.note.bad{background:var(--bad-bg);color:var(--bad);border:1px solid #fecaca}
+.note.warn{background:var(--warn-bg);color:var(--warn);border:1px solid #eedcae}
+
+/* ── footer ─────────────────────────────────────────────── */
+footer{flex:none;padding:12px 18px calc(12px + env(safe-area-inset-bottom));
+  background:#fff;border-top:1px solid var(--line);display:flex;gap:11px}
+footer button{min-height:var(--tap);border-radius:14px;font:800 18px/1 system-ui,sans-serif;cursor:pointer}
+#back{flex:0 0 88px;background:#fff;border:1px solid var(--line);color:var(--muted)}
+#next{flex:1;background:var(--green);color:#fff;border:0}
+#next:disabled{background:#9aa8a0}
+
+/* ── review ─────────────────────────────────────────────── */
+.rev{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:14px}
+.rev div.r{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  padding:15px 16px;border-bottom:1px solid #eef2ef}
+.rev div.r:last-child{border-bottom:0}
+.rev .k{font-size:14px;color:var(--muted);flex:1}
+.rev .v{font-weight:700;text-align:right;flex:1;word-break:break-word}
+.rev button{background:none;border:0;color:var(--green);font:600 15px/1 system-ui,sans-serif;
+  cursor:pointer;padding:6px;flex:0 0 auto}
+.dbg{margin-top:18px;font-size:13px;color:var(--muted)}
+.dbg summary{cursor:pointer;padding:8px 0}
+.dbg label{display:flex;align-items:center;gap:9px;padding:7px 0;font-size:14px}
+</style></head><body>
+
+<header>
+  <div class="who" id="who">CHAIRPERSON · TUMAINI WANAWAKE KISONGO</div>
+  <button id="speaker" title="Read questions aloud">🔇</button>
+</header>
+<div class="bar"><i id="prog"></i></div>
+<div id="offline">No internet — you can still type every answer</div>
+
+<main id="main"></main>
+
+<footer>
+  <button id="back">Back</button>
+  <button id="next">Next</button>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var $=function(s){return document.querySelector(s);};
+var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+/* ═══════════════ the questions ═══════════════
+   One of each DISTINCT kind of thing a chairperson has to enter. The real app
+   has 33 of these fields; they collapse to the eight patterns below, so this is
+   the whole design surface rather than a sample of it.                       */
+var Q = [
+ { id:"name",    kind:"voice-short",
+   ask:"What is the group called?",
+   help:"Say the name out loud, or type it.",
+   placeholder:"e.g. Tumaini Wanawake Kisongo",
+   stands_for:"CMG name · chairperson name · treasurer name" },
+
+ { id:"phone",   kind:"phone",
+   ask:"What is the chairperson's phone number?",
+   help:"Ten digits, starting 0.",
+   stands_for:"chairperson phone · treasurer phone" },
+
+ { id:"present", kind:"count", max:99,
+   ask:"How many people came to the meeting?",
+   help:"Count everyone who attended.",
+   stands_for:"members present · total members · years active" },
+
+ { id:"savings", kind:"money",
+   ask:"How much was saved at this meeting?",
+   help:"In Tanzanian shillings.",
+   stands_for:"savings · repayments collected · loans disbursed · loan amount" },
+
+ { id:"quorum",  kind:"percent", def:80,
+   ask:"What share of members must attend for a decision?",
+   help:"Most groups use 80%. Change it only if yours is different.",
+   stands_for:"quorum %" },
+
+ { id:"date",    kind:"date",
+   ask:"When was the meeting?",
+   help:"",
+   stands_for:"meeting date" },
+
+ { id:"freq",    kind:"select",
+   ask:"How often does the group meet?",
+   help:"Pick one from the list.",
+   options:["Weekly","Fortnightly","Monthly"],
+   stands_for:"frequency · region · district · ward · village — unchanged, as agreed" },
+
+ { id:"notes",   kind:"voice-long",
+   ask:"Anything to note about this meeting?",
+   help:"Say it in a sentence or two, or leave it empty.",
+   placeholder:"e.g. Two members asked to increase their weekly saving.",
+   stands_for:"notes · loan purpose · reason for declining" }
+];
+
+/* ── what this device can actually do ──
+   Speech recognition is the only part of this prototype that has ever needed
+   the network: the browser streams audio to its vendor. Chromium has since
+   grown an on-device path (SpeechRecognition.available / install with
+   processLocally), so we probe for it rather than assuming. Everything else —
+   the keypad, the date choice, the list, typing, and reading the question
+   aloud — is local and works with no connection at all. */
+var CAP = { onDevice:false, probed:false };
+
+function online(){ return FAKE.offline ? false : navigator.onLine !== false; }
+function voiceUsable(){ return !!SR && !FAKE.unsupported && (online() || CAP.onDevice); }
+
+function probeOnDevice(lang){
+  if(CAP.probed) return Promise.resolve(CAP.onDevice);
+  CAP.probed = true;
+  return new Promise(function(res){
+    try{
+      var api = SR && (SR.available || SR.availableOnDevice);
+      if(!api){ return res(false); }
+      var r = SR.available
+        ? SR.available({ langs:[lang], processLocally:true })
+        : SR.availableOnDevice(lang);
+      Promise.resolve(r).then(function(v){
+        CAP.onDevice = (v === "available" || v === true);
+        res(CAP.onDevice);
+      }, function(){ res(false); });
+    }catch(e){ res(false); }
+  });
+}
+
+function markConnectivity(){
+  document.body.classList.toggle("offline", !online());
+  var s=document.getElementById("offline");
+  if(s) s.textContent = CAP.onDevice
+    ? "No internet — voice still works on this device, and you can always type"
+    : "No internet — voice input is unavailable, but you can type every answer";
+}
+window.addEventListener("online",  function(){ markConnectivity(); if(i<Q.length) render(); });
+window.addEventListener("offline", function(){ markConnectivity(); if(i<Q.length) render(); });
+
+var A = {};                                  /* the answers */
+var i = 0;                                   /* which question */
+var speakOn = false;
+var FAKE = { denied:false, offline:false, unsupported:false };
+
+/* ═══════════════ helpers ═══════════════ */
+var ONES=["","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve",
+ "thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"];
+var TENS=["","","twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];
+function words(n){
+  if(n===0) return "zero";
+  if(n>=1000000){var m=Math.floor(n/1000000);return words(m)+" million"+(n%1000000?" "+words(n%1000000):"");}
+  if(n>=1000){var t=Math.floor(n/1000);return words(t)+" thousand"+(n%1000?" "+words(n%1000):"");}
+  if(n>=100){var h=Math.floor(n/100);return ONES[h]+" hundred"+(n%100?" and "+words(n%100):"");}
+  if(n>=20) return TENS[Math.floor(n/10)]+(n%10?"-"+ONES[n%10]:"");
+  return ONES[n];
+}
+function money(v){ return Number(v||0).toLocaleString("en-GB"); }
+function phoneFmt(d){ return d.replace(/(\d{4})(\d{0,3})(\d{0,3})/,function(_,a,b,c){
+  return [a,b,c].filter(Boolean).join(" "); }); }
+function dstr(d){ return d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"}); }
+function iso(d){ return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+
+function speak(text){
+  if(!speakOn || !window.speechSynthesis) return;
+  try{ speechSynthesis.cancel();
+    var u=new SpeechSynthesisUtterance(text); u.lang="en-GB"; u.rate=.95;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* ═══════════════ the shell ═══════════════ */
+function render(){
+  var m=$("#main");
+  $("#prog").style.width = Math.round(i/Q.length*100)+"%";
+  $("#back").style.visibility = i===0 ? "hidden" : "visible";
+
+  if(i>=Q.length){ renderReview(); return; }
+
+  var q=Q[i];
+  m.innerHTML =
+    '<div class="step">Question '+(i+1)+' of '+Q.length+'</div>'+
+    '<h1>'+q.ask+'</h1>'+
+    (q.help?'<div class="help">'+q.help+'</div>':'')+
+    '<div id="field"></div>';
+  m.scrollTop=0;
+  ({ "voice-short":voiceField, "voice-long":voiceField, phone:padField,
+     count:padField, money:padField, percent:padField,
+     date:dateField, select:selectField })[q.kind](q);
+  speak(q.ask);
+  refreshNext();
+}
+function refreshNext(){
+  var q=Q[i];
+  var v=A[q.id];
+  var need = !(q.kind==="voice-long");                     /* notes may be empty */
+  $("#next").disabled = need && (v===undefined || v==="" || v===null);
+  $("#next").textContent = i===Q.length-1 ? "Review" : "Next";
+}
+
+/* ═══════════════ 1 · voice ═══════════════ */
+function voiceField(q){
+  var long = q.kind==="voice-long";
+  var unsupported = !SR || FAKE.unsupported;
+  var offline = !unsupported && !online() && !CAP.onDevice;
+  $("#field").innerHTML =
+    (long?'<textarea class="text" id="typed" placeholder="'+q.placeholder+'"></textarea>'
+        :'<input class="text" id="typed" placeholder="'+q.placeholder+'">')+
+    '<div class="or">— or —</div>'+
+    '<button class="mic" id="mic"'+((unsupported||offline)?" disabled":"")+'>'+
+      '<span style="font-size:26px">🎤</span> Press and hold to talk</button>'+
+    '<div id="micnote"></div>'+
+    '<div id="heard"></div>';
+
+  var typed=$("#typed");
+  if(A[q.id]) typed.value=A[q.id];
+  typed.addEventListener("input", function(){ A[q.id]=this.value.trim(); refreshNext(); });
+
+  if(unsupported){
+    $("#micnote").innerHTML='<div class="note warn">This browser cannot listen. '+
+      'On iPhone use Safari, on Android use Chrome. <b>You can still type the answer above</b> — '+
+      'nothing here depends on the microphone.</div>';
+    return;
+  }
+  if(offline){
+    $("#micnote").innerHTML='<div class="note warn">'+
+      '<b>Voice input is not available for this field without an internet connection.</b><br>'+
+      'Speech has to be sent away to be recognised. Type the answer above instead — '+
+      'the numbers, dates and lists in this form all work offline.</div>';
+    return;
+  }
+  wireMic(q);
+}
+
+function wireMic(q){
+  var btn=$("#mic"), rec=null, live=false;
+  function note(cls,msg){ $("#micnote").innerHTML='<div class="note '+cls+'">'+msg+'</div>'; }
+  function heard(text,interim){
+    $("#heard").innerHTML =
+      '<div class="heard'+(interim?" interim":"")+'">'+
+        '<div class="lbl">'+(interim?"listening…":"I heard")+'</div>'+
+        '<div class="val">'+(text||"…")+'</div>'+
+      '</div>'+
+      (interim?'':'<div class="pairs">'+
+        '<button class="yes" id="acc">Correct</button>'+
+        '<button id="rej">Retry</button></div>');
+    if(!interim){
+      $("#acc").addEventListener("click", function(){
+        $("#typed").value=text; A[q.id]=text; $("#heard").innerHTML='';
+        $("#micnote").innerHTML=''; refreshNext();
+        speak("Saved.");
+      });
+      $("#rej").addEventListener("click", function(){ $("#heard").innerHTML=''; });
+    }
+  }
+  function stop(){ if(rec&&live){ try{rec.stop();}catch(e){} } }
+  function start(){
+    if(live) return;
+    $("#micnote").innerHTML='';
+    if(FAKE.denied){ note("bad","Microphone permission was refused. Open your browser settings to allow it — or just type the answer above."); return; }
+    if(FAKE.offline){ note("bad","Could not reach the speech service. Speech recognition needs internet. <b>Type the answer above instead.</b>"); return; }
+    try{
+      rec=new SR(); rec.lang="en-GB"; rec.interimResults=true;
+      rec.continuous=false; rec.maxAlternatives=1;
+      rec.onresult=function(e){
+        var fin="",int="";
+        for(var k=e.resultIndex;k<e.results.length;k++){
+          var r=e.results[k]; if(r.isFinal) fin+=r[0].transcript; else int+=r[0].transcript;
+        }
+        if(fin) heard(fin.trim(),false); else if(int) heard(int,true);
+      };
+      rec.onerror=function(e){
+        var msg={
+          "not-allowed":"Microphone permission was refused. Allow it in your browser settings — or just type the answer above.",
+          "service-not-allowed":"The browser blocked the speech service. This usually means the page is not on https.",
+          "no-speech":"I did not hear anything. Hold the button down while you speak.",
+          "audio-capture":"No microphone was found on this device.",
+          "network":"Could not reach the speech service. Speech recognition needs internet. <b>Type the answer above instead.</b>",
+          "aborted":""
+        }[e.error];
+        if(msg===undefined) msg="Something went wrong ("+e.error+"). You can type the answer above.";
+        if(msg) note("bad",msg);
+        $("#heard").innerHTML='';
+      };
+      rec.onend=function(){ live=false; btn.classList.remove("live");
+        btn.innerHTML='<span style="font-size:26px">🎤</span> Press and hold to talk'; };
+      rec.start(); live=true;
+      btn.classList.add("live");
+      btn.innerHTML='<span style="font-size:26px">●</span> Listening — let go when done';
+      heard("",true);
+    }catch(err){ note("bad","Could not start listening. You can type the answer above."); }
+  }
+  btn.addEventListener("pointerdown",function(e){e.preventDefault();start();});
+  btn.addEventListener("pointerup",  function(e){e.preventDefault();stop();});
+  btn.addEventListener("pointercancel",stop);
+  btn.addEventListener("pointerleave", stop);
+}
+
+/* ═══════════════ 2 · keypad ═══════════════ */
+function padField(q){
+  var digits = A[q.id]!==undefined && A[q.id]!=="" ? String(A[q.id]).replace(/\D/g,"")
+             : (q.def!==undefined ? String(q.def) : "");
+  $("#field").innerHTML =
+    '<div class="answer'+(digits?"":" empty")+'" id="disp">0</div>'+
+    '<div class="words" id="wds">&nbsp;</div>'+
+    '<div class="pad" id="pad"></div>'+
+    '<div id="padnote"></div>';
+
+  function commit(){
+    var n = digits==="" ? "" : parseInt(digits,10);
+    /* a phone number is a string of digits, not a quantity — parsing it to a
+       number silently eats the leading zero every Tanzanian number starts with */
+    A[q.id] = q.kind==="phone" ? digits : n;
+    var d=$("#disp"), w=$("#wds"), note=$("#padnote");
+    d.classList.toggle("empty", digits==="");
+    note.innerHTML="";
+    if(q.kind==="phone"){
+      d.textContent = digits ? phoneFmt(digits) : "0700 000 000";
+      w.textContent = digits.length===10 ? "✓ ten digits" : digits.length+" of 10 digits";
+      if(digits && digits[0]!=="0") note.innerHTML='<div class="note warn">Tanzanian numbers start with 0.</div>';
+      if(digits.length!==10) A[q.id]="";
+    } else if(q.kind==="money"){
+      d.textContent = digits ? money(n) : "0";
+      w.textContent = digits ? words(n)+" shillings" : " ";
+    } else if(q.kind==="percent"){
+      d.textContent = (digits?n:0)+"%";
+      w.textContent = digits ? words(n)+" per cent" : " ";
+      if(digits && (n<1||n>100)){ note.innerHTML='<div class="note warn">Must be between 1 and 100.</div>'; A[q.id]=""; }
+    } else {
+      d.textContent = digits ? String(n) : "0";
+      w.textContent = digits ? words(n)+(n===1?" person":" people") : " ";
+      if(q.max && n>q.max){ note.innerHTML='<div class="note warn">That looks too high. Check the number.</div>'; }
+    }
+    refreshNext();
+  }
+
+  var keys = q.kind==="money" ? ["1","2","3","4","5","6","7","8","9","000","0","⌫"]
+                              : ["1","2","3","4","5","6","7","8","9","clear","0","⌫"];
+  var pad=$("#pad");
+  keys.forEach(function(k){
+    var b=document.createElement("button");
+    b.textContent=k;
+    if(k==="⌫"||k==="clear") b.className="util";
+    b.addEventListener("click", function(){
+      var lim = q.kind==="phone"?10 : q.kind==="percent"?3 : q.kind==="count"?3 : 10;
+      if(k==="⌫") digits=digits.slice(0,-1);
+      else if(k==="clear") digits="";
+      else if(digits.length+(k==="000"?3:1) <= lim){
+        /* a leading zero is meaningless in an amount but load-bearing in a
+           Tanzanian phone number, so only amounts get it stripped */
+        var strip = q.kind!=="phone" && digits==="0";
+        digits = (strip?"":digits)+k;
+      }
+      commit();
+      if(navigator.vibrate) try{navigator.vibrate(8);}catch(e){}
+    });
+    pad.appendChild(b);
+  });
+  commit();
+}
+
+/* ═══════════════ 3 · date ═══════════════ */
+function dateField(q){
+  var today=new Date(), yest=new Date(Date.now()-864e5);
+  $("#field").innerHTML=
+    '<div class="choices">'+
+      '<button data-d="'+iso(today)+'">Today<small>'+dstr(today)+'</small></button>'+
+      '<button data-d="'+iso(yest)+'">Yesterday<small>'+dstr(yest)+'</small></button>'+
+      '<button data-d="pick">Another day<small>Choose from a calendar</small></button>'+
+    '</div>'+
+    '<div id="picker" style="display:none;margin-top:12px">'+
+      '<input class="text" type="date" id="dpick" max="'+iso(today)+'"></div>';
+  var btns=$("#field").querySelectorAll(".choices button");
+  function mark(v){ btns.forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-d")===v); }); }
+  btns.forEach(function(b){
+    b.addEventListener("click", function(){
+      var d=b.getAttribute("data-d");
+      if(d==="pick"){ mark("pick"); $("#picker").style.display="block"; $("#dpick").focus(); }
+      else { mark(d); $("#picker").style.display="none"; A[q.id]=d; refreshNext(); }
+    });
+  });
+  $("#dpick").addEventListener("change", function(){ A[q.id]=this.value; refreshNext(); });
+  if(A[q.id]) mark(A[q.id]);
+}
+
+/* ═══════════════ 4 · select — deliberately unchanged ═══════════════ */
+function selectField(q){
+  $("#field").innerHTML='<select class="sel" id="sel">'+
+    '<option value="">— Select —</option>'+
+    q.options.map(function(o){return '<option'+(A[q.id]===o?" selected":"")+'>'+o+'</option>';}).join("")+
+    '</select>'+
+    '<div class="note warn" style="margin-top:16px">Lists like this one are left exactly as they are. '+
+    'Choosing from a list is not the barrier — typing is.</div>';
+  $("#sel").addEventListener("change", function(){ A[q.id]=this.value; refreshNext(); });
+}
+
+/* ═══════════════ review ═══════════════ */
+function renderReview(){
+  $("#prog").style.width="100%";
+  var rows=Q.map(function(q,n){
+    var v=A[q.id];
+    if(q.kind==="money") v = v===""||v===undefined ? "—" : "TZS "+money(v);
+    else if(q.kind==="percent") v = v===""||v===undefined ? "—" : v+"%";
+    else if(q.kind==="phone") v = v ? phoneFmt(String(v)) : "—";
+    else if(q.kind==="date"&&v) v = dstr(new Date(v+"T00:00:00"));
+    return '<div class="r"><span class="k">'+q.ask+'</span>'+
+           '<span class="v">'+(v===""||v===undefined?"—":v)+'</span>'+
+           '<button data-go="'+n+'">Change</button></div>';
+  }).join("");
+  $("#main").innerHTML=
+    '<div class="step">Last step</div>'+
+    '<h1>Check before saving</h1>'+
+    '<div class="help">Read it back. Change anything that is wrong.</div>'+
+    '<div class="rev">'+rows+'</div>'+
+    '<div class="note warn">Nothing is saved anywhere. This is a prototype for testing '+
+      'how the entry feels — there is no database behind it.</div>'+
+    '<details class="dbg"><summary>Test the failure states</summary>'+
+      '<label><input type="checkbox" id="f1"> Pretend the microphone was refused</label>'+
+      '<label><input type="checkbox" id="f2"> Pretend there is no internet</label>'+
+      '<label><input type="checkbox" id="f3"> Pretend the browser cannot listen at all</label>'+
+      '<div style="margin-top:8px">Then press Back and try a voice question. '+
+      'You should always still be able to type.</div>'+
+    '</details>';
+  $("#main").scrollTop=0;
+  $("#next").textContent="Start again";
+  $("#next").disabled=false;
+  $("#main").querySelectorAll("[data-go]").forEach(function(b){
+    b.addEventListener("click", function(){ i=parseInt(b.getAttribute("data-go"),10); render(); });
+  });
+  $("#f1").checked=FAKE.denied; $("#f2").checked=FAKE.offline; $("#f3").checked=FAKE.unsupported;
+  /* the simulated switches have to move the same state the real events do,
+     or the banner and the field disagree about whether there is a connection */
+  $("#f1").addEventListener("change",function(){FAKE.denied=this.checked;});
+  $("#f2").addEventListener("change",function(){FAKE.offline=this.checked; markConnectivity();});
+  $("#f3").addEventListener("change",function(){FAKE.unsupported=this.checked;});
+  speak("Check your answers before saving.");
+}
+
+/* ═══════════════ wiring ═══════════════ */
+$("#next").addEventListener("click", function(){
+  if(i>=Q.length){ A={}; i=0; render(); return; }
+  i++; render();
+});
+$("#back").addEventListener("click", function(){ if(i>0){ i--; render(); } });
+$("#speaker").addEventListener("click", function(){
+  speakOn=!speakOn;
+  this.textContent = speakOn ? "🔊" : "🔇";
+  this.classList.toggle("on", speakOn);
+  if(speakOn && i<Q.length) speak(Q[i].ask); else if(window.speechSynthesis) speechSynthesis.cancel();
+});
+
+markConnectivity();
+probeOnDevice("en-GB").then(function(ok){
+  markConnectivity();
+  if(ok && i<Q.length) render();          /* the mic may now be usable offline */
+});
+
+/* the page itself has to be cached, or "offline" just means a blank screen */
+if("serviceWorker" in navigator && location.protocol==="https:"){
+  navigator.serviceWorker.register("sw.js").catch(function(){});
+}
+
+render();
+window.__PROTO={ Q:Q, answers:function(){return A;}, go:function(n){i=n;render();},
+                 fake:FAKE, hasSR:!!SR, cap:CAP, online:online };
+})();
+</script>
+</body></html>
