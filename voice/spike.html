@@ -208,8 +208,13 @@ m.addEventListener('pointerleave',  stop);
          navigator.onLine!==false ? 'yes':'maybe');
   var api = SR && (SR.available || SR.availableOnDevice);
   if(!api){
-    h+=row('On-device speech API', 'not offered by this browser', 'no');
-    h+=row('So, offline voice', 'no — speech is sent to the browser vendor', 'no');
+    h+=row('On-device speech API', 'not offered by this browser', 'maybe');
+    h+=row('So, offline voice', 'cannot be told from here — run the test below', 'maybe');
+    h+='<div class="note" style="background:var(--warn-bg,#fdf6e3);border:1px solid #eedcae;'+
+       'color:#8a5a00;border-radius:10px;padding:12px;margin-top:10px;font-size:13.5px;line-height:1.5">'+
+       '<b>Absent does not mean it cannot.</b> iOS Safari recognises speech on the device '+
+       'while reporting no on-device API at all. Feature detection is unreliable here; '+
+       'only the airplane-mode test below gives a true answer.</div>';
     $('#ond').innerHTML=h; buildReport(); return;
   }
   h+=row('On-device speech API', 'present — checking languages…', 'maybe');

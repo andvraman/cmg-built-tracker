@@ -193,10 +193,23 @@ var Q = [
    processLocally), so we probe for it rather than assuming. Everything else —
    the keypad, the date choice, the list, typing, and reading the question
    aloud — is local and works with no connection at all. */
-var CAP = { onDevice:false, probed:false };
+var CAP = { onDevice:false, probed:false, offlineVoice:null };
+/* offlineVoice: null = never tried offline, true = it worked, false = it failed.
+   Measured, not detected. iOS Safari recognises speech on-device while
+   reporting no on-device API at all, so feature detection says "no" where the
+   truth is "yes". Believing the probe would disable a microphone that works. */
 
 function online(){ return FAKE.offline ? false : navigator.onLine !== false; }
-function voiceUsable(){ return !!SR && !FAKE.unsupported && (online() || CAP.onDevice); }
+/* ready · untested · needs-net · unsupported — never guess, and never block
+   something that might work. If we are offline and have not yet found out,
+   let the person try. */
+function micState(){
+  if(!SR || FAKE.unsupported) return "unsupported";
+  if(online()) return "ready";
+  if(CAP.onDevice || CAP.offlineVoice === true) return "ready";
+  if(CAP.offlineVoice === false) return "needs-net";
+  return "untested";
+}
 
 function probeOnDevice(lang){
   if(CAP.probed) return Promise.resolve(CAP.onDevice);
@@ -219,9 +232,12 @@ function probeOnDevice(lang){
 function markConnectivity(){
   document.body.classList.toggle("offline", !online());
   var s=document.getElementById("offline");
-  if(s) s.textContent = CAP.onDevice
+  if(!s) return;
+  s.textContent = (CAP.onDevice || CAP.offlineVoice === true)
     ? "No internet — voice still works on this device, and you can always type"
-    : "No internet — voice input is unavailable, but you can type every answer";
+    : CAP.offlineVoice === false
+      ? "No internet — voice input is unavailable, but you can type every answer"
+      : "No internet — voice may still work here; typing always does";
 }
 window.addEventListener("online",  function(){ markConnectivity(); if(i<Q.length) render(); });
 window.addEventListener("offline", function(){ markConnectivity(); if(i<Q.length) render(); });
@@ -289,13 +305,13 @@ function refreshNext(){
 /* ═══════════════ 1 · voice ═══════════════ */
 function voiceField(q){
   var long = q.kind==="voice-long";
-  var unsupported = !SR || FAKE.unsupported;
-  var offline = !unsupported && !online() && !CAP.onDevice;
+  var st = micState();
+  var unsupported = st==="unsupported";
   $("#field").innerHTML =
     (long?'<textarea class="text" id="typed" placeholder="'+q.placeholder+'"></textarea>'
         :'<input class="text" id="typed" placeholder="'+q.placeholder+'">')+
     '<div class="or">— or —</div>'+
-    '<button class="mic" id="mic"'+((unsupported||offline)?" disabled":"")+'>'+
+    '<button class="mic" id="mic"'+((st==="unsupported"||st==="needs-net")?" disabled":"")+'>'+
       '<span style="font-size:26px">🎤</span> Press and hold to talk</button>'+
     '<div id="micnote"></div>'+
     '<div id="heard"></div>';
@@ -310,12 +326,17 @@ function voiceField(q){
       'nothing here depends on the microphone.</div>';
     return;
   }
-  if(offline){
+  if(st==="needs-net"){
     $("#micnote").innerHTML='<div class="note warn">'+
       '<b>Voice input is not available for this field without an internet connection.</b><br>'+
-      'Speech has to be sent away to be recognised. Type the answer above instead — '+
-      'the numbers, dates and lists in this form all work offline.</div>';
+      'On this device speech has to be sent away to be recognised. Type the answer '+
+      'above instead — the numbers, dates and lists in this form all work offline.</div>';
     return;
+  }
+  if(st==="untested"){
+    $("#micnote").innerHTML='<div class="note warn">'+
+      'You are offline. Some phones can still recognise speech on their own — '+
+      '<b>try the button</b>. If it cannot, it will say so and you can type instead.</div>';
   }
   wireMic(q);
 }
@@ -355,9 +376,17 @@ function wireMic(q){
         for(var k=e.resultIndex;k<e.results.length;k++){
           var r=e.results[k]; if(r.isFinal) fin+=r[0].transcript; else int+=r[0].transcript;
         }
-        if(fin) heard(fin.trim(),false); else if(int) heard(int,true);
+        if(fin){
+          /* it worked with no connection — remember, and stop warning about it */
+          if(!online() && CAP.offlineVoice!==true){ CAP.offlineVoice=true; markConnectivity(); }
+          heard(fin.trim(),false);
+        } else if(int) heard(int,true);
       };
       rec.onerror=function(e){
+        /* the only reliable way to learn this device cannot do it offline */
+        if(e.error==="network" && !online() && CAP.offlineVoice!==false){
+          CAP.offlineVoice=false; markConnectivity(); render(); return;
+        }
         var msg={
           "not-allowed":"Microphone permission was refused. Allow it in your browser settings — or just type the answer above.",
           "service-not-allowed":"The browser blocked the speech service. This usually means the page is not on https.",

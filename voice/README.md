@@ -49,14 +49,30 @@ recognised. The split:
 | Lists and dropdowns | **yes** |
 | Typing any answer | **yes** |
 | Reading questions aloud | **yes** — uses the device's own voices |
-| **Speech to text** | **no**, unless the browser has on-device recognition |
+| **Speech to text** | **depends on the device — measured, not assumed** |
 
-Newer Chromium exposes an on-device path (`SpeechRecognition.available` /
-`install` with `processLocally`). The prototype probes for it at start-up and
-uses it when present, so on those devices voice keeps working with no
-connection. `spike.html` section 3 reports what your device actually offers —
-and the test that settles it is to turn Wi-Fi *and* mobile data off and hold the
-button.
+### Do not trust feature detection here
+
+Tested on an iPhone, August 2026: **speech recognition keeps working in airplane
+mode**, while the on-device capability API reports *"not offered by this
+browser"* — in both Safari and Chrome (on iOS every browser is WebKit, so they
+are the same engine). Apple routes the Web Speech API through system dictation,
+which is already on-device, and advertises nothing.
+
+So the prototype does **not** decide from a capability probe. It starts
+optimistic and learns:
+
+- offline and never tried → the mic stays **enabled**, with a note saying it may
+  still work
+- it produced words offline → remembered as working; the warning disappears
+- it failed with a network error offline → remembered as needing internet, and
+  only then is the mic disabled and the firm message shown
+
+An earlier version trusted the probe and greyed the microphone out on exactly
+the device where it worked. Never block something that might work.
+
+**Android is still unknown.** iOS behaviour says nothing about it — there Chrome
+is really Chrome, and the end users will be on Android. That test is outstanding.
 
 When voice is not available, the prototype does not hide it or fail silently.
 A banner appears under the header, the microphone button greys out, and the
