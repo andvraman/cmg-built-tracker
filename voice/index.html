@@ -255,11 +255,92 @@ var Q_LOAN = [
    placeholder:"e.g. Seed, fertiliser and a shared maize sheller" }
 ];
 
+/* ═══════════════ registering a group ═══════════════
+   The only flow with no account behind it: the group does not exist yet, so
+   nothing can be prefilled and the outcome is an identity rather than a record.
+
+   Location is the app's own administrative hierarchy, lifted unchanged. 23 of
+   its 48 wards carry no village list, so the village question has to fall back
+   to free text — the last route by which unverified location data can enter the
+   system, and worth seeing rather than hiding.                               */
+var GEO = {"Arusha":{"Arusha District Council":{"Bangata":["Midawe","Sasi"],"Bwawani":[],"Ilboru":["Oltulelei"],"Ilkiding'a":["Ilkiding'A","Ilkisongo","Oloigeruno"],"Kimnyak":["Kimnyaki","Lekako","Mitaroli","Olevolos"],"Kiranyi":[],"Kisongo":["Engorora","Ilkerini","Kisongo","Lesiraa","Loovilukuny"],"Kiutu":[],"Laroi":["Enjoro","Laroi"],"Lemanyata":[],"Lengijave":[],"Mateves":["Lemgur","Ngorbob"],"Mlangarini":[],"Moivo":["Ilkilorit","Moivo","Oloresho","Sama"],"Musa":[],"Mwandet":[],"Nduruma":[],"Oldonyosambu":["Oldonyosambu"],"Oldonyowas":[],"Oljoro":[],"Olmotonyi":[],"Oloirien":["Olorieni","Olosiva"],"Olturoto":["Osunyai"],"Olturumet":["Ekenywa","Ilkiushin","Seuri"],"Sambasha":[],"Sokon II":["Nambele","Ngiresi","Sokoni II"],"Tarakwa":[]}},"Singida":{"Singida District Council":{"Ikhanoda":[],"Ilongero":["Ilongero","Sekoutoure"],"Itaja":[],"Kijota":["Ikiwu","Mitonto","Nduu"],"Kinyagigi":["Kihunadi","Kinyagigi","Mitula"],"Kinyeto":["Kinyeto","Minyaa","Mkimbii","Ntunduu"],"Maghojoa":["Ghata"],"Makuro":["Matumbo","Mikuyu","Mpoku"],"Merya":[],"Mgori":[],"Mrama":["Iddi Simba","Itamka","Makhandi","Mrama"],"Msange":[],"Msisi":[],"Mtinko":["Malolo","Minyenye"],"Mudida":["Kibaoni","Mpipiti","Mudida"],"Mughamo":["Msikii"],"Mughunga":[],"Mwasauya":["Mdilu","Mwasauya","Ngamu"],"Ngimu":[],"Ntonge":[],"Ughandi":["Ughandi A"]}}};
+function districtsIn(r){ return r && GEO[r] ? Object.keys(GEO[r]).sort() : []; }
+function wardsIn(r,d){ return (r&&d&&GEO[r]&&GEO[r][d]) ? Object.keys(GEO[r][d]).sort() : []; }
+function villagesIn(r,d,w){ return (r&&d&&w&&GEO[r]&&GEO[r][d]&&GEO[r][d][w]) ? GEO[r][d][w] : []; }
+
+var Q_REGISTER = [
+ { id:"name", kind:"voice-short",
+   ask:"What is the group called?",
+   help:"Say the name out loud, or type it.",
+   placeholder:"e.g. Tumaini Wanawake Kisongo" },
+
+ { id:"region", kind:"select",
+   ask:"Which region is the group in?",
+   help:"Pick from the list.",
+   options:function(){ return Object.keys(GEO).sort(); },
+   clears:["district","ward","village"] },
+
+ { id:"district", kind:"select",
+   ask:"Which district council?",
+   help:"",
+   options:function(){ return districtsIn(A.region); },
+   clears:["ward","village"] },
+
+ { id:"ward", kind:"select",
+   ask:"Which ward?",
+   help:"",
+   options:function(){ return wardsIn(A.region, A.district); },
+   clears:["village"] },
+
+ { id:"village", kind:"village",
+   ask:"Which village?",
+   help:"" },
+
+ { id:"members", kind:"count", max:99,
+   ask:"How many members does the group have?",
+   help:"Everyone who saves with the group.",
+   verdict:function(n){
+     if(n<10) return { ok:false, text:"Fewer than 10 members. The group can still "+
+       "register, but the council officer will check this when they verify it." };
+     if(n>25) return { ok:false, text:"More than 25 members. The officer will check this too." };
+     return { ok:true, text:n+" members" };
+   } },
+
+ { id:"quorum", kind:"percent", def:80,
+   ask:"What share of members must attend for a decision?",
+   help:"Most groups use 80%. Change it only if yours is different." },
+
+ { id:"freq", kind:"select",
+   ask:"How often does the group meet?",
+   help:"",
+   options:["Weekly","Fortnightly","Monthly"] },
+
+ { id:"chair", kind:"voice-short",
+   ask:"What is the chairperson's name?",
+   help:"Say it, or type it.",
+   placeholder:"e.g. Neema Elias Mollel" },
+
+ { id:"chairphone", kind:"phone",
+   ask:"What is the chairperson's phone number?",
+   help:"Ten digits, starting 0." },
+
+ { id:"treasurer", kind:"voice-short",
+   ask:"What is the treasurer's name?",
+   help:"Say it, or type it.",
+   placeholder:"e.g. Sikitu Joseph Laizer" },
+
+ { id:"treasurerphone", kind:"phone", optional:true,
+   ask:"What is the treasurer's phone number?",
+   help:"You can leave this out." }
+];
+
 var FLOWS = {
   meeting:{ label:"Log a meeting",   sub:"Attendance, savings and repayments",
             head:"LOG A MEETING",    questions:Q_MEETING },
   loan:   { label:"Apply for a loan", sub:"Ask NMB Bank to lend to the group",
-            head:"APPLY FOR A LOAN", questions:Q_LOAN }
+            head:"APPLY FOR A LOAN", questions:Q_LOAN },
+  register:{ label:"Register a new group", sub:"Before the group has an ID at all",
+            head:"REGISTER A GROUP", questions:Q_REGISTER, noGroup:true }
 };
 var flow = null;                 /* null = the chooser */
 var Q = [];
@@ -321,6 +402,11 @@ function markConnectivity(){
 }
 window.addEventListener("online",  function(){ markConnectivity(); if(flow) render(); });
 window.addEventListener("offline", function(){ markConnectivity(); if(flow) render(); });
+
+var TAPPED = false;
+["pointerdown","touchstart","mousedown"].forEach(function(ev){
+  window.addEventListener(ev, function(){ TAPPED = true; }, { once:true, capture:true });
+});
 
 var A = {};                                  /* the answers */
 var i = 0;                                   /* which question */
@@ -439,6 +525,10 @@ function renderHome(){
       flow=b.getAttribute("data-flow");
       Q=FLOWS[flow].questions;
       A={}; i=0;
+      /* seed any declared defaults now. They used to appear only when their own
+         screen rendered, so a value the user never had to touch could still
+         arrive undefined. */
+      Q.forEach(function(x){ if(x.def!==undefined) A[x.id]=x.def; });
       $("#next").style.display="";
       render();
     });
@@ -447,7 +537,9 @@ function renderHome(){
 
 function render(){
   if(!flow){ renderHome(); return; }
-  $("#who").textContent=FLOWS[flow].head+" · "+G.name.toUpperCase();
+  $("#who").textContent = FLOWS[flow].noGroup
+    ? FLOWS[flow].head
+    : FLOWS[flow].head+" · "+G.name.toUpperCase();
   var m=$("#main"), L=order();
   $("#prog").style.width = Math.round(i/L.length*100)+"%";
   $("#back").style.visibility = "visible";
@@ -464,7 +556,7 @@ function render(){
   m.scrollTop=0;
   ({ "voice-short":voiceField, "voice-long":voiceField, phone:padField,
      count:padField, money:padField, percent:padField,
-     date:dateField, select:selectField,
+     date:dateField, select:selectField, village:villageField,
      yesno:choiceField, choice:choiceField })[q.kind](q);
   speak(q.ask);
   refreshNext();
@@ -473,7 +565,7 @@ function refreshNext(){
   var L=order(), q=L[i];
   if(!q) return;
   var v=A[q.id];
-  var need = !(q.kind==="voice-long");                     /* notes may be empty */
+  var need = !(q.kind==="voice-long") && !q.optional;      /* notes and the second phone may be empty */
   $("#next").disabled = need && (v===undefined || v==="" || v===null);
   $("#next").textContent = i===L.length-1 ? "Review" : "Next";
 }
@@ -662,7 +754,9 @@ function padField(q){
         digits = (strip?"":digits)+k;
       }
       commit();
-      if(navigator.vibrate) try{navigator.vibrate(8);}catch(e){}
+      /* Chrome refuses (and logs) a vibrate before the frame has been tapped,
+         which a scripted run trips on every key */
+      if(TAPPED && navigator.vibrate) try{ navigator.vibrate(8); }catch(e){}
     });
     pad.appendChild(b);
   });
@@ -721,13 +815,54 @@ function choiceField(q){
 
 /* ═══════════════ 4 · select — deliberately unchanged ═══════════════ */
 function selectField(q){
-  $("#field").innerHTML='<select class="sel" id="sel">'+
-    '<option value="">— Select —</option>'+
-    q.options.map(function(o){return '<option'+(A[q.id]===o?" selected":"")+'>'+o+'</option>';}).join("")+
+  /* options may be a fixed list or derived from an earlier answer — region
+     decides districts, district decides wards, and so on */
+  var opts = typeof q.options==="function" ? q.options() : q.options;
+  if(!opts.length){
+    $("#field").innerHTML='<div class="note warn">Nothing to choose from — go back and '+
+      'check the previous answer.</div>';
+    return;
+  }
+  $("#field").innerHTML=
+    '<select class="sel" id="sel">'+
+      '<option value="">— Select —</option>'+
+      opts.map(function(o){return '<option'+(A[q.id]===o?" selected":"")+'>'+o+'</option>';}).join("")+
     '</select>'+
     '<div class="note warn" style="margin-top:16px">Lists like this one are left exactly as they are. '+
     'Choosing from a list is not the barrier — typing is.</div>';
-  $("#sel").addEventListener("change", function(){ A[q.id]=this.value; refreshNext(); });
+  $("#sel").addEventListener("change", function(){
+    A[q.id]=this.value;
+    /* a changed region invalidates the district beneath it, and so on down */
+    (q.clears||[]).forEach(function(k){ A[k]=""; });
+    refreshNext();
+  });
+}
+
+/* ═══════════════ 4b · village — a list where there is one, typing where there is not ═══════════════ */
+function villageField(q){
+  var vs = villagesIn(A.region, A.district, A.ward);
+  if(vs.length){
+    selectField({ id:q.id, options:vs });
+    return;
+  }
+  /* 23 of the 48 wards carry no village list. Rather than pretend, say so —
+     and this is the one place free text is unavoidable, so voice earns its
+     place here more than anywhere else in the form. */
+  $("#field").innerHTML=
+    '<input class="text" id="typed" placeholder="Type or say the village name">'+
+    '<div class="or">— or —</div>'+
+    '<button class="mic" id="mic">'+
+      '<span style="font-size:26px">&#127908;</span> Press and hold to talk</button>'+
+    '<div id="micnote"></div><div id="heard"></div>'+
+    '<div class="note warn" style="margin-top:16px">No villages are listed for '+
+      (A.ward||"this ward")+', so this one has to be typed. The council officer '+
+      'will check it when they verify the group.</div>';
+  var t=$("#typed");
+  if(A[q.id]) t.value=A[q.id];
+  t.addEventListener("input", function(){ A[q.id]=this.value.trim(); refreshNext(); });
+  var st=micState();
+  if(st==="unsupported"||st==="needs-net"){ $("#mic").disabled=true; }
+  else wireMic(q);
 }
 
 /* ═══════════════ review ═══════════════ */
@@ -749,6 +884,11 @@ function renderReview(){
 
   /* each flow gets whatever context governs what happens next */
   var qv="";
+  if(flow==="register"){
+    qv = '<div class="note warn"><b>Nothing is checked yet.</b> Submitting creates the group '+
+         'and gives it an ID straight away — an officer at '+(A.district||"the district council")+
+         ' then verifies it before it can borrow.</div>';
+  }
   if(flow==="loan"){
     /* what the group never typed, and never should have to */
     qv = '<div class="note good"><b>Sent with this application, from the group\'s own record:</b><br>'+
@@ -769,12 +909,13 @@ function renderReview(){
 
   $("#main").innerHTML=
     '<div class="step">Last step</div>'+
-    '<h1>Check before '+(flow==="loan"?"sending":"saving")+'</h1>'+
+    '<h1>Check before '+(flow==="loan"?"sending":flow==="register"?"registering":"saving")+'</h1>'+
     '<div class="help">Read it back. Change anything that is wrong.</div>'+
     qv+
     '<div class="rev" style="margin-top:14px">'+rows+'</div>'+
     '<button class="mic" id="save" style="min-height:64px">'+
-      (flow==="loan"?"Send this application":"Save this meeting")+'</button>'+
+      (flow==="loan"?"Send this application":
+       flow==="register"?"Register the group":"Save this meeting")+'</button>'+
     '<div id="saved"></div>'+
     '<details class="dbg"><summary>Test the failure states</summary>'+
       '<label><input type="checkbox" id="f1"> Pretend the microphone was refused</label>'+
@@ -791,7 +932,9 @@ function renderReview(){
   });
 
   $("#save").addEventListener("click", function(){
-    this.disabled=true; this.textContent = flow==="loan" ? "Sent" : "Saved";
+    this.disabled=true;
+    this.textContent = flow==="loan" ? "Sent" : flow==="register" ? "Registered" : "Saved";
+    if(flow==="register"){ showRegistered(); return; }
     $("#saved").innerHTML='<div class="note good" style="margin-top:12px">'+
       '<b>Nothing left this phone.</b> This is a prototype — there is no database behind it. '+
       (flow==="loan"
@@ -814,6 +957,7 @@ function renderReview(){
    can be read straight across into the meetings table */
 function record(){
   if(flow==="loan") return loanRecord();
+  if(flow==="register") return registerRecord();
   var remit = !G.hasLoan ? 0
             : A.remitted!=="yes" ? 0
             : A.remitType==="full" ? G.instalment
@@ -831,6 +975,56 @@ function record(){
     notes:       A.notes || null,
     members_now: memberCount(),
     quorum_met:  (A.present!==""&&A.present!==undefined) ? (A.present>=threshold()) : null
+  };
+}
+
+/* Registering does not write a row the chairperson will ever look at — it
+   mints an identity. So the outcome is that identity, said plainly, rather than
+   a confirmation message. */
+function showRegistered(){
+  var id = "C1031";                       /* the server allocates this */
+  var warn = [];
+  if(A.members < 10) warn.push("The group has fewer than 10 members.");
+  if(A.members > 25) warn.push("The group has more than 25 members.");
+  if(!villagesIn(A.region,A.district,A.ward).length)
+    warn.push("The village was typed rather than chosen from the official list.");
+
+  $("#saved").innerHTML =
+    '<div class="note good" style="margin-top:14px;text-align:center;padding:22px 16px">'+
+      '<div style="font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.8">'+
+        'The group&rsquo;s new ID</div>'+
+      '<div style="font-size:44px;font-weight:800;letter-spacing:.04em;margin:8px 0 10px">'+id+'</div>'+
+      '<div style="font-size:15px;line-height:1.5">Write this down. The chairperson signs in with '+
+      'it from now on — there is no password.</div>'+
+    '</div>'+
+    (warn.length
+      ? '<div class="note warn" style="margin-top:12px"><b>Passed on to the officer:</b><br>'+
+        warn.join('<br>')+'</div>'
+      : '')+
+    '<div class="note warn" style="margin-top:12px"><b>Nothing left this phone.</b> '+
+      'This is a prototype. In the real app this is the call that would be made:</div>'+
+    '<pre style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;'+
+    'font:12px/1.5 ui-monospace,Menlo,monospace;overflow-x:auto;margin-top:10px">'+
+    JSON.stringify(registerRecord(),null,2).replace(/</g,"&lt;")+'</pre>';
+  speak("The group is registered. Its identity is "+id.split("").join(" "));
+}
+
+function registerRecord(){
+  return {
+    rpc:                 "register_cmg",
+    p_name:              A.name || null,
+    p_region:            A.region || null,
+    p_district:          A.district || null,
+    p_ward:              A.ward || null,
+    p_village:           A.village || null,
+    p_members:           A.members===""?null:A.members,
+    p_quorum:            (A.quorum===""||A.quorum===undefined) ? 80 : A.quorum,
+    p_freq:              A.freq || null,
+    p_chair_name:        A.chair || null,
+    p_chair_phone:       A.chairphone || null,
+    p_treasurer_name:    A.treasurer || null,
+    p_treasurer_phone:   A.treasurerphone || null,
+    _returned_by_the_server: { cmg_id:"C1031", registry_status:"PENDING_LGA_VERIFICATION" }
   };
 }
 

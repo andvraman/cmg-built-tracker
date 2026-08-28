@@ -8,8 +8,38 @@ Self-contained, no dependencies, no database:
 | `types.html` | the input-type sampler: one field of each kind, for testing a new device |
 | `spike.html` | capability test — run this on any device before trusting it |
 
-Two chairperson tasks are built. The chooser is the first screen; **Back** on
+Three chairperson tasks are built. The chooser is the first screen; **Back** on
 the first question returns to it.
+
+## Register a group
+
+Twelve questions — the longest flow, and the only one with **no account behind
+it**: the group does not exist yet, so nothing can be prefilled and the outcome
+is an identity rather than a record.
+
+Location uses the app's own administrative hierarchy, lifted unchanged (1.3 KB):
+region → district → ward → village, each list derived from the answer before it.
+Changing the region clears everything beneath it rather than leaving a stale
+district in place.
+
+### The village question is the honest one
+
+**23 of the 48 wards carry no village list.** Where there is one, it is a
+dropdown. Where there is not, the question falls back to typing — and says so:
+
+> No villages are listed for Bwawani, so this one has to be typed. The council
+> officer will check it when they verify the group.
+
+This is the last route by which unverified location data enters the system, and
+it is also the place where voice input earns its keep most, because it is the
+one unavoidable free-text field in the whole flow.
+
+### The outcome is an identity
+
+Registering shows the minted **CMG ID** in large type — *"Write this down. The
+chairperson signs in with it from now on — there is no password."* Anything the
+officer should know is passed on beneath it: fewer than 10 members, more than
+25, or a village that was typed rather than chosen.
 
 ## Apply for a loan
 
