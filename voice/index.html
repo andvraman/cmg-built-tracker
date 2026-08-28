@@ -44,7 +44,10 @@ h1{font-size:26px;line-height:1.25;font-weight:800;color:var(--green-dark);margi
   background:#fff;border:2px solid var(--line);border-radius:14px;
   font-variant-numeric:tabular-nums;min-height:68px;word-break:break-word}
 .answer.empty{color:#c3ccc6}
-.words{font-size:14px;color:var(--muted);text-align:right;margin:8px 2px 0;min-height:20px}
+.wordrow{display:flex;align-items:center;gap:10px;margin:8px 2px 0}
+.words{font-size:14px;color:var(--muted);text-align:right;min-height:20px;flex:1}
+.clr{background:#fff;border:1px solid var(--line);border-radius:9px;color:var(--muted);
+  font:600 14px/1 system-ui,sans-serif;padding:9px 14px;cursor:pointer;flex:none}
 input.text,textarea.text,select.sel{width:100%;font:inherit;padding:16px;
   border:2px solid var(--line);border-radius:14px;background:#fff;color:var(--ink)}
 textarea.text{height:130px;resize:none}
@@ -145,7 +148,8 @@ var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 var G = {
   id:"C1031", name:"Tumaini Wanawake Kisongo",
   members:12, quorumPct:80,
-  hasLoan:true, instalment:487500, totalDue:5850000, repaidToDate:487500
+  hasLoan:true, instalment:487500, totalDue:5850000, repaidToDate:487500,
+  fi:"NMB Bank", meetingsLogged:7, quorumMet:3, priorLoan:false
 };
 function memberCount(){ return (A.members===""||A.members===undefined) ? G.members : A.members; }
 function threshold(){ return Math.ceil(memberCount()*G.quorumPct/100); }
@@ -154,7 +158,7 @@ function threshold(){ return Math.ceil(memberCount()*G.quorumPct/100); }
    The chairperson's most frequent task — every fortnight, for the life of the
    group. `when` hides a question that does not apply, so the remittance branch
    only appears for a group that actually has a loan to repay.               */
-var Q = [
+var Q_MEETING = [
  { id:"date", kind:"date",
    ask:"When was the meeting?",
    help:"" },
@@ -219,6 +223,47 @@ var Q = [
    placeholder:"e.g. Two members asked to increase their weekly saving." }
 ];
 
+/* ═══════════════ applying for a loan ═══════════════
+   Four things the group has to say. Everything else the lender will weigh —
+   member count, meetings logged, how often quorum was met, any earlier loan —
+   the system already holds and sends with it. That asymmetry is the point of
+   the flow, so the review screen shows it explicitly.                        */
+var Q_LOAN = [
+ { id:"savings_total", kind:"money",
+   ask:"How much has the group saved altogether?",
+   help:"Everything the group holds — not just this meeting." },
+
+ { id:"years", kind:"count", max:40,
+   ask:"How many years has the group been saving together?",
+   help:"" },
+
+ { id:"amount", kind:"money",
+   ask:"How much does the group want to borrow?",
+   help:"This application goes to NMB Bank, the group's assigned lender.",
+   /* asked after savings, so the comparison can be made while the number is
+      still being chosen rather than after it is committed */
+   verdict:function(n){
+     var sv = A.savings_total;
+     if(sv===""||sv===undefined||!sv) return null;
+     return { ok:true, text:"That is about "+(Math.round((n/sv)*10)/10)+
+              " times what the group has saved." };
+   } },
+
+ { id:"purpose", kind:"voice-short",
+   ask:"What is the money for?",
+   help:"A few words is enough. Say it, or type it.",
+   placeholder:"e.g. Seed, fertiliser and a shared maize sheller" }
+];
+
+var FLOWS = {
+  meeting:{ label:"Log a meeting",   sub:"Attendance, savings and repayments",
+            head:"LOG A MEETING",    questions:Q_MEETING },
+  loan:   { label:"Apply for a loan", sub:"Ask NMB Bank to lend to the group",
+            head:"APPLY FOR A LOAN", questions:Q_LOAN }
+};
+var flow = null;                 /* null = the chooser */
+var Q = [];
+
 /* only the questions that apply right now */
 function order(){ return Q.filter(function(q){ return !q.when || q.when(A); }); }
 
@@ -274,8 +319,8 @@ function markConnectivity(){
       ? "No internet — voice input is unavailable, but you can type every answer"
       : "No internet — voice may still work here; typing always does";
 }
-window.addEventListener("online",  function(){ markConnectivity(); if(i<order().length) render(); });
-window.addEventListener("offline", function(){ markConnectivity(); if(i<order().length) render(); });
+window.addEventListener("online",  function(){ markConnectivity(); if(flow) render(); });
+window.addEventListener("offline", function(){ markConnectivity(); if(flow) render(); });
 
 var A = {};                                  /* the answers */
 var i = 0;                                   /* which question */
@@ -374,10 +419,39 @@ function speak(text, onFail){
 }
 
 /* ═══════════════ the shell ═══════════════ */
+function renderHome(){
+  $("#prog").style.width="0%";
+  $("#back").style.visibility="hidden";
+  $("#next").style.display="none";
+  $("#who").textContent="CHAIRPERSON · "+G.name.toUpperCase();
+  $("#main").innerHTML=
+    '<div class="step">'+G.name+' · '+G.id+'</div>'+
+    '<h1>What do you want to do?</h1>'+
+    '<div class="help">Everything is one question at a time. You can go back at any point.</div>'+
+    '<div class="choices">'+
+      Object.keys(FLOWS).map(function(k){
+        return '<button data-flow="'+k+'">'+FLOWS[k].label+
+               '<small>'+FLOWS[k].sub+'</small></button>';
+      }).join("")+
+    '</div>';
+  $("#main").querySelectorAll("[data-flow]").forEach(function(b){
+    b.addEventListener("click", function(){
+      flow=b.getAttribute("data-flow");
+      Q=FLOWS[flow].questions;
+      A={}; i=0;
+      $("#next").style.display="";
+      render();
+    });
+  });
+}
+
 function render(){
+  if(!flow){ renderHome(); return; }
+  $("#who").textContent=FLOWS[flow].head+" · "+G.name.toUpperCase();
   var m=$("#main"), L=order();
   $("#prog").style.width = Math.round(i/L.length*100)+"%";
-  $("#back").style.visibility = i===0 ? "hidden" : "visible";
+  $("#back").style.visibility = "visible";
+  $("#back").textContent = i===0 ? "Cancel" : "Back";
 
   if(i>=L.length){ renderReview(); return; }
 
@@ -459,7 +533,7 @@ function wireMic(q){
       $("#acc").addEventListener("click", function(){
         $("#typed").value=text; A[q.id]=text; $("#heard").innerHTML='';
         $("#micnote").innerHTML=''; refreshNext();
-        speak("Saved.");
+        speak(flow==="loan" ? "Application sent." : "Saved.");
       });
       $("#rej").addEventListener("click", function(){ $("#heard").innerHTML=''; });
     }
@@ -521,7 +595,12 @@ function padField(q){
              : (q.def!==undefined ? String(q.def) : "");
   $("#field").innerHTML =
     '<div class="answer'+(digits?"":" empty")+'" id="disp">0</div>'+
-    '<div class="words" id="wds">&nbsp;</div>'+
+    '<div class="wordrow">'+
+      /* the money pad spends its spare key on 000, so it has nowhere to clear
+         from — without this, correcting a mistyped amount is ten backspaces */
+      '<button class="clr" id="clr" type="button">Clear</button>'+
+      '<div class="words" id="wds">&nbsp;</div>'+
+    '</div>'+
     '<div class="pad" id="pad"></div>'+
     '<div id="padnote"></div>';
 
@@ -532,6 +611,7 @@ function padField(q){
     A[q.id] = q.kind==="phone" ? digits : n;
     var d=$("#disp"), w=$("#wds"), note=$("#padnote");
     d.classList.toggle("empty", digits==="");
+    var clr=$("#clr"); if(clr) clr.style.visibility = digits ? "visible" : "hidden";
     note.innerHTML="";
     if(q.kind==="phone"){
       d.textContent = digits ? phoneFmt(digits) : "0700 000 000";
@@ -550,28 +630,31 @@ function padField(q){
       w.textContent = digits ? words(n)+(n===1?" person":" people") : " ";
       if(q.max && n>q.max){
         note.innerHTML='<div class="note warn">That looks too high. Check the number.</div>';
-      } else if(q.verdict && digits){
-        /* the rule the app enforces, said at the moment of entry rather than
-           discovered later — this is the whole point of the redesign */
-        var vd=q.verdict(n);
-        note.innerHTML='<div class="note '+(vd.ok?"good":"warn")+'">'+
-          (vd.ok?"&#10003; ":"&#9888; ")+vd.text+'</div>';
       }
+    }
+    /* Any field may carry a verdict, not just a count — the quorum rule sits on
+       a count, the loan-to-savings comparison on an amount. Kept outside the
+       per-kind branches above, which is where it was wrongly buried. */
+    if(q.verdict && digits && !note.innerHTML){
+      var vd = q.verdict(n);
+      if(vd) note.innerHTML='<div class="note '+(vd.ok?"good":"warn")+'">'+
+        (vd.ok?"&#10003; ":"&#9888; ")+vd.text+'</div>';
     }
     refreshNext();
   }
 
   var keys = q.kind==="money" ? ["1","2","3","4","5","6","7","8","9","000","0","⌫"]
-                              : ["1","2","3","4","5","6","7","8","9","clear","0","⌫"];
+                              : ["1","2","3","4","5","6","7","8","9","","0","⌫"];
   var pad=$("#pad");
   keys.forEach(function(k){
     var b=document.createElement("button");
     b.textContent=k;
-    if(k==="⌫"||k==="clear") b.className="util";
+    if(k===""){ b.disabled=true; b.style.visibility="hidden"; }
+    if(k==="⌫") b.className="util";
     b.addEventListener("click", function(){
       var lim = q.kind==="phone"?10 : q.kind==="percent"?3 : q.kind==="count"?3 : 10;
       if(k==="⌫") digits=digits.slice(0,-1);
-      else if(k==="clear") digits="";
+      else if(k==="") return;
       else if(digits.length+(k==="000"?3:1) <= lim){
         /* a leading zero is meaningless in an amount but load-bearing in a
            Tanzanian phone number, so only amounts get it stripped */
@@ -583,6 +666,7 @@ function padField(q){
     });
     pad.appendChild(b);
   });
+  $("#clr").addEventListener("click", function(){ digits=""; commit(); });
   commit();
 }
 
@@ -663,9 +747,19 @@ function renderReview(){
            '<button data-go="'+n+'">Change</button></div>';
   }).join("");
 
-  /* the quorum verdict again, because it governs what the group may do next */
-  var pres=A.present, t=threshold(), qv="";
-  if(pres!==""&&pres!==undefined){
+  /* each flow gets whatever context governs what happens next */
+  var qv="";
+  if(flow==="loan"){
+    /* what the group never typed, and never should have to */
+    qv = '<div class="note good"><b>Sent with this application, from the group\'s own record:</b><br>'+
+         G.members+' members · '+G.meetingsLogged+' meetings logged · quorum met at '+
+         G.quorumMet+' of them · '+
+         (G.priorLoan ? 'one earlier loan, repaid in full' : 'no earlier loan')+
+         '<br><span style="opacity:.85">The lender reads this, not just the four answers above. '+
+         'Nobody assembles it.</span></div>';
+  }
+  var pres=A.present, t=threshold();
+  if(flow==="meeting" && pres!==""&&pres!==undefined){
     qv = pres>=t
       ? '<div class="note good">&#10003; This meeting met quorum — '+pres+' of '+memberCount()+
         ' present. A loan decision could be taken at it.</div>'
@@ -675,11 +769,12 @@ function renderReview(){
 
   $("#main").innerHTML=
     '<div class="step">Last step</div>'+
-    '<h1>Check before saving</h1>'+
+    '<h1>Check before '+(flow==="loan"?"sending":"saving")+'</h1>'+
     '<div class="help">Read it back. Change anything that is wrong.</div>'+
     qv+
     '<div class="rev" style="margin-top:14px">'+rows+'</div>'+
-    '<button class="mic" id="save" style="min-height:64px">Save this meeting</button>'+
+    '<button class="mic" id="save" style="min-height:64px">'+
+      (flow==="loan"?"Send this application":"Save this meeting")+'</button>'+
     '<div id="saved"></div>'+
     '<details class="dbg"><summary>Test the failure states</summary>'+
       '<label><input type="checkbox" id="f1"> Pretend the microphone was refused</label>'+
@@ -689,17 +784,19 @@ function renderReview(){
       'You should always still be able to type.</div>'+
     '</details>';
   $("#main").scrollTop=0;
-  $("#next").textContent="Start again";
+  $("#next").textContent="Done";
   $("#next").disabled=false;
   $("#main").querySelectorAll("[data-go]").forEach(function(b){
     b.addEventListener("click", function(){ i=parseInt(b.getAttribute("data-go"),10); render(); });
   });
 
   $("#save").addEventListener("click", function(){
-    this.disabled=true; this.textContent="Saved";
+    this.disabled=true; this.textContent = flow==="loan" ? "Sent" : "Saved";
     $("#saved").innerHTML='<div class="note good" style="margin-top:12px">'+
       '<b>Nothing left this phone.</b> This is a prototype — there is no database behind it. '+
-      'In the real app this is the row that would be written to <code>meetings</code>:</div>'+
+      (flow==="loan"
+        ? 'In the real app this is the call that would be made:'
+        : 'In the real app this is the row that would be written to <code>meetings</code>:')+'</div>'+
       '<pre style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;'+
       'font:12px/1.5 ui-monospace,Menlo,monospace;overflow-x:auto;margin-top:10px">'+
       JSON.stringify(record(),null,2).replace(/</g,"&lt;")+'</pre>';
@@ -710,12 +807,13 @@ function renderReview(){
   $("#f1").addEventListener("change",function(){FAKE.denied=this.checked;});
   $("#f2").addEventListener("change",function(){FAKE.offline=this.checked; markConnectivity();});
   $("#f3").addEventListener("change",function(){FAKE.unsupported=this.checked;});
-  speak("Check your answers before saving.");
+  speak("Check your answers before "+(flow==="loan"?"sending":"saving")+".");
 }
 
 /* what the real app would store — the app's own field names, so this prototype
    can be read straight across into the meetings table */
 function record(){
+  if(flow==="loan") return loanRecord();
   var remit = !G.hasLoan ? 0
             : A.remitted!=="yes" ? 0
             : A.remitType==="full" ? G.instalment
@@ -736,12 +834,36 @@ function record(){
   };
 }
 
+/* The loan application, in the shape of the RPC the app actually calls.
+   Only four values come from the chairperson; the rest the server reads off
+   the group's own record, which is why the form is four questions and not
+   fourteen. */
+function loanRecord(){
+  return {
+    rpc:              "apply_for_loan",
+    p_cmg_id:         G.id,
+    p_amount:         A.amount===""?null:A.amount,
+    p_purpose:        A.purpose || null,
+    p_group_savings:  A.savings_total===""?null:A.savings_total,
+    p_years_active:   A.years===""?null:A.years,
+    _filled_in_by_the_server: {
+      fi:                     G.fi,
+      members_at_application: G.members,
+      had_prior_loan:         G.priorLoan,
+      status:                 "PENDING"
+    }
+  };
+}
+
 /* ═══════════════ wiring ═══════════════ */
 $("#next").addEventListener("click", function(){
-  if(i>=order().length){ A={}; i=0; render(); return; }
+  if(i>=order().length){ flow=null; A={}; i=0; render(); return; }
   i++; render();
 });
-$("#back").addEventListener("click", function(){ if(i>0){ i--; render(); } });
+$("#back").addEventListener("click", function(){
+  if(i>0){ i--; render(); return; }
+  flow=null; A={}; i=0; render();          /* out of the flow, back to the chooser */
+});
 $("#speaker").addEventListener("click", function(){
   var btn=this;
   speakOn=!speakOn;
@@ -750,7 +872,9 @@ $("#speaker").addEventListener("click", function(){
   if(!speakOn){ try{ window.speechSynthesis.cancel(); }catch(e){} return; }
   /* the first utterance must ride this click: Android will not speak later
      without a gesture behind it */
-  speak(i<Q.length ? Q[i].ask : "Check your answers before saving.", function(why){
+  var L0 = flow ? order() : [];
+  speak(!flow ? "What do you want to do?"
+       : i<L0.length ? L0[i].ask : "Check your answers before saving.", function(why){
     speakOn=false; btn.textContent="🔇"; btn.classList.remove("on");
     var w=document.createElement("div");
     w.className="note warn";
@@ -769,7 +893,7 @@ $("#speaker").addEventListener("click", function(){
 markConnectivity();
 probeOnDevice("en-GB").then(function(ok){
   markConnectivity();
-  if(ok && i<Q.length) render();          /* the mic may now be usable offline */
+  if(ok && flow && i<order().length) render();   /* the mic may now be usable offline */
 });
 
 /* the page itself has to be cached, or "offline" just means a blank screen */

@@ -4,9 +4,29 @@ Self-contained, no dependencies, no database:
 
 | | |
 |---|---|
-| `index.html` | **Log a meeting** — the real chairperson flow, one question per screen |
+| `index.html` | the prototype — a task chooser, then one question per screen |
 | `types.html` | the input-type sampler: one field of each kind, for testing a new device |
 | `spike.html` | capability test — run this on any device before trusting it |
+
+Two chairperson tasks are built. The chooser is the first screen; **Back** on
+the first question returns to it.
+
+## Apply for a loan
+
+Four questions. The order matters: savings and years are asked **before** the
+amount, so the moment the chairperson types a figure it can be compared —
+*"That is about 1.2 times what the group has saved."* Asking the amount first
+would leave nothing to compare it against.
+
+The review then shows what the group never typed and never should have to:
+
+> **Sent with this application, from the group's own record:**
+> 12 members · 7 meetings logged · quorum met at 3 of them · no earlier loan
+> The lender reads this, not just the four answers above. Nobody assembles it.
+
+**Send** shows the `apply_for_loan` RPC exactly as the app calls it, with a
+`_filled_in_by_the_server` block listing what the group does not supply — the
+lender, the member count, the prior-loan history and the initial status.
 
 ## Log a meeting
 
