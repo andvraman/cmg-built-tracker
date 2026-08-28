@@ -134,6 +134,27 @@ The speaker button in the header is **off by default**. It uses the device's own
 voices, so it works offline — but macOS, Windows and iOS ship **no Kiswahili
 voice**, so spoken prompts will likely stay English-only.
 
+### Chrome on Android fails at this silently
+
+Tested August 2026: read-aloud worked on iOS and said nothing at all on
+Android/Chrome, with no error. Three separate causes, any one of which is enough:
+
+1. `getVoices()` is empty until `voiceschanged` fires — speaking before that
+   produces nothing;
+2. `cancel()` called immediately before `speak()` kills the new utterance, so
+   only cancel when something is actually speaking, and leave a beat;
+3. setting `.lang` without also setting `.voice` fails when no installed voice
+   matches that exact tag.
+
+All three are handled now, and the toggle no longer pretends. If nothing starts
+within 1.4 seconds it switches itself back off and says so:
+
+> **Reading aloud is not working on this device.** Android needs a text-to-speech
+> voice installed and enabled — Settings, Accessibility, Text-to-speech.
+
+That last part is a device setting, not something the page can fix. Read-aloud
+stays a bonus, never a dependency — which is why it is off by default.
+
 ## Console handles
 
 `window.__PROTO` exposes `Q`, `answers()`, `go(n)`, `fake`, `hasSR`.

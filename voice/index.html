@@ -265,12 +265,60 @@ function phoneFmt(d){ return d.replace(/(\d{4})(\d{0,3})(\d{0,3})/,function(_,a,
 function dstr(d){ return d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"}); }
 function iso(d){ return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
 
-function speak(text){
-  if(!speakOn || !window.speechSynthesis) return;
-  try{ speechSynthesis.cancel();
-    var u=new SpeechSynthesisUtterance(text); u.lang="en-GB"; u.rate=.95;
-    speechSynthesis.speak(u);
-  }catch(e){}
+/* ── reading aloud ──
+   Three things break this on Chrome for Android, and the failure is silent:
+     1. getVoices() is empty until voiceschanged fires, so an early call says
+        nothing at all;
+     2. cancel() called immediately before speak() kills the new utterance —
+        so only cancel when something is actually speaking, and leave a beat;
+     3. setting only .lang and no .voice fails when no voice matches that exact
+        tag, so pick a real voice from the list and take its tag.
+   iOS tolerates all three, which is why this looked fine until it was tried on
+   Android. */
+var VOICES = [];
+function loadVoices(){ try{ VOICES = window.speechSynthesis.getVoices() || []; }catch(e){ VOICES = []; } }
+if(window.speechSynthesis){
+  loadVoices();
+  try{ window.speechSynthesis.onvoiceschanged = loadVoices; }catch(e){}
+}
+function pickVoice(){
+  if(!VOICES.length) loadVoices();
+  var want = ["en-gb","en-us","en"];
+  for(var w=0; w<want.length; w++){
+    for(var k=0; k<VOICES.length; k++){
+      var tag = String(VOICES[k].lang||"").replace("_","-").toLowerCase();
+      if(tag === want[w] || tag.indexOf(want[w]+"-") === 0) return VOICES[k];
+    }
+  }
+  for(var j=0; j<VOICES.length; j++){
+    if(String(VOICES[j].lang||"").toLowerCase().indexOf("en") === 0) return VOICES[j];
+  }
+  return VOICES[0] || null;
+}
+function speak(text, onFail){
+  if(!speakOn || !window.speechSynthesis || !text) return;
+  var fired = false;
+  var go = function(){
+    try{
+      var u = new SpeechSynthesisUtterance(text);
+      var v = pickVoice();
+      if(v){ u.voice = v; u.lang = v.lang; } else { u.lang = "en-GB"; }
+      u.rate = .95;
+      u.onstart = function(){ fired = true; };
+      u.onerror = function(){ if(onFail) onFail("error"); };
+      window.speechSynthesis.speak(u);
+      /* nothing started and nothing errored — the usual Android silent failure */
+      setTimeout(function(){
+        if(!fired && !window.speechSynthesis.speaking && onFail) onFail("silent");
+      }, 1400);
+    }catch(e){ if(onFail) onFail("threw"); }
+  };
+  try{
+    if(window.speechSynthesis.speaking || window.speechSynthesis.pending){
+      window.speechSynthesis.cancel();
+      setTimeout(go, 130);
+    } else go();
+  }catch(e){ go(); }
 }
 
 /* ═══════════════ the shell ═══════════════ */
@@ -560,10 +608,24 @@ $("#next").addEventListener("click", function(){
 });
 $("#back").addEventListener("click", function(){ if(i>0){ i--; render(); } });
 $("#speaker").addEventListener("click", function(){
+  var btn=this;
   speakOn=!speakOn;
-  this.textContent = speakOn ? "🔊" : "🔇";
-  this.classList.toggle("on", speakOn);
-  if(speakOn && i<Q.length) speak(Q[i].ask); else if(window.speechSynthesis) speechSynthesis.cancel();
+  btn.textContent = speakOn ? "🔊" : "🔇";
+  btn.classList.toggle("on", speakOn);
+  if(!speakOn){ try{ window.speechSynthesis.cancel(); }catch(e){} return; }
+  /* the first utterance must ride this click: Android will not speak later
+     without a gesture behind it */
+  speak(i<Q.length ? Q[i].ask : "Check your answers before saving.", function(){
+    speakOn=false; btn.textContent="🔇"; btn.classList.remove("on");
+    var w=document.createElement("div");
+    w.className="note warn";
+    w.style.cssText="position:fixed;left:14px;right:14px;bottom:84px;z-index:9";
+    w.innerHTML="<b>Reading aloud is not working on this device.</b><br>"+
+      "Android needs a text-to-speech voice installed and enabled — "+
+      "Settings, Accessibility, Text-to-speech. Everything else works without it.";
+    document.body.appendChild(w);
+    setTimeout(function(){ w.remove(); }, 7000);
+  });
 });
 
 markConnectivity();

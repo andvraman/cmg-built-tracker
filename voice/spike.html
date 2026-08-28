@@ -255,15 +255,50 @@ if(window.speechSynthesis){
   listVoices();
   speechSynthesis.onvoiceschanged=listVoices;   /* they load late on some browsers */
 }
+/* Chrome on Android fails silently if the voice list is not loaded, if
+   cancel() runs immediately before speak(), or if only .lang is set and no
+   voice matches it. Report what actually happened rather than assuming. */
+function pickVoice(want){
+  var v=[]; try{ v=speechSynthesis.getVoices()||[]; }catch(e){}
+  var base=want.split('-')[0].toLowerCase();
+  for(var i=0;i<v.length;i++){
+    var t=String(v[i].lang||'').replace('_','-').toLowerCase();
+    if(t===want.toLowerCase()) return v[i];
+  }
+  for(var j=0;j<v.length;j++){
+    if(String(v[j].lang||'').toLowerCase().indexOf(base)===0) return v[j];
+  }
+  return null;
+}
 $('#speak').addEventListener('click', function(){
+  var btn=this, said=false;
+  var report=function(what,detail){
+    rows.push('TTS attempt ('+lang+'): '+what+(detail?' — '+detail:''));
+    buildReport();
+    btn.textContent = what==='spoke' ? 'It spoke — say it again'
+                                     : 'Nothing came out ('+what+')';
+    setTimeout(function(){ btn.textContent='Say a test sentence'; }, 3500);
+  };
+  var go=function(){
+    try{
+      var u=new SpeechSynthesisUtterance(
+        lang.indexOf('sw')===0 ? 'Watu wangapi walihudhuria mkutano?'
+                               : 'How many people came to the meeting?');
+      var v=pickVoice(lang) || pickVoice('en-GB');
+      if(v){ u.voice=v; u.lang=v.lang; } else { u.lang=lang; }
+      u.onstart=function(){ said=true; report('spoke', v?(v.name+' / '+v.lang):'default voice'); };
+      u.onerror=function(e){ report('error', e.error||''); };
+      speechSynthesis.speak(u);
+      setTimeout(function(){
+        if(!said && !speechSynthesis.speaking)
+          report('silent', v?('voice was '+v.name):'no matching voice found');
+      }, 1500);
+    }catch(e){ report('threw', e.message); }
+  };
   try{
-    var u=new SpeechSynthesisUtterance(
-      lang.indexOf('sw')===0
-        ? 'Watu wangapi walihudhuria mkutano?'
-        : 'How many people came to the meeting?');
-    u.lang=lang;
-    speechSynthesis.speak(u);
-  }catch(e){ alert('Could not speak: '+e.message); }
+    if(speechSynthesis.speaking||speechSynthesis.pending){ speechSynthesis.cancel(); setTimeout(go,130); }
+    else go();
+  }catch(e){ go(); }
 });
 
 /* ── 5. the number pad ─────────────────────────────────────────── */

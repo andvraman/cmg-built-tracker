@@ -2,7 +2,7 @@
    Without this, "offline" just means a blank screen — the page has to be on the
    device before any of the offline behaviour underneath it matters.
    Bump CACHE whenever a file changes, or the old copy is what people get. */
-var CACHE = "cmg-voice-v1";
+var CACHE = "cmg-voice-v2";   /* bumped: TTS fix + measured offline gating */
 var FILES = ["./", "./index.html", "./manifest.webmanifest"];
 
 self.addEventListener("install", function(e){
