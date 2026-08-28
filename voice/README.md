@@ -1,11 +1,45 @@
 # Chairperson voice-entry prototype
 
-Two files, both self-contained, no dependencies, no database:
+Self-contained, no dependencies, no database:
 
 | | |
 |---|---|
-| `spike.html` | capability test — run this first, on every device you care about |
-| `index.html` | the prototype: one question per screen, voice and keypad |
+| `index.html` | **Log a meeting** — the real chairperson flow, one question per screen |
+| `types.html` | the input-type sampler: one field of each kind, for testing a new device |
+| `spike.html` | capability test — run this on any device before trusting it |
+
+## Log a meeting
+
+The chairperson's most frequent task: every fortnight, for the life of the
+group. Eight questions, nine if the group pays the bank that month.
+
+| | |
+|---|---|
+| When was the meeting? | Today / Yesterday / Choose |
+| How many members came? | keypad — **with the quorum rule applied live** |
+| Has anyone joined or left? | yes / no → a follow-up only if yes |
+| How much was saved? | keypad, with the amount read back in words |
+| How much did members repay into the group? | keypad |
+| How much did the group lend out? | keypad |
+| Did the group pay the bank? | yes / no → full or part → amount if part |
+| Anything to note? | voice, optional |
+
+Then a review screen, and a **Save** that shows the row it would write to the
+`meetings` table — the app's own field names, so the prototype reads straight
+across into the real thing.
+
+### The quorum rule is the point
+
+`ceil(members × 80%)` — the same arithmetic the app uses. Enter 9 of 12 and it
+says so immediately:
+
+> ⚠ Below quorum — 9 of 12 present, 10 needed. You can still record the meeting,
+> but the group cannot take a decision on a loan at it.
+
+Change the member count and the threshold moves with it: 14 members needs 12
+present, not 10. This is the rule that blocks a loan acceptance later in the
+walkthrough — said at the moment of entry, where it is still cheap to fix,
+rather than discovered weeks afterwards.
 
 ## Why it has to be hosted
 

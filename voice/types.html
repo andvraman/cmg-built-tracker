@@ -4,8 +4,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#134f2d">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>CMG — voice entry prototype</title>
-<link rel="manifest" href="manifest.webmanifest">
+<title>CMG — input types sampler</title>
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -94,7 +94,6 @@ input.text:focus,textarea.text:focus,select.sel:focus{outline:none;border-color:
 .note{border-radius:13px;padding:14px 16px;font-size:15px;line-height:1.45;margin-top:14px}
 .note.bad{background:var(--bad-bg);color:var(--bad);border:1px solid #fecaca}
 .note.warn{background:var(--warn-bg);color:var(--warn);border:1px solid #eedcae}
-.note.good{background:var(--green-light);color:#14532d;border:1px solid #a9d3ba}
 
 /* ── footer ─────────────────────────────────────────────── */
 footer{flex:none;padding:12px 18px calc(12px + env(safe-area-inset-bottom));
@@ -119,7 +118,7 @@ footer button{min-height:var(--tap);border-radius:14px;font:800 18px/1 system-ui
 </style></head><body>
 
 <header>
-  <div class="who" id="who">LOG A MEETING · TUMAINI WANAWAKE KISONGO</div>
+  <div class="who" id="who">INPUT TYPES · ONE OF EACH</div>
   <button id="speaker" title="Read questions aloud">🔇</button>
 </header>
 <div class="bar"><i id="prog"></i></div>
@@ -138,95 +137,62 @@ footer button{min-height:var(--tap);border-radius:14px;font:800 18px/1 system-ui
 var $=function(s){return document.querySelector(s);};
 var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-/* ═══════════════ the group ═══════════════
-   What the app already knows before the chairperson types anything. In the real
-   system this comes from cmg_registry and the loan record; here it is fixed so
-   the prototype behaves the same on every device.                            */
-var G = {
-  id:"C1031", name:"Tumaini Wanawake Kisongo",
-  members:12, quorumPct:80,
-  hasLoan:true, instalment:487500, totalDue:5850000, repaidToDate:487500
-};
-function memberCount(){ return (A.members===""||A.members===undefined) ? G.members : A.members; }
-function threshold(){ return Math.ceil(memberCount()*G.quorumPct/100); }
-
-/* ═══════════════ logging a meeting ═══════════════
-   The chairperson's most frequent task — every fortnight, for the life of the
-   group. `when` hides a question that does not apply, so the remittance branch
-   only appears for a group that actually has a loan to repay.               */
+/* ═══════════════ the questions ═══════════════
+   One of each DISTINCT kind of thing a chairperson has to enter. The real app
+   has 33 of these fields; they collapse to the eight patterns below, so this is
+   the whole design surface rather than a sample of it.                       */
 var Q = [
- { id:"date", kind:"date",
-   ask:"When was the meeting?",
-   help:"" },
+ { id:"name",    kind:"voice-short",
+   ask:"What is the group called?",
+   help:"Say the name out loud, or type it.",
+   placeholder:"e.g. Tumaini Wanawake Kisongo",
+   stands_for:"CMG name · chairperson name · treasurer name" },
 
- { id:"present", kind:"count", max:60,
-   ask:"How many members came?",
+ { id:"phone",   kind:"phone",
+   ask:"What is the chairperson's phone number?",
+   help:"Ten digits, starting 0.",
+   stands_for:"chairperson phone · treasurer phone" },
+
+ { id:"present", kind:"count", max:99,
+   ask:"How many people came to the meeting?",
    help:"Count everyone who attended.",
-   verdict:function(n){
-     var t=threshold();
-     return n>=t
-       ? { ok:true,  text:"Quorum met — "+n+" of "+memberCount()+" present, "+t+" needed" }
-       : { ok:false, text:"Below quorum — "+n+" of "+memberCount()+" present, "+t+" needed. "+
-                          "You can still record the meeting, but the group cannot take a "+
-                          "decision on a loan at it." };
-   } },
-
- { id:"changed", kind:"yesno",
-   ask:"Has anyone joined or left the group?",
-   help:"The group has "+ "12" +" members on record.",
-   yes:"Yes, the number changed", no:"No, still 12" },
-
- { id:"members", kind:"count", max:60,
-   when:function(a){ return a.changed==="yes"; },
-   ask:"How many members are there now?",
-   help:"This becomes the group's new total." },
+   stands_for:"members present · total members · years active" },
 
  { id:"savings", kind:"money",
    ask:"How much was saved at this meeting?",
-   help:"The total collected from everyone." },
+   help:"In Tanzanian shillings.",
+   stands_for:"savings · repayments collected · loans disbursed · loan amount" },
 
- { id:"memrepay", kind:"money",
-   ask:"How much did members repay into the group?",
-   help:"Money members paid back on loans the group gave them. Enter 0 if none." },
+ { id:"quorum",  kind:"percent", def:80,
+   ask:"What share of members must attend for a decision?",
+   help:"Most groups use 80%. Change it only if yours is different.",
+   stands_for:"quorum %" },
 
- { id:"disbursed", kind:"money",
-   ask:"How much did the group lend out to members?",
-   help:"Enter 0 if the group lent nothing today." },
-
- { id:"remitted", kind:"yesno",
-   when:function(){ return G.hasLoan; },
-   ask:"Did the group pay the bank this time?",
-   help:"The instalment is TZS 487,500 a month.",
-   yes:"Yes, we paid", no:"No, not this time" },
-
- { id:"remitType", kind:"choice",
-   when:function(a){ return G.hasLoan && a.remitted==="yes"; },
-   ask:"How much was paid to the bank?",
+ { id:"date",    kind:"date",
+   ask:"When was the meeting?",
    help:"",
-   choices:[
-     { v:"full", label:"The full instalment", sub:"TZS 487,500" },
-     { v:"part", label:"Only part of it",     sub:"Enter the amount next" }
-   ] },
+   stands_for:"meeting date" },
 
- { id:"remitAmount", kind:"money",
-   when:function(a){ return G.hasLoan && a.remitted==="yes" && a.remitType==="part"; },
-   ask:"How much was paid?",
-   help:"Less than the full instalment of TZS 487,500." },
+ { id:"freq",    kind:"select",
+   ask:"How often does the group meet?",
+   help:"Pick one from the list.",
+   options:["Weekly","Fortnightly","Monthly"],
+   stands_for:"frequency · region · district · ward · village — unchanged, as agreed" },
 
- { id:"notes", kind:"voice-long",
+ { id:"notes",   kind:"voice-long",
    ask:"Anything to note about this meeting?",
    help:"Say it in a sentence or two, or leave it empty.",
-   placeholder:"e.g. Two members asked to increase their weekly saving." }
+   placeholder:"e.g. Two members asked to increase their weekly saving.",
+   stands_for:"notes · loan purpose · reason for declining" }
 ];
-
-/* only the questions that apply right now */
-function order(){ return Q.filter(function(q){ return !q.when || q.when(A); }); }
 
 /* ── what this device can actually do ──
    Speech recognition is the only part of this prototype that has ever needed
    the network: the browser streams audio to its vendor. Chromium has since
-   grown an on-device path, so we probe for it — but never trust the probe over
-   what actually happens. See micState(). */
+   grown an on-device path (SpeechRecognition.available / install with
+   processLocally), so we probe for it rather than assuming. Everything else —
+   the keypad, the date choice, the list, typing, and reading the question
+   aloud — is local and works with no connection at all. */
 var CAP = { onDevice:false, probed:false, offlineVoice:null };
 /* offlineVoice: null = never tried offline, true = it worked, false = it failed.
    Measured, not detected. iOS Safari recognises speech on-device while
@@ -234,7 +200,6 @@ var CAP = { onDevice:false, probed:false, offlineVoice:null };
    truth is "yes". Believing the probe would disable a microphone that works. */
 
 function online(){ return FAKE.offline ? false : navigator.onLine !== false; }
-
 /* ready · untested · needs-net · unsupported — never guess, and never block
    something that might work. If we are offline and have not yet found out,
    let the person try. */
@@ -274,8 +239,8 @@ function markConnectivity(){
       ? "No internet — voice input is unavailable, but you can type every answer"
       : "No internet — voice may still work here; typing always does";
 }
-window.addEventListener("online",  function(){ markConnectivity(); if(i<order().length) render(); });
-window.addEventListener("offline", function(){ markConnectivity(); if(i<order().length) render(); });
+window.addEventListener("online",  function(){ markConnectivity(); if(i<Q.length) render(); });
+window.addEventListener("offline", function(){ markConnectivity(); if(i<Q.length) render(); });
 
 var A = {};                                  /* the answers */
 var i = 0;                                   /* which question */
@@ -375,33 +340,31 @@ function speak(text, onFail){
 
 /* ═══════════════ the shell ═══════════════ */
 function render(){
-  var m=$("#main"), L=order();
-  $("#prog").style.width = Math.round(i/L.length*100)+"%";
+  var m=$("#main");
+  $("#prog").style.width = Math.round(i/Q.length*100)+"%";
   $("#back").style.visibility = i===0 ? "hidden" : "visible";
 
-  if(i>=L.length){ renderReview(); return; }
+  if(i>=Q.length){ renderReview(); return; }
 
-  var q=L[i];
+  var q=Q[i];
   m.innerHTML =
-    '<div class="step">Question '+(i+1)+' of '+L.length+'</div>'+
+    '<div class="step">Question '+(i+1)+' of '+Q.length+'</div>'+
     '<h1>'+q.ask+'</h1>'+
     (q.help?'<div class="help">'+q.help+'</div>':'')+
     '<div id="field"></div>';
   m.scrollTop=0;
   ({ "voice-short":voiceField, "voice-long":voiceField, phone:padField,
      count:padField, money:padField, percent:padField,
-     date:dateField, select:selectField,
-     yesno:choiceField, choice:choiceField })[q.kind](q);
+     date:dateField, select:selectField })[q.kind](q);
   speak(q.ask);
   refreshNext();
 }
 function refreshNext(){
-  var L=order(), q=L[i];
-  if(!q) return;
+  var q=Q[i];
   var v=A[q.id];
   var need = !(q.kind==="voice-long");                     /* notes may be empty */
   $("#next").disabled = need && (v===undefined || v==="" || v===null);
-  $("#next").textContent = i===L.length-1 ? "Review" : "Next";
+  $("#next").textContent = i===Q.length-1 ? "Review" : "Next";
 }
 
 /* ═══════════════ 1 · voice ═══════════════ */
@@ -548,15 +511,7 @@ function padField(q){
     } else {
       d.textContent = digits ? String(n) : "0";
       w.textContent = digits ? words(n)+(n===1?" person":" people") : " ";
-      if(q.max && n>q.max){
-        note.innerHTML='<div class="note warn">That looks too high. Check the number.</div>';
-      } else if(q.verdict && digits){
-        /* the rule the app enforces, said at the moment of entry rather than
-           discovered later — this is the whole point of the redesign */
-        var vd=q.verdict(n);
-        note.innerHTML='<div class="note '+(vd.ok?"good":"warn")+'">'+
-          (vd.ok?"&#10003; ":"&#9888; ")+vd.text+'</div>';
-      }
+      if(q.max && n>q.max){ note.innerHTML='<div class="note warn">That looks too high. Check the number.</div>'; }
     }
     refreshNext();
   }
@@ -610,31 +565,6 @@ function dateField(q){
   if(A[q.id]) mark(A[q.id]);
 }
 
-/* ═══════════════ 3b · yes / no and short choices ═══════════════ */
-function choiceField(q){
-  var opts = q.kind==="yesno"
-    ? [{v:"yes",label:q.yes||"Yes"},{v:"no",label:q.no||"No"}]
-    : q.choices;
-  $("#field").innerHTML='<div class="choices">'+
-    opts.map(function(o){
-      return '<button data-v="'+o.v+'">'+o.label+
-             (o.sub?'<small>'+o.sub+'</small>':'')+'</button>';
-    }).join("")+'</div>';
-  var btns=$("#field").querySelectorAll(".choices button");
-  function mark(){ btns.forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-v")===A[q.id]); }); }
-  btns.forEach(function(b){
-    b.addEventListener("click", function(){
-      A[q.id]=b.getAttribute("data-v");
-      /* a changed answer can make later questions irrelevant — drop what they held */
-      if(q.id==="remitted" && A.remitted==="no"){ A.remitType=""; A.remitAmount=""; }
-      if(q.id==="remitType" && A.remitType==="full"){ A.remitAmount=""; }
-      if(q.id==="changed" && A.changed==="no"){ A.members=""; }
-      mark(); refreshNext();
-    });
-  });
-  mark();
-}
-
 /* ═══════════════ 4 · select — deliberately unchanged ═══════════════ */
 function selectField(q){
   $("#field").innerHTML='<select class="sel" id="sel">'+
@@ -649,43 +579,28 @@ function selectField(q){
 /* ═══════════════ review ═══════════════ */
 function renderReview(){
   $("#prog").style.width="100%";
-  var L=order();
-  var rows=L.map(function(q,n){
+  var rows=Q.map(function(q,n){
     var v=A[q.id];
-    if(q.kind==="money") v = (v===""||v===undefined) ? "—" : "TZS "+money(v);
+    if(q.kind==="money") v = v===""||v===undefined ? "—" : "TZS "+money(v);
+    else if(q.kind==="percent") v = v===""||v===undefined ? "—" : v+"%";
+    else if(q.kind==="phone") v = v ? phoneFmt(String(v)) : "—";
     else if(q.kind==="date"&&v) v = dstr(new Date(v+"T00:00:00"));
-    else if(q.kind==="yesno") v = v==="yes" ? (q.yes||"Yes") : v==="no" ? (q.no||"No") : "—";
-    else if(q.kind==="choice"&&v){
-      var c=q.choices.filter(function(x){return x.v===v;})[0]; v = c?c.label:v;
-    }
     return '<div class="r"><span class="k">'+q.ask+'</span>'+
            '<span class="v">'+(v===""||v===undefined?"—":v)+'</span>'+
            '<button data-go="'+n+'">Change</button></div>';
   }).join("");
-
-  /* the quorum verdict again, because it governs what the group may do next */
-  var pres=A.present, t=threshold(), qv="";
-  if(pres!==""&&pres!==undefined){
-    qv = pres>=t
-      ? '<div class="note good">&#10003; This meeting met quorum — '+pres+' of '+memberCount()+
-        ' present. A loan decision could be taken at it.</div>'
-      : '<div class="note warn">&#9888; This meeting was below quorum — '+pres+' of '+memberCount()+
-        ' present, '+t+' needed. It will be recorded, but a loan decision cannot be taken at it.</div>';
-  }
-
   $("#main").innerHTML=
     '<div class="step">Last step</div>'+
     '<h1>Check before saving</h1>'+
     '<div class="help">Read it back. Change anything that is wrong.</div>'+
-    qv+
-    '<div class="rev" style="margin-top:14px">'+rows+'</div>'+
-    '<button class="mic" id="save" style="min-height:64px">Save this meeting</button>'+
-    '<div id="saved"></div>'+
+    '<div class="rev">'+rows+'</div>'+
+    '<div class="note warn">Nothing is saved anywhere. This is a prototype for testing '+
+      'how the entry feels — there is no database behind it.</div>'+
     '<details class="dbg"><summary>Test the failure states</summary>'+
       '<label><input type="checkbox" id="f1"> Pretend the microphone was refused</label>'+
       '<label><input type="checkbox" id="f2"> Pretend there is no internet</label>'+
       '<label><input type="checkbox" id="f3"> Pretend the browser cannot listen at all</label>'+
-      '<div style="margin-top:8px">Then press Back and try the notes question. '+
+      '<div style="margin-top:8px">Then press Back and try a voice question. '+
       'You should always still be able to type.</div>'+
     '</details>';
   $("#main").scrollTop=0;
@@ -694,51 +609,18 @@ function renderReview(){
   $("#main").querySelectorAll("[data-go]").forEach(function(b){
     b.addEventListener("click", function(){ i=parseInt(b.getAttribute("data-go"),10); render(); });
   });
-
-  $("#save").addEventListener("click", function(){
-    this.disabled=true; this.textContent="Saved";
-    $("#saved").innerHTML='<div class="note good" style="margin-top:12px">'+
-      '<b>Nothing left this phone.</b> This is a prototype — there is no database behind it. '+
-      'In the real app this is the row that would be written to <code>meetings</code>:</div>'+
-      '<pre style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;'+
-      'font:12px/1.5 ui-monospace,Menlo,monospace;overflow-x:auto;margin-top:10px">'+
-      JSON.stringify(record(),null,2).replace(/</g,"&lt;")+'</pre>';
-    speak("Saved.");
-  });
-
   $("#f1").checked=FAKE.denied; $("#f2").checked=FAKE.offline; $("#f3").checked=FAKE.unsupported;
+  /* the simulated switches have to move the same state the real events do,
+     or the banner and the field disagree about whether there is a connection */
   $("#f1").addEventListener("change",function(){FAKE.denied=this.checked;});
   $("#f2").addEventListener("change",function(){FAKE.offline=this.checked; markConnectivity();});
   $("#f3").addEventListener("change",function(){FAKE.unsupported=this.checked;});
   speak("Check your answers before saving.");
 }
 
-/* what the real app would store — the app's own field names, so this prototype
-   can be read straight across into the meetings table */
-function record(){
-  var remit = !G.hasLoan ? 0
-            : A.remitted!=="yes" ? 0
-            : A.remitType==="full" ? G.instalment
-            : (A.remitAmount||0);
-  return {
-    cmg_id:      G.id,
-    date:        A.date || null,
-    present:     A.present===""?null:A.present,
-    savings:     A.savings===""?0:A.savings,
-    memrepay:    A.memrepay===""?0:A.memrepay,
-    disbursed:   A.disbursed===""?0:A.disbursed,
-    repaid:      remit,
-    remit_choice: G.hasLoan ? (A.remitted||"no") : "no",
-    remit_type:   (G.hasLoan && A.remitted==="yes") ? (A.remitType||null) : null,
-    notes:       A.notes || null,
-    members_now: memberCount(),
-    quorum_met:  (A.present!==""&&A.present!==undefined) ? (A.present>=threshold()) : null
-  };
-}
-
 /* ═══════════════ wiring ═══════════════ */
 $("#next").addEventListener("click", function(){
-  if(i>=order().length){ A={}; i=0; render(); return; }
+  if(i>=Q.length){ A={}; i=0; render(); return; }
   i++; render();
 });
 $("#back").addEventListener("click", function(){ if(i>0){ i--; render(); } });
