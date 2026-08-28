@@ -297,15 +297,32 @@ function pickVoice(){
 }
 function speak(text, onFail){
   if(!speakOn || !window.speechSynthesis || !text) return;
-  var fired = false;
+  /* No voices at all means Android has no text-to-speech engine for Chrome to
+     talk to. Attempting anyway produces a misleading "interrupted" error, so
+     say what is actually wrong instead of trying. */
+  loadVoices();          /* always re-read: the list arrives late on some devices,
+                            and a cached copy from page load can be stale either way */
+  if(!VOICES.length){ if(onFail) onFail("no-voices"); return; }
+  var fired = false, bare = false;
   var go = function(){
     try{
       var u = new SpeechSynthesisUtterance(text);
-      var v = pickVoice();
-      if(v){ u.voice = v; u.lang = v.lang; } else { u.lang = "en-GB"; }
+      /* Some Android engines refuse a named voice but accept the system
+         default, so a refusal earns one retry with nothing specified before
+         we tell the user it does not work. */
+      var v = bare ? null : pickVoice();
+      if(v){ u.voice = v; u.lang = v.lang; }
       u.rate = .95;
       u.onstart = function(){ fired = true; };
-      u.onerror = function(){ if(onFail) onFail("error"); };
+      u.onerror = function(e){
+        var why = (e && e.error) || "error";
+        /* interrupted/canceled mean something stopped us, not that the voice
+           was refused — retrying just interrupts ourselves again */
+        var worthRetrying = why==="voice-unavailable" || why==="language-unavailable"
+                         || why==="synthesis-failed";
+        if(worthRetrying && !bare){ bare = true; setTimeout(go, 80); return; }
+        if(onFail) onFail(why);
+      };
       window.speechSynthesis.speak(u);
       /* nothing started and nothing errored — the usual Android silent failure */
       setTimeout(function(){
@@ -615,14 +632,17 @@ $("#speaker").addEventListener("click", function(){
   if(!speakOn){ try{ window.speechSynthesis.cancel(); }catch(e){} return; }
   /* the first utterance must ride this click: Android will not speak later
      without a gesture behind it */
-  speak(i<Q.length ? Q[i].ask : "Check your answers before saving.", function(){
+  speak(i<Q.length ? Q[i].ask : "Check your answers before saving.", function(why){
     speakOn=false; btn.textContent="🔇"; btn.classList.remove("on");
     var w=document.createElement("div");
     w.className="note warn";
     w.style.cssText="position:fixed;left:14px;right:14px;bottom:84px;z-index:9";
-    w.innerHTML="<b>Reading aloud is not working on this device.</b><br>"+
-      "Android needs a text-to-speech voice installed and enabled — "+
-      "Settings, Accessibility, Text-to-speech. Everything else works without it.";
+    w.innerHTML = (why==="no-voices")
+      ? "<b>This device has no voice installed.</b><br>Android needs a "+
+        "text-to-speech engine before anything can be read aloud — Settings, "+
+        "Accessibility, Text-to-speech output. Everything else here works without it."
+      : "<b>Reading aloud is not working on this device.</b><br>"+
+        "It reported <code>"+why+"</code>. Everything else here works without it.";
     document.body.appendChild(w);
     setTimeout(function(){ w.remove(); }, 7000);
   });

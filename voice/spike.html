@@ -87,6 +87,7 @@ before any of it gets designed around.</div>
 <div class="card">
   <h2>4 · Read aloud — offline, uses your device's own voices</h2>
   <button class="big" id="speak">Say a test sentence</button>
+  <div id="ttsfail"></div>
   <div id="tts"></div>
 </div>
 
@@ -271,23 +272,40 @@ function pickVoice(want){
   return null;
 }
 $('#speak').addEventListener('click', function(){
-  var btn=this, said=false;
+  var btn=this, said=false, bare=false;
   var report=function(what,detail){
     rows.push('TTS attempt ('+lang+'): '+what+(detail?' — '+detail:''));
     buildReport();
     btn.textContent = what==='spoke' ? 'It spoke — say it again'
-                                     : 'Nothing came out ('+what+')';
-    setTimeout(function(){ btn.textContent='Say a test sentence'; }, 3500);
+                    : what==='retrying' ? 'Retrying…'
+                    : 'Nothing came out ('+what+')';
+    /* put the reason on the screen — the report box is hard to copy off a phone */
+    var box=document.getElementById('ttsfail');
+    if(box) box.innerHTML = (what==='spoke'||what==='retrying') ? ''
+      : '<div class="out err" style="margin-top:10px">'+what+': '+(detail||'no detail')+'</div>';
+    if(what!=='retrying') setTimeout(function(){ btn.textContent='Say a test sentence'; }, 6000);
   };
   var go=function(){
+    var have=[]; try{ have=speechSynthesis.getVoices()||[]; }catch(e){}
+    if(!have.length){
+      report('no voices', 'Android has no text-to-speech engine enabled — nothing can be spoken');
+      return;
+    }
     try{
       var u=new SpeechSynthesisUtterance(
         lang.indexOf('sw')===0 ? 'Watu wangapi walihudhuria mkutano?'
                                : 'How many people came to the meeting?');
-      var v=pickVoice(lang) || pickVoice('en-GB');
-      if(v){ u.voice=v; u.lang=v.lang; } else { u.lang=lang; }
+      var v=bare ? null : (pickVoice(lang) || pickVoice('en-GB'));
+      if(v){ u.voice=v; u.lang=v.lang; }        /* else: leave both unset — system default */
       u.onstart=function(){ said=true; report('spoke', v?(v.name+' / '+v.lang):'default voice'); };
-      u.onerror=function(e){ report('error', e.error||''); };
+      u.onerror=function(e){
+        /* A named voice can be refused when the bare system default is not.
+           Worth one retry with nothing specified before calling it a failure. */
+        var why=(e&&e.error)||'unknown';
+        var worth = why==='voice-unavailable'||why==='language-unavailable'||why==='synthesis-failed';
+        if(worth && !bare){ bare=true; setTimeout(go,80); report('retrying','without a named voice'); return; }
+        report('error', why+(v?(' · tried '+v.name+' / '+v.lang):' · no voice named'));
+      };
       speechSynthesis.speak(u);
       setTimeout(function(){
         if(!said && !speechSynthesis.speaking)
