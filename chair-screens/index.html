@@ -1095,12 +1095,12 @@ function showRegistered(){
       : '')+
     '<div class="note warn" style="margin-top:12px"><b>'+
       L("Nothing left this phone.","Hakuna kilichotoka kwenye simu hii.")+'</b> '+
-      L("This is a prototype.","Hii ni sampuli ya majaribio.")+'</div>'+
-    '<pre style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;'+
-    'font:12px/1.5 ui-monospace,Menlo,monospace;overflow-x:auto;margin-top:10px">'+
-    JSON.stringify(registerRecord(),null,2).replace(/</g,"&lt;")+'</pre>';
+      L("This is a prototype.","Hii ni sampuli ya majaribio.")+'</div>';
 }
 
+/* No longer displayed — the registration screen ends at the ID. Kept because
+   it is the record of the RPC shape the real app calls, and the field names
+   are the thing this prototype is meant to hand over. */
 function registerRecord(){
   return {
     rpc:                 "register_cmg",
