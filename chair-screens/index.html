@@ -42,12 +42,16 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
 .qblock+.qblock{padding-top:24px;border-top:1px solid var(--line)}
 h1{font-size:25px;line-height:1.25;font-weight:800;color:var(--green-dark);margin-bottom:4px}
 .help{font-size:15px;color:var(--muted);margin-bottom:16px}
+.standing{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+.standing p{font-size:15px;line-height:1.5;color:var(--muted);margin-bottom:8px}
+.standing p:last-child{margin-bottom:0}
 
 /* ── answers ────────────────────────────────────────────── */
 .answer{font-size:32px;font-weight:800;text-align:right;padding:16px 18px;
   background:#fff;border:2px solid var(--line);border-radius:14px;
   font-variant-numeric:tabular-nums;min-height:68px;word-break:break-word}
 .answer.empty{color:#c3ccc6}
+.cur{font-size:13px;font-weight:700;color:var(--muted);margin:7px 2px 0;letter-spacing:.03em}
 .wordrow{display:flex;align-items:center;gap:10px;margin:8px 2px 0}
 .words{font-size:14px;color:var(--muted);text-align:right;min-height:20px;flex:1}
 .clr{background:#fff;border:1px solid var(--line);border-radius:9px;color:var(--muted);
@@ -231,7 +235,7 @@ var Q_MEETING = [
    ask_sw:"Mkutano ulifanyika lini?" },                   /* reviewed: ok */
 
  { id:"changed", kind:"yesno",
-   ask:"Has anyone joined or left the group since the last recorded meeting?",
+   ask:"Has anyone joined or left the group since the last meeting?",
    /* PROPOSAL — reviewer rejected the original: "not clear if speaking of
       membership; expression of last recorded does not translate well". */
    ask_sw:"Je, kuna mwanachama aliyejiunga au kuondoka tangu mkutano wa mwisho?",
@@ -247,11 +251,18 @@ var Q_MEETING = [
    help:"This becomes the group's new total: minimum 5; maximum 30.",
    help_sw:"Hii inakuwa jumla mpya ya kikundi: kiwango cha chini 5, kiwango cha juu 30." },
 
- { id:"present", kind:"count", max:60,
-   ask:"How many members came?",
+ /* max is a function: attendance can never exceed the membership confirmed a
+    screen or two earlier, and that number is not known until then. `hard`
+    makes it a bound rather than a nudge. */
+ { id:"present", kind:"count", max:function(){ return memberCount(); }, hard:true,
+   ask:"How many members attended?",
    ask_sw:"Wanachama wangapi walihudhuria?",              /* reviewed: ok */
    help:"Count everyone who attended.",
    help_sw:"Hesabu kila mtu aliyehudhuria.",
+   rangeMsg:function(){
+     return L("Cannot be more than the "+memberCount()+" members on record.",
+              "Haiwezi kuzidi wanachama "+memberCount()+" waliopo kwenye rekodi.");
+   },
    verdict:function(n){
      var t=threshold(), m=memberCount();
      return n>=t
@@ -285,11 +296,11 @@ var Q_MEETING = [
 
  { id:"remitted", kind:"yesno",
    when:function(){ return G.hasLoan; },
-   ask:"Did the group repay with an instalment this meeting?",
+   ask:"Did the group resolve to repay a loan instalment in this meeting?",
    /* reviewer wrote "...Kama ndio, lini?" (if yes, when?) — that asks for a
       date this flow does not capture, so the date clause is dropped and
       "kwenye mkutano huu" restored. Needs confirming. */
-   ask_sw:"Je, kikundi kimefanya marejesho ya mkopo wa benki kwenye mkutano huu?",
+   ask_sw:"Je, kikundi kiliazimia kulipa awamu ya mkopo katika mkutano huu?",
    help:"The instalment is TZS 487,500 a month.",
    help_sw:"Awamu ni TZS 487,500 kwa mwezi.",
    yes:"Yes, we paid",       yes_sw:"Ndiyo, tulilipa",
@@ -316,10 +327,9 @@ var Q_MEETING = [
    help_sw:"Chini ya awamu kamili ya TZS 487,500." },
 
  { id:"notes", kind:"textarea", optional:true,
-   ask:"Anything to note about this meeting?",
-   ask_sw:"Kuna jambo la kuandika kuhusu mkutano huu?",   /* review column left blank */
-   help:"A sentence or two, or leave it empty.",
-   help_sw:"Andika kwa sentensi moja au mbili, au acha wazi.",
+   ask:"Anything else to note from this meeting?",
+   ask_sw:"Kuna jambo lingine la kuandika kutoka mkutano huu?",  /* unreviewed */
+   help:"Optional", help_sw:"Si lazima",
    placeholder:"e.g. Two members asked to increase their shares.",
    placeholder_sw:"mfano: Wanachama wawili wameomba kuongeza hisa zao." }
 ];
@@ -562,18 +572,23 @@ function renderHome(){
   $("#main").innerHTML=
     '<div class="step">'+G.name+' · '+G.id+'</div>'+
     '<h1>'+L("What do you want to do?","Unataka kufanya nini?")+'</h1>'+
-    '<div class="help">'+L(
-      "One or two questions per screen. You can go back at any point.<br>"+
-      "Record the information during the meeting. Make sure you send it using an "+
-      "internet connection within 48 hours of the meeting.",
-      "Swali moja au mawili kwa kila ukurasa. Unaweza kurudi nyuma wakati wowote.<br>"+
-      "Rekodi taarifa wakati wa mkutano. Hakikisha unatuma taarifa kwa kutumia "+
-      "intaneti ndani ya saa 48 baada ya mkutano.")+'</div>'+
     '<div class="choices">'+
       Object.keys(FLOWS).map(function(k){
         return '<button data-flow="'+k+'">'+QT(FLOWS[k],"label")+
                '<small>'+QT(FLOWS[k],"sub")+'</small></button>';
       }).join("")+
+    '</div>'+
+    /* below the buttons, one sentence per line — the instruction the
+       chairperson is meant to carry away, not something to read first */
+    '<div class="standing">'+
+      '<p>'+L("You can go back at any point.",
+              "Unaweza kurudi nyuma wakati wowote.")+'</p>'+
+      '<p>'+L("Record the information during the meeting.",
+              "Rekodi taarifa wakati wa mkutano.")+'</p>'+
+      '<p>'+L("Make sure you send it using an internet connection within 48 hours "+
+              "of the meeting.",
+              "Hakikisha unatuma taarifa kwa kutumia intaneti ndani ya saa 48 baada "+
+              "ya mkutano.")+'</p>'+
     '</div>';
   $("#main").querySelectorAll("[data-flow]").forEach(function(b){
     b.addEventListener("click", function(){
@@ -663,6 +678,8 @@ function padField(q, root){
              : (q.def!==undefined ? String(q.def) : "");
   root.innerHTML =
     '<div class="answer'+(digits?"":" empty")+'" id="'+fid(q,"disp")+'">0</div>'+
+    /* state the currency outright rather than leaving it to the label */
+    (q.kind==="money" ? '<div class="cur">(TZS)</div>' : '')+
     '<div class="wordrow">'+
       /* the money pad spends its spare key on 000, so it has nowhere to clear
          from — without this, correcting a mistyped amount is ten backspaces */
@@ -672,8 +689,13 @@ function padField(q, root){
     '<div class="pad" id="'+fid(q,"pad")+'"></div>'+
     '<div id="'+fid(q,"padnote")+'"></div>';
 
+  /* max may be a function — attendance is bounded by a membership figure that
+     is not known until an earlier question is answered */
+  function maxOf(){ return typeof q.max==="function" ? q.max() : q.max; }
+
   function commit(){
     var n = digits==="" ? "" : parseInt(digits,10);
+    var qmax = maxOf();
     /* a phone number is a string of digits, not a quantity — parsing it to a
        number silently eats the leading zero every Tanzanian number starts with */
     A[q.id] = q.kind==="phone" ? digits : n;
@@ -703,16 +725,23 @@ function padField(q, root){
     } else {
       d.textContent = digits ? String(n) : "0";
       w.textContent = " ";
-      var tooBig   = q.max && n>q.max;
-      var tooSmall = q.min && digits && n<q.min;
+      var tooBig   = qmax!==undefined && n>qmax;
+      var tooSmall = q.min!==undefined && digits && n<q.min;
       if(digits && q.hard && (tooBig || tooSmall)){
         A[q.id]="";                       /* out of range is not an answer */
         /* Stay quiet while more digits could still bring it into range, or
-           every number that starts 1-3 flashes an error mid-typing. */
-        var couldGrow = tooSmall && q.max && (n*10)<=q.max;
-        if(!couldGrow) note.innerHTML='<div class="note bad">'+
-          L("Enter a number between "+q.min+" and "+q.max+".",
-            "Andika idadi kati ya "+q.min+" na "+q.max+".")+'</div>';
+           every number that starts below the minimum flashes an error
+           mid-typing. */
+        var couldGrow = tooSmall && qmax!==undefined && (n*10)<=qmax;
+        if(!couldGrow){
+          var msg = q.rangeMsg ? q.rangeMsg()
+                  : q.min!==undefined
+                    ? L("Enter a number between "+q.min+" and "+qmax+".",
+                        "Andika idadi kati ya "+q.min+" na "+qmax+".")
+                    : L("Cannot be more than "+qmax+".",
+                        "Haiwezi kuzidi "+qmax+".");
+          note.innerHTML='<div class="note bad">'+msg+'</div>';
+        }
       } else if(tooBig){
         note.innerHTML='<div class="note warn">'+L("That looks too high. Check the number.",
           "Idadi hii inaonekana kubwa sana. Hakiki namba.")+'</div>';
