@@ -1,0 +1,14 @@
+{
+  "name": "CMG \u2014 Kurekodi Mkutano",
+  "short_name": "CMG",
+  "lang": "sw",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f0f4f0",
+  "theme_color": "#134f2d",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

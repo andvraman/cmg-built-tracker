@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="sw"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#134f2d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>CMG — Kurekodi Mkutano</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --green:#1a6b3c; --green-dark:#134f2d; --green-mid:#2d8a52; --green-light:#e8f5ee;
+  --ink:#111827; --muted:#5b6b60; --line:#dfe5e0; --bg:#f0f4f0;
+  --ok:#15803d; --bad:#b91c1c; --bad-bg:#fee2e2; --warn:#8a5a00; --warn-bg:#fdf6e3;
+  --tap:56px;                      /* nothing tappable is smaller than this */
+}
+html,body{height:100%}
+body{font:17px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);
+  background:var(--bg);display:flex;flex-direction:column;overflow:hidden}
+
+/* ── header ─────────────────────────────────────────────── */
+header{background:var(--green-dark);color:#fff;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;
+  display:flex;align-items:center;gap:10px;flex:none}
+header .who{font-size:13px;font-weight:700;letter-spacing:.02em;flex:1}
+.langtog{display:flex;flex:none;border:1px solid rgba(255,255,255,.45);border-radius:9px;overflow:hidden}
+.langtog button{background:transparent;color:rgba(255,255,255,.75);border:0;
+  font:700 13px/1 system-ui,sans-serif;padding:9px 11px;cursor:pointer;min-width:40px}
+.langtog button[aria-pressed="true"]{background:#fff;color:var(--green-dark)}
+.bar{height:4px;background:rgba(255,255,255,.2);flex:none}
+.bar i{display:block;height:100%;background:#e3a72c;width:0;transition:width .35s ease}
+
+/* ── the screen (1–2 questions) ────────────────────────────
+   Two questions stacked in one screen share this scroll area. Each gets its
+   own .qblock so every internal id can be suffixed by question id — that is
+   what lets two independent keypad/select/text widgets sit on one screen
+   without colliding.                                                       */
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:20px 18px calc(18px + env(safe-area-inset-bottom))}
+.step{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.04em;margin-bottom:14px}
+.qblock{margin-bottom:28px}
+.qblock:last-child{margin-bottom:0}
+.qblock+.qblock{padding-top:24px;border-top:1px solid var(--line)}
+h1{font-size:25px;line-height:1.25;font-weight:800;color:var(--green-dark);margin-bottom:4px}
+.help{font-size:15px;color:var(--muted);margin-bottom:16px}
+
+/* ── answers ────────────────────────────────────────────── */
+.answer{font-size:32px;font-weight:800;text-align:right;padding:16px 18px;
+  background:#fff;border:2px solid var(--line);border-radius:14px;
+  font-variant-numeric:tabular-nums;min-height:68px;word-break:break-word}
+.answer.empty{color:#c3ccc6}
+.wordrow{display:flex;align-items:center;gap:10px;margin:8px 2px 0}
+.words{font-size:14px;color:var(--muted);text-align:right;min-height:20px;flex:1}
+.clr{background:#fff;border:1px solid var(--line);border-radius:9px;color:var(--muted);
+  font:600 14px/1 system-ui,sans-serif;padding:9px 14px;cursor:pointer;flex:none}
+input.text,textarea.text,select.sel{width:100%;font:inherit;padding:16px;
+  border:2px solid var(--line);border-radius:14px;background:#fff;color:var(--ink)}
+textarea.text{height:130px;resize:none}
+select.sel{height:var(--tap);font-size:18px;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 21px) 24px,calc(100% - 15px) 24px;
+  background-size:6px 6px,6px 6px;background-repeat:no-repeat}
+input.text:focus,textarea.text:focus,select.sel:focus{outline:none;border-color:var(--green-mid)}
+
+/* ── keypad ─────────────────────────────────────────────── */
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:14px}
+.pad button{min-height:var(--tap);font:700 24px/1 system-ui,sans-serif;background:#fff;
+  border:1px solid var(--line);border-radius:13px;cursor:pointer;color:var(--ink)}
+.pad button:active{background:var(--green-light);border-color:var(--green-mid)}
+.pad button.util{font-size:19px;color:var(--muted)}
+
+/* ── the one big green action button (review screen's Save/Send/Register) ── */
+.bigbtn{width:100%;min-height:64px;margin-top:14px;border-radius:16px;border:0;cursor:pointer;
+  background:var(--green);color:#fff;font:800 19px/1 system-ui,sans-serif;
+  display:flex;align-items:center;justify-content:center}
+.bigbtn[disabled]{background:#9aa8a0;cursor:default}
+
+/* ── date / choices ─────────────────────────────────────── */
+.choices{display:flex;flex-direction:column;gap:11px}
+.choices button{min-height:64px;border-radius:14px;border:1px solid var(--line);background:#fff;
+  font:700 19px/1.3 system-ui,sans-serif;cursor:pointer;color:var(--ink);padding:12px 16px;text-align:left}
+.choices button small{display:block;font-weight:400;font-size:14px;color:var(--muted);margin-top:3px}
+.choices button.on{background:var(--green);color:#fff;border-color:var(--green)}
+.choices button.on small{color:rgba(255,255,255,.85)}
+
+/* ── notices ────────────────────────────────────────────── */
+.note{border-radius:13px;padding:14px 16px;font-size:15px;line-height:1.45;margin-top:14px}
+.note.bad{background:var(--bad-bg);color:var(--bad);border:1px solid #fecaca}
+.note.warn{background:var(--warn-bg);color:var(--warn);border:1px solid #eedcae}
+.note.good{background:var(--green-light);color:#14532d;border:1px solid #a9d3ba}
+
+/* ── footer ─────────────────────────────────────────────── */
+footer{flex:none;padding:12px 18px calc(12px + env(safe-area-inset-bottom));
+  background:#fff;border-top:1px solid var(--line);display:flex;gap:11px}
+footer button{min-height:var(--tap);border-radius:14px;font:800 18px/1 system-ui,sans-serif;cursor:pointer}
+#back{flex:0 0 88px;background:#fff;border:1px solid var(--line);color:var(--muted)}
+#next{flex:1;background:var(--green);color:#fff;border:0}
+#next:disabled{background:#9aa8a0}
+
+/* ── review ─────────────────────────────────────────────── */
+.rev{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:14px}
+.rev div.r{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  padding:15px 16px;border-bottom:1px solid #eef2ef}
+.rev div.r:last-child{border-bottom:0}
+.rev .k{font-size:14px;color:var(--muted);flex:1}
+.rev .v{font-weight:700;text-align:right;flex:1;word-break:break-word}
+.rev button{background:none;border:0;color:var(--green);font:600 15px/1 system-ui,sans-serif;
+  cursor:pointer;padding:6px;flex:0 0 auto}
+/* Swahili questions run long; at phone width the three-column row squeezes the
+   value into two or three characters per line. Stack instead: question on its
+   own line, answer and Badilisha side by side beneath it. */
+@media (max-width:430px){
+  .rev div.r{flex-wrap:wrap}
+  .rev .k{flex:0 0 100%;margin-bottom:8px}
+  .rev .v{text-align:left;font-size:18px}
+}
+</style></head><body>
+
+<header>
+  <div class="who" id="who">REKODI MKUTANO · TUMAINI WANAWAKE KISONGO</div>
+  <div class="langtog" id="langtog">
+    <button id="lang-sw" aria-pressed="true">SW</button>
+    <button id="lang-en" aria-pressed="false">EN</button>
+  </div>
+</header>
+<div class="bar"><i id="prog"></i></div>
+
+<main id="main"></main>
+
+<footer>
+  <button id="back">Rudi</button>
+  <button id="next">Endelea</button>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var $=function(s){return document.querySelector(s);};
+
+/* ═══════════════ language ═══════════════
+   Kiswahili is the default and the language the chairperson sees; English is
+   here so the people building and reviewing this can read the same screens.
+   Every visible string is a pair — plain key English, `_sw` Kiswahili — and
+   only the Kiswahili went through native-speaker review. */
+var LANG = (function(){
+  try { return localStorage.getItem("cmg_chair_lang")==="en" ? "en" : "sw"; }
+  catch(e){ return "sw"; }
+})();
+function L(en, sw){ return LANG==="en" ? en : sw; }
+/* Pick a field off a question: `ask` in English, `ask_sw` in Kiswahili.
+   Falls back to the other language rather than rendering blank, and calls it
+   if it is a function (some helps quote the live member count). */
+function QT(q, key){
+  var v = LANG==="en" ? (q[key]!==undefined?q[key]:q[key+"_sw"])
+                      : (q[key+"_sw"]!==undefined?q[key+"_sw"]:q[key]);
+  return typeof v==="function" ? v() : (v||"");
+}
+function setLang(next){
+  if(next===LANG) return;
+  LANG = next;
+  try { localStorage.setItem("cmg_chair_lang", LANG); } catch(e){}
+  document.documentElement.lang = LANG;
+  var en=$("#lang-en"), sw=$("#lang-sw");
+  if(en) en.setAttribute("aria-pressed", LANG==="en");
+  if(sw) sw.setAttribute("aria-pressed", LANG==="sw");
+  render();                      /* answers live in A, so nothing is lost */
+}
+
+/* === language note ===
+   Kiswahili is the interface language. English is kept in `q.ask` as the
+   record of what each question means, but is no longer shown on screen: the
+   native-speaker review has landed, so the side-by-side crutch is gone.
+
+   Review status of every Swahili string, from
+   android/Eng_Sw_Chair_prompts_translation.xlsx:
+
+     REVIEWED AND ACCEPTED - most question prompts. Where the reviewer wrote a
+       replacement rather than "ok", the replacement is what is used here, and
+       in one case it describes the domain better than the English does
+       (saving is really "hisa zilizonunuliwa", shares bought).
+
+     PROPOSED, NOT YET CONFIRMED - three strings the reviewer rejected without
+       supplying a replacement. Each is marked at its use site:
+         - the membership-change question ("not clear if speaking of
+           membership; expression of last recorded does not translate well")
+         - the quorum-share question ("akidi is not popularly used or
+           understood - its very formal swahili")
+         - the sync instruction ("inasawazisha does not translate here")
+       Each carries a working proposal so the prototype can be walked through.
+       These are the open question for the next review pass.
+
+     UNREVIEWED - the notes question (review column left blank), the partial
+       instalment amount (never in the sheet), and all interface chrome:
+       buttons, headers, helper lines, choice labels, amount read-back.
+
+   Amount read-back is Kiswahili (swWords) - it is the check against mistyping
+   a figure, so English there would defeat its purpose. It is unreviewed, and
+   is the other thing worth a second pair of eyes.
+   === */
+
+/* ═══════════════ the group ═══════════════
+   What the app already knows before the chairperson types anything. In the real
+   system this comes from cmg_registry and the loan record; here it is fixed so
+   the prototype behaves the same on every device.                            */
+var G = {
+  id:"C1031", name:"Tumaini Wanawake Kisongo",
+  members:12, quorumPct:80,
+  hasLoan:true, instalment:487500, totalDue:5850000, repaidToDate:487500,
+  fi:"NMB Bank", meetingsLogged:7, quorumMet:3, priorLoan:false
+};
+function memberCount(){ return (A.members===""||A.members===undefined) ? G.members : A.members; }
+function threshold(){ return Math.ceil(memberCount()*G.quorumPct/100); }
+
+/* ═══════════════ logging a meeting ═══════════════
+   The chairperson's most frequent task — every fortnight, for the life of the
+   group. `when` hides a question that does not apply, so the remittance branch
+   only appears for a group that actually has a loan to repay. `pair:true`
+   means "try to sit on the same screen as whichever question comes next in
+   the filtered order" — see screens(). It is a hint, not a hard index, so it
+   keeps working however `when` trims the list on a given run.              */
+var Q_MEETING = [
+ /* ORDER MATTERS — see README §2. The membership question comes BEFORE
+    attendance so the quorum threshold is computed against the count confirmed
+    in this meeting, not the stale registry value. `present` is deliberately
+    left unpaired: nothing on its own screen can then change the count its
+    verdict depends on.
+
+    Every visible string is a pair: plain key = English, _sw = Kiswahili.
+    Only the _sw side went through native-speaker review. */
+ { id:"date", kind:"date", pair:true,
+   ask:"When was the meeting?",
+   ask_sw:"Mkutano ulifanyika lini?" },                   /* reviewed: ok */
+
+ { id:"changed", kind:"yesno",
+   ask:"Has anyone joined or left the group since the last recorded meeting?",
+   /* PROPOSAL — reviewer rejected the original: "not clear if speaking of
+      membership; expression of last recorded does not translate well". */
+   ask_sw:"Je, kuna mwanachama aliyejiunga au kuondoka tangu mkutano wa mwisho?",
+   help:function(){ return "The group has "+memberCount()+" members on record."; },
+   help_sw:function(){ return "Kikundi kina wanachama "+memberCount()+" kwenye rekodi."; },
+   yes:"Yes, the number changed", yes_sw:"Ndiyo, idadi imebadilika" },
+   /* the "no" label is built live in noLabelFor() so it can name the count */
+
+ { id:"members", kind:"count", min:5, max:30, hard:true,
+   when:function(a){ return a.changed==="yes"; },
+   ask:"How many members are there now?",
+   ask_sw:"Kikundi kina wanachama wangapi?",              /* reviewed: "just end at wangapi" */
+   help:"This becomes the group's new total: minimum 5; maximum 30.",
+   help_sw:"Hii inakuwa jumla mpya ya kikundi: kiwango cha chini 5, kiwango cha juu 30." },
+
+ { id:"present", kind:"count", max:60,
+   ask:"How many members came?",
+   ask_sw:"Wanachama wangapi walihudhuria?",              /* reviewed: ok */
+   help:"Count everyone who attended.",
+   help_sw:"Hesabu kila mtu aliyehudhuria.",
+   verdict:function(n){
+     var t=threshold(), m=memberCount();
+     return n>=t
+       ? { ok:true,  text:L("Quorum met \u2014 "+n+" of "+m+" present, "+t+" needed",
+                            "Idadi inayohitajika imetimia \u2014 "+n+" kati ya "+m+
+                            " wamehudhuria, wanaohitajika "+t) }
+       : { ok:false, text:L("Below quorum \u2014 "+n+" of "+m+" present, "+t+" needed. "+
+                            "You can still record the meeting, but the group cannot take a "+
+                            "decision on a loan at it.",
+                            "Idadi haijatimia \u2014 "+n+" kati ya "+m+" wamehudhuria, "+
+                            "wanaohitajika "+t+". Mkutano bado unaweza kurekodiwa, lakini "+
+                            "kikundi hakiwezi kufanya maamuzi kuhusu mkopo katika mkutano huu.") };
+   } },
+
+ { id:"savings", kind:"money", pair:true,
+   ask:"How much was saved at this meeting?",
+   /* reviewed — reframed as shares bought, which is what saving actually is in
+      a CMG. The English is now the weaker of the two. */
+   ask_sw:"Jumla ya hisa zilizonunuliwa na wanakikundi ni kiasi gani?" },
+
+ { id:"memrepay", kind:"money",
+   ask:"How much did members repay into the group?",
+   ask_sw:"Jumla ya marejesho ya mikopo ni kiasi gani?",  /* reviewed */
+   help:"Enter 0 if none.", help_sw:"Andika 0 ikiwa hakuna." },
+
+ { id:"disbursed", kind:"money", pair:true,
+   ask:"How much did the group lend out to members?",
+   ask_sw:"Jumla ya mikopo iliyotolewa ni kiasi gani?",   /* reviewed */
+   help:"Enter 0 if the group lent nothing.",
+   help_sw:"Andika 0 ikiwa kikundi hakikutoa mkopo." },
+
+ { id:"remitted", kind:"yesno",
+   when:function(){ return G.hasLoan; },
+   ask:"Did the group repay with an instalment this meeting?",
+   /* reviewer wrote "...Kama ndio, lini?" (if yes, when?) — that asks for a
+      date this flow does not capture, so the date clause is dropped and
+      "kwenye mkutano huu" restored. Needs confirming. */
+   ask_sw:"Je, kikundi kimefanya marejesho ya mkopo wa benki kwenye mkutano huu?",
+   help:"The instalment is TZS 487,500 a month.",
+   help_sw:"Awamu ni TZS 487,500 kwa mwezi.",
+   yes:"Yes, we paid",       yes_sw:"Ndiyo, tulilipa",
+   no:"No, not this time",   no_sw:"Hapana, si mara hii" },
+
+ /* never pair:true — answering this is what makes remitAmount eligible, and a
+    screen already on display cannot grow a new question into itself. */
+ { id:"remitType", kind:"choice",
+   when:function(a){ return G.hasLoan && a.remitted==="yes"; },
+   ask:"How much was paid to the bank?",
+   ask_sw:"Kiasi gani kililipwa benki?",                  /* reviewed: ok */
+   choices:[
+     { v:"full", label:"The full instalment", label_sw:"Awamu kamili",
+       sub:"TZS 487,500", sub_sw:"TZS 487,500" },
+     { v:"part", label:"Only part of it",     label_sw:"Sehemu tu",
+       sub:"Enter the amount next", sub_sw:"Andika kiasi kifuatacho" }
+   ] },
+
+ { id:"remitAmount", kind:"money",
+   when:function(a){ return G.hasLoan && a.remitted==="yes" && a.remitType==="part"; },
+   ask:"How much was paid?",
+   ask_sw:"Kiasi gani kililipwa?",        /* NOT in the review sheet — unreviewed */
+   help:"Less than the full instalment of TZS 487,500.",
+   help_sw:"Chini ya awamu kamili ya TZS 487,500." },
+
+ { id:"notes", kind:"textarea", optional:true,
+   ask:"Anything to note about this meeting?",
+   ask_sw:"Kuna jambo la kuandika kuhusu mkutano huu?",   /* review column left blank */
+   help:"A sentence or two, or leave it empty.",
+   help_sw:"Andika kwa sentensi moja au mbili, au acha wazi.",
+   placeholder:"e.g. Two members asked to increase their shares.",
+   placeholder_sw:"mfano: Wanachama wawili wameomba kuongeza hisa zao." }
+];
+
+/* ═══════════════ applying for a loan ═══════════════
+   Four things the group has to say. Everything else the lender will weigh —
+   member count, meetings logged, how often quorum was met, any earlier loan —
+   the system already holds and sends with it. That asymmetry is the point of
+   the flow, so the review screen shows it explicitly.                        */
+var Q_LOAN = [
+ { id:"savings_total", kind:"money", pair:true,
+   ask:"In this cycle, how much has the group saved altogether?",
+   ask_sw:"Katika mzunguko huu, kikundi kimeweka jumla kiasi gani kama akiba?",
+   help:"Everything the group holds \u2014 not just this meeting.",
+   help_sw:"Kila kitu ambacho kikundi kinacho \u2014 si mkutano huu tu." },
+
+ { id:"years", kind:"count", max:40,
+   ask:"How many years has the group been saving together?",
+   ask_sw:"Kikundi kimekuwa kikiweka akiba kwa miaka mingapi?" },   /* reviewed: ok */
+
+ { id:"amount", kind:"money", pair:true,
+   ask:"How much does the group want to borrow?",
+   ask_sw:"Kikundi kinataka kukopa kiasi gani?",          /* reviewed: ok */
+   help:"This application goes to NMB Bank, the group's assigned lender.",
+   help_sw:"Ombi hili linakwenda NMB Bank, mkopeshaji aliyeteuliwa wa kikundi.",
+   /* asked after savings so the figure can be compared while it is still
+      being chosen rather than after it is committed */
+   verdict:function(n){
+     var sv = A.savings_total;
+     if(sv===""||sv===undefined||!sv) return null;
+     var x = Math.round((n/sv)*10)/10;
+     return { ok:true, text:L("That is about "+x+" times what the group has saved.",
+                              "Ni takriban mara "+x+" ya akiba ya kikundi.") };
+   } },
+
+ { id:"purpose", kind:"text",
+   ask:"What will the borrowed funds be used for?",
+   ask_sw:"Fedha zitakazokopwa zitatumika kwa shughuli gani?",   /* reviewed: ok */
+   help:"A few words is enough.", help_sw:"Maneno machache yanatosha.",
+   placeholder:"e.g. Seed, fertiliser and a shared maize sheller",
+   placeholder_sw:"mfano: Mbegu, mbolea na mashine ya pamoja ya kukoboa mahindi" }
+];
+
+/* ═══════════════ registering a group ═══════════════
+   The only flow with no account behind it: the group does not exist yet, so
+   nothing can be prefilled and the outcome is an identity rather than a record.
+
+   Location is the app's own administrative hierarchy, lifted unchanged. 23 of
+   its 48 wards carry no village list, so the village question has to fall back
+   to free text — the last route by which unverified location data can enter the
+   system, and worth seeing rather than hiding.                               */
+var GEO = {"Arusha":{"Arusha District Council":{"Bangata":["Midawe","Sasi"],"Bwawani":[],"Ilboru":["Oltulelei"],"Ilkiding'a":["Ilkiding'A","Ilkisongo","Oloigeruno"],"Kimnyak":["Kimnyaki","Lekako","Mitaroli","Olevolos"],"Kiranyi":[],"Kisongo":["Engorora","Ilkerini","Kisongo","Lesiraa","Loovilukuny"],"Kiutu":[],"Laroi":["Enjoro","Laroi"],"Lemanyata":[],"Lengijave":[],"Mateves":["Lemgur","Ngorbob"],"Mlangarini":[],"Moivo":["Ilkilorit","Moivo","Oloresho","Sama"],"Musa":[],"Mwandet":[],"Nduruma":[],"Oldonyosambu":["Oldonyosambu"],"Oldonyowas":[],"Oljoro":[],"Olmotonyi":[],"Oloirien":["Olorieni","Olosiva"],"Olturoto":["Osunyai"],"Olturumet":["Ekenywa","Ilkiushin","Seuri"],"Sambasha":[],"Sokon II":["Nambele","Ngiresi","Sokoni II"],"Tarakwa":[]}},"Singida":{"Singida District Council":{"Ikhanoda":[],"Ilongero":["Ilongero","Sekoutoure"],"Itaja":[],"Kijota":["Ikiwu","Mitonto","Nduu"],"Kinyagigi":["Kihunadi","Kinyagigi","Mitula"],"Kinyeto":["Kinyeto","Minyaa","Mkimbii","Ntunduu"],"Maghojoa":["Ghata"],"Makuro":["Matumbo","Mikuyu","Mpoku"],"Merya":[],"Mgori":[],"Mrama":["Iddi Simba","Itamka","Makhandi","Mrama"],"Msange":[],"Msisi":[],"Mtinko":["Malolo","Minyenye"],"Mudida":["Kibaoni","Mpipiti","Mudida"],"Mughamo":["Msikii"],"Mughunga":[],"Mwasauya":["Mdilu","Mwasauya","Ngamu"],"Ngimu":[],"Ntonge":[],"Ughandi":["Ughandi A"]}}};
+function districtsIn(r){ return r && GEO[r] ? Object.keys(GEO[r]).sort() : []; }
+function wardsIn(r,d){ return (r&&d&&GEO[r]&&GEO[r][d]) ? Object.keys(GEO[r][d]).sort() : []; }
+function villagesIn(r,d,w){ return (r&&d&&w&&GEO[r]&&GEO[r][d]&&GEO[r][d][w]) ? GEO[r][d][w] : []; }
+
+var Q_REGISTER = [
+ { id:"name", kind:"text",
+   ask:"What is the group called?",
+   ask_sw:"Kikundi kinaitwaje?",                          /* reviewed: ok */
+   help:"Type the group's name.", help_sw:"Andika jina la kikundi.",
+   placeholder:"e.g. Tumaini Wanawake Kisongo",
+   placeholder_sw:"mfano: Tumaini Wanawake Kisongo" },
+
+ { id:"region", kind:"select", pair:true,
+   ask:"Which region is the group in?",
+   ask_sw:"Kikundi kipo mkoa gani?",                      /* reviewed: ok */
+   help:"Pick from the list.", help_sw:"Chagua kwenye orodha.",
+   options:function(){ return Object.keys(GEO).sort(); },
+   clears:["district","ward","village"] },
+
+ { id:"district", kind:"select",
+   ask:"Which district council?",
+   ask_sw:"Halmashauri gani?",                            /* reviewed: ok */
+   options:function(){ return districtsIn(A.region); },
+   clears:["ward","village"] },
+
+ { id:"ward", kind:"select", pair:true,
+   ask:"Which ward?",
+   ask_sw:"Kata gani?",                                   /* reviewed: ok */
+   options:function(){ return wardsIn(A.region, A.district); },
+   clears:["village"] },
+
+ { id:"village", kind:"village",
+   ask:"Which village?",
+   ask_sw:"Kijiji gani?" },                               /* reviewed: ok */
+
+ /* 5-30 is a hard bound, not a nudge: `hard` makes padField reject anything
+    outside it and keep Next disabled. The verdict still flags 10 and 25 as the
+    softer thresholds a verifying officer wants to know about. */
+ { id:"members", kind:"count", min:5, max:30, hard:true, pair:true,
+   ask:"How many members does the group have?",
+   ask_sw:"Kikundi kina wanachama wangapi?",              /* reviewed: ok */
+   help:"Enter number of group members: minimum 5; maximum 30.",
+   help_sw:"Andika idadi ya wanachama wa kikundi: kiwango cha chini 5, kiwango cha juu 30.",
+   verdict:function(n){
+     if(n<10) return { ok:false, text:L(
+       "Fewer than 10 members. The group can still register, but the council "+
+       "officer will check this when they verify it.",
+       "Chini ya wanachama 10. Kikundi bado kinaweza kusajiliwa, lakini afisa "+
+       "wa halmashauri atahakiki hili.") };
+     if(n>25) return { ok:false, text:L(
+       "More than 25 members. The officer will check this too.",
+       "Zaidi ya wanachama 25. Afisa atahakiki hili pia.") };
+     return { ok:true, text:L(n+" members", "Wanachama "+n) };
+   } },
+
+ { id:"quorum", kind:"percent", def:80,
+   ask:"What share of members must attend for a decision?",
+   /* PROPOSAL — reviewer: "akidi is not popularly used or understood - its very
+      formal swahili". The word is avoided everywhere now. */
+   ask_sw:"Ni asilimia ngapi ya wanachama wanatakiwa kuhudhuria ili kufanya maamuzi?",
+   help:"Most groups use 80%. Change it only if yours is different.",
+   help_sw:"Vikundi vingi hutumia 80%. Badilisha tu kama kikundi chako ni tofauti." },
+
+ { id:"freq", kind:"select",
+   ask:"How often does the group meet?",
+   ask_sw:"Kikundi hukutana mara ngapi?",                 /* reviewed: ok */
+   options:["Weekly","Fortnightly","Monthly"] },
+
+ { id:"chair", kind:"text", pair:true,
+   ask:"What is the chairperson's name?",
+   ask_sw:"Jina la mwenyekiti ni nani?",                  /* reviewed: ok */
+   placeholder:"e.g. Neema Elias Mollel",
+   placeholder_sw:"mfano: Neema Elias Mollel" },
+
+ { id:"chairphone", kind:"phone",
+   ask:"What is the chairperson's phone number?",
+   ask_sw:"Taja namba ya simu ya mwenyekiti",             /* reviewed replacement */
+   help:"Ten digits, starting 0.", help_sw:"Tarakimu kumi, kuanzia na 0." },
+
+ { id:"treasurer", kind:"text", pair:true,
+   ask:"What is the treasurer's name?",
+   ask_sw:"Jina la mhazini ni nani?",                     /* reviewed: ok */
+   placeholder:"e.g. Sikitu Joseph Laizer",
+   placeholder_sw:"mfano: Sikitu Joseph Laizer" },
+
+ { id:"treasurerphone", kind:"phone", optional:true,
+   ask:"What is the treasurer's phone number?",
+   ask_sw:"Taja namba ya simu ya mhazini",                /* reviewed replacement */
+   help:"You can leave this out.", help_sw:"Unaweza kuacha hii wazi." }
+];
+
+var FLOWS = {
+  meeting:{ label:"Log a meeting",        label_sw:"Rekodi Mkutano",
+            sub:"Attendance, savings and repayments",
+            sub_sw:"Mahudhurio, akiba na malipo",
+            head:"LOG A MEETING",         head_sw:"REKODI MKUTANO",
+            questions:Q_MEETING },
+  loan:   { label:"Apply for a loan",     label_sw:"Omba Mkopo",
+            sub:"Ask NMB Bank to lend to the group",
+            sub_sw:"Omba NMB Bank ikopeshe kikundi",
+            head:"APPLY FOR A LOAN",      head_sw:"OMBA MKOPO",
+            questions:Q_LOAN },
+  register:{ label:"Register a new group", label_sw:"Sajili Kikundi Kipya",
+            sub:"Before the group has an ID at all",
+            sub_sw:"Kabla kikundi hakijapata namba ya utambulisho",
+            head:"REGISTER A GROUP",      head_sw:"SAJILI KIKUNDI",
+            questions:Q_REGISTER, noGroup:true }
+};
+var flow = null;                 /* null = the chooser */
+var Q = [];
+
+/* only the questions that apply right now */
+function order(){ return Q.filter(function(q){ return !q.when || q.when(A); }); }
+
+/* chunk the filtered order into 1–2-question screens. `pair:true` on a
+   question is a hint to sit it with whatever comes next — not a hard index —
+   so it survives `when` trimming the list differently on different runs. */
+function screens(){
+  var list = order(), out = [], k = 0;   /* not `L` — that is the language picker */
+  while(k < list.length){
+    if(list[k].pair && k+1 < list.length){ out.push([list[k], list[k+1]]); k += 2; }
+    else { out.push([list[k]]); k += 1; }
+  }
+  return out;
+}
+function currentScreen(){ return screens()[i]; }
+
+var TAPPED = false;
+["pointerdown","touchstart","mousedown"].forEach(function(ev){
+  window.addEventListener(ev, function(){ TAPPED = true; }, { once:true, capture:true });
+});
+
+var A = {};                                  /* the answers */
+var i = 0;                                   /* which screen */
+
+/* ═══════════════ helpers ═══════════════ */
+/* Escape anything a person typed before it goes near innerHTML. Names carry
+   apostrophes (Ilkiding'a) and ampersands; without this they render broken at
+   best, and this row-builder is what gets ported to the real app. */
+function esc(v){
+  return String(v).replace(/[&<>"']/g, function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+
+/* Amounts read back in words - the check against a mistyped figure, so it has
+   to be in the language being read. Kiswahili, and money only: a two-digit
+   head-count is checkable at a glance, and counting people would drag in
+   noun-class agreement (wawili, watatu) for no benefit. */
+var SW_ONES=["","moja","mbili","tatu","nne","tano","sita","saba","nane","tisa"];
+var SW_TENS=["","kumi","ishirini","thelathini","arobaini","hamsini","sitini","sabini","themanini","tisini"];
+function swWords(n){
+  if(n===0) return "sifuri";
+  if(n>=1000000){ var m=Math.floor(n/1000000), r1=n%1000000;
+    return "milioni "+swWords(m)+(r1?" na "+swWords(r1):""); }
+  if(n>=1000){ var t=Math.floor(n/1000), r2=n%1000;
+    return "elfu "+swWords(t)+(r2?" na "+swWords(r2):""); }
+  if(n>=100){ var h=Math.floor(n/100), r3=n%100;
+    return "mia "+SW_ONES[h]+(r3?" na "+swWords(r3):""); }
+  if(n>=20){ var d=Math.floor(n/10), r4=n%10;
+    return SW_TENS[d]+(r4?" na "+SW_ONES[r4]:""); }
+  if(n>10) return "kumi na "+SW_ONES[n-10];
+  if(n===10) return "kumi";
+  return SW_ONES[n];
+}
+function money(v){ return Number(v||0).toLocaleString("en-GB"); }
+function phoneFmt(d){ return d.replace(/(\d{4})(\d{0,3})(\d{0,3})/,function(_,a,b,c){
+  return [a,b,c].filter(Boolean).join(" "); }); }
+var SW_DAYS=["Jumapili","Jumatatu","Jumanne","Jumatano","Alhamisi","Ijumaa","Jumamosi"];
+var SW_MONTHS=["Januari","Februari","Machi","Aprili","Mei","Juni","Julai","Agosti",
+               "Septemba","Oktoba","Novemba","Desemba"];
+/* toLocaleDateString has no usable sw-TZ on most Androids, so the names are
+   spelled out rather than delegated. */
+function dstr(d){
+  if(LANG==="en") return d.toLocaleDateString("en-GB",
+    {weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  return SW_DAYS[d.getDay()]+", "+d.getDate()+" "+SW_MONTHS[d.getMonth()]+" "+d.getFullYear();
+}
+function iso(d){ return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function fid(q,s){ return s+"-"+q.id; }               /* a per-question element id */
+
+/* ═══════════════ the shell ═══════════════ */
+function renderHome(){
+  $("#prog").style.width="0%";
+  $("#back").style.visibility="hidden";
+  $("#next").style.display="none";
+  $("#who").textContent=L("CHAIRPERSON","MWENYEKITI")+" \u00b7 "+G.name.toUpperCase();
+  $("#main").innerHTML=
+    '<div class="step">'+G.name+' · '+G.id+'</div>'+
+    '<h1>'+L("What do you want to do?","Unataka kufanya nini?")+'</h1>'+
+    '<div class="help">'+L(
+      "One or two questions per screen. You can go back at any point.<br>"+
+      "Record the information during the meeting. Make sure you send it using an "+
+      "internet connection within 48 hours of the meeting.",
+      "Swali moja au mawili kwa kila ukurasa. Unaweza kurudi nyuma wakati wowote.<br>"+
+      "Rekodi taarifa wakati wa mkutano. Hakikisha unatuma taarifa kwa kutumia "+
+      "intaneti ndani ya saa 48 baada ya mkutano.")+'</div>'+
+    '<div class="choices">'+
+      Object.keys(FLOWS).map(function(k){
+        return '<button data-flow="'+k+'">'+QT(FLOWS[k],"label")+
+               '<small>'+QT(FLOWS[k],"sub")+'</small></button>';
+      }).join("")+
+    '</div>';
+  $("#main").querySelectorAll("[data-flow]").forEach(function(b){
+    b.addEventListener("click", function(){
+      flow=b.getAttribute("data-flow");
+      Q=FLOWS[flow].questions;
+      A={}; i=0;
+      /* seed any declared defaults now. They used to appear only when their own
+         screen rendered, so a value the user never had to touch could still
+         arrive undefined. */
+      Q.forEach(function(x){ if(x.def!==undefined) A[x.id]=x.def; });
+      $("#next").style.display="";
+      render();
+    });
+  });
+}
+
+/* draw the current screen's 1–2 question blocks in place, without touching
+   the header/progress/back button — used both by the normal Next/Back flow
+   and by a cascading select (region → district, ward → village) that needs
+   its sibling field on the same screen redrawn with fresh options.         */
+function drawScreen(){
+  var scr = currentScreen();
+  if(!scr) return;
+  var S = screens(), m=$("#main");
+  m.innerHTML =
+    '<div class="step">'+L("Step "+(i+1)+" of "+S.length,
+                           "Hatua "+(i+1)+" kati ya "+S.length)+'</div>'+
+    scr.map(function(q){
+      var hl = QT(q,"help");
+      return '<div class="qblock" data-qid="'+q.id+'">'+
+        '<h1>'+QT(q,"ask")+'</h1>'+
+        (hl ? '<div class="help">'+hl+'</div>' : '')+
+        '<div id="'+fid(q,"field")+'"></div>'+
+      '</div>';
+    }).join("");
+  scr.forEach(function(q){
+    var root = m.querySelector("#"+fid(q,"field"));
+    ({ text:textField, textarea:textField, phone:padField,
+       count:padField, money:padField, percent:padField,
+       date:dateField, select:selectField, village:villageField,
+       yesno:choiceField, choice:choiceField })[q.kind](q, root);
+  });
+  refreshNext();
+}
+
+function render(){
+  if(!flow){ renderHome(); return; }
+  $("#who").textContent = FLOWS[flow].noGroup
+    ? QT(FLOWS[flow],"head")
+    : QT(FLOWS[flow],"head")+" \u00b7 "+G.name.toUpperCase();
+  var S=screens();
+  $("#prog").style.width = Math.round(i/S.length*100)+"%";
+  $("#back").style.visibility = "visible";
+  $("#back").textContent = i===0 ? L("Cancel","Ghairi") : L("Back","Rudi");
+
+  if(i>=S.length){ renderReview(); return; }
+
+  drawScreen();
+  $("#main").scrollTop=0;
+}
+function refreshNext(){
+  var scr=currentScreen();
+  if(!scr) return;
+  var allOk = scr.every(function(q){
+    var v=A[q.id];
+    var need = !q.optional;      /* notes and the treasurer phone declare optional:true */
+    return !need || (v!==undefined && v!=="" && v!==null);
+  });
+  $("#next").disabled = !allOk;
+  $("#next").textContent = i===screens().length-1 ? L("Review","Kagua") : L("Next","Endelea");
+}
+
+/* ═══════════════ 1 · plain text ═══════════════ */
+function textField(q, root){
+  var long = q.kind==="textarea";
+  root.innerHTML =
+    (long?'<textarea class="text" id="'+fid(q,"typed")+'" placeholder="'+esc(QT(q,"placeholder"))+'"></textarea>'
+        :'<input class="text" id="'+fid(q,"typed")+'" placeholder="'+esc(QT(q,"placeholder"))+'">');
+  var typed=root.querySelector("#"+fid(q,"typed"));
+  if(A[q.id]) typed.value=A[q.id];
+  typed.addEventListener("input", function(){ A[q.id]=this.value.trim(); refreshNext(); });
+}
+
+/* ═══════════════ 2 · keypad ═══════════════ */
+function padField(q, root){
+  var digits = A[q.id]!==undefined && A[q.id]!=="" ? String(A[q.id]).replace(/\D/g,"")
+             : (q.def!==undefined ? String(q.def) : "");
+  root.innerHTML =
+    '<div class="answer'+(digits?"":" empty")+'" id="'+fid(q,"disp")+'">0</div>'+
+    '<div class="wordrow">'+
+      /* the money pad spends its spare key on 000, so it has nowhere to clear
+         from — without this, correcting a mistyped amount is ten backspaces */
+      '<button class="clr" id="'+fid(q,"clr")+'" type="button">'+L("Clear","Futa")+'</button>'+
+      '<div class="words" id="'+fid(q,"wds")+'">&nbsp;</div>'+
+    '</div>'+
+    '<div class="pad" id="'+fid(q,"pad")+'"></div>'+
+    '<div id="'+fid(q,"padnote")+'"></div>';
+
+  function commit(){
+    var n = digits==="" ? "" : parseInt(digits,10);
+    /* a phone number is a string of digits, not a quantity — parsing it to a
+       number silently eats the leading zero every Tanzanian number starts with */
+    A[q.id] = q.kind==="phone" ? digits : n;
+    var d=root.querySelector("#"+fid(q,"disp")), w=root.querySelector("#"+fid(q,"wds")),
+        note=root.querySelector("#"+fid(q,"padnote"));
+    d.classList.toggle("empty", digits==="");
+    var clr=root.querySelector("#"+fid(q,"clr")); if(clr) clr.style.visibility = digits ? "visible" : "hidden";
+    note.innerHTML="";
+    if(q.kind==="phone"){
+      d.textContent = digits ? phoneFmt(digits) : "0700 000 000";
+      w.textContent = digits.length===10 ? L("\u2713 ten digits","\u2713 tarakimu kumi")
+                                          : L(digits.length+" of 10 digits", digits.length+" ya tarakimu 10");
+      if(digits && digits[0]!=="0") note.innerHTML='<div class="note warn">'+L("Tanzanian numbers start with 0.",
+          "Namba za simu za Tanzania huanza na 0.")+'</div>';
+      if(digits.length!==10) A[q.id]="";
+    } else if(q.kind==="money"){
+      d.textContent = digits ? money(n) : "0";
+      /* Read-back only in Kiswahili: it exists to catch a mistyped figure for a
+         Kiswahili reader, and an English spelling of the same digits adds nothing
+         for someone who can already read them. */
+      w.textContent = (digits && LANG==="sw") ? "shilingi "+swWords(n) : " ";
+    } else if(q.kind==="percent"){
+      d.textContent = (digits?n:0)+"%";
+      w.textContent = " ";
+      if(digits && (n<1||n>100)){ note.innerHTML='<div class="note warn">'+L("Must be between 1 and 100.",
+        "Lazima iwe kati ya 1 na 100.")+'</div>'; A[q.id]=""; }
+    } else {
+      d.textContent = digits ? String(n) : "0";
+      w.textContent = " ";
+      var tooBig   = q.max && n>q.max;
+      var tooSmall = q.min && digits && n<q.min;
+      if(digits && q.hard && (tooBig || tooSmall)){
+        A[q.id]="";                       /* out of range is not an answer */
+        /* Stay quiet while more digits could still bring it into range, or
+           every number that starts 1-3 flashes an error mid-typing. */
+        var couldGrow = tooSmall && q.max && (n*10)<=q.max;
+        if(!couldGrow) note.innerHTML='<div class="note bad">'+
+          L("Enter a number between "+q.min+" and "+q.max+".",
+            "Andika idadi kati ya "+q.min+" na "+q.max+".")+'</div>';
+      } else if(tooBig){
+        note.innerHTML='<div class="note warn">'+L("That looks too high. Check the number.",
+          "Idadi hii inaonekana kubwa sana. Hakiki namba.")+'</div>';
+      }
+    }
+    /* Any field may carry a verdict, not just a count — the quorum rule sits on
+       a count, the loan-to-savings comparison on an amount. Kept outside the
+       per-kind branches above, which is where it was wrongly buried. */
+    /* only judge a value that was actually accepted — A[q.id] is cleared above
+       when the answer falls outside a hard range, and a verdict on a rejected
+       number reads as if it were allowed */
+    if(q.verdict && digits && !note.innerHTML && A[q.id]!==""){
+      var vd = q.verdict(n);
+      if(vd) note.innerHTML='<div class="note '+(vd.ok?"good":"warn")+'">'+
+        (vd.ok?"&#10003; ":"&#9888; ")+vd.text+'</div>';
+    }
+    refreshNext();
+  }
+
+  var keys = q.kind==="money" ? ["1","2","3","4","5","6","7","8","9","000","0","⌫"]
+                              : ["1","2","3","4","5","6","7","8","9","","0","⌫"];
+  var pad=root.querySelector("#"+fid(q,"pad"));
+  keys.forEach(function(k){
+    var b=document.createElement("button");
+    b.textContent=k;
+    if(k===""){ b.disabled=true; b.style.visibility="hidden"; }
+    if(k==="⌫") b.className="util";
+    b.addEventListener("click", function(){
+      var lim = q.kind==="phone"?10 : q.kind==="percent"?3 : q.kind==="count"?3 : 10;
+      if(k==="⌫") digits=digits.slice(0,-1);
+      else if(k==="") return;
+      else if(digits.length+(k==="000"?3:1) <= lim){
+        /* a leading zero is meaningless in an amount but load-bearing in a
+           Tanzanian phone number, so only amounts get it stripped */
+        var strip = q.kind!=="phone" && digits==="0";
+        digits = (strip?"":digits)+k;
+      }
+      commit();
+      /* Chrome refuses (and logs) a vibrate before the frame has been tapped,
+         which a scripted run trips on every key */
+      if(TAPPED && navigator.vibrate) try{ navigator.vibrate(8); }catch(e){}
+    });
+    pad.appendChild(b);
+  });
+  root.querySelector("#"+fid(q,"clr")).addEventListener("click", function(){ digits=""; commit(); });
+  commit();
+}
+
+/* ═══════════════ 3 · date ═══════════════ */
+function dateField(q, root){
+  var today=new Date(), yest=new Date(Date.now()-864e5);
+  root.innerHTML=
+    '<div class="choices">'+
+      '<button data-d="'+iso(today)+'">'+L("Today","Leo")+'<small>'+dstr(today)+'</small></button>'+
+      '<button data-d="'+iso(yest)+'">'+L("Yesterday","Jana")+'<small>'+dstr(yest)+'</small></button>'+
+      '<button data-d="pick">'+L("Another day","Siku nyingine")+
+        '<small>'+L("Choose from a calendar","Chagua kwenye kalenda")+'</small></button>'+
+    '</div>'+
+    '<div id="'+fid(q,"picker")+'" style="display:none;margin-top:12px">'+
+      '<input class="text" type="date" id="'+fid(q,"dpick")+'" max="'+iso(today)+'"></div>';
+  var btns=root.querySelectorAll(".choices button");
+  function mark(v){ btns.forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-d")===v); }); }
+  btns.forEach(function(b){
+    b.addEventListener("click", function(){
+      var d=b.getAttribute("data-d");
+      if(d==="pick"){ mark("pick"); root.querySelector("#"+fid(q,"picker")).style.display="block";
+        root.querySelector("#"+fid(q,"dpick")).focus(); }
+      else { mark(d); root.querySelector("#"+fid(q,"picker")).style.display="none"; A[q.id]=d; refreshNext(); }
+    });
+  });
+  root.querySelector("#"+fid(q,"dpick")).addEventListener("change", function(){ A[q.id]=this.value; refreshNext(); });
+  if(A[q.id]) mark(A[q.id]);
+}
+
+/* ═══════════════ 3b · yes / no and short choices ═══════════════ */
+/* "changed"'s "no" option reads the member count live rather than freezing it
+   at whatever the group's total was when the question object was built. Shared
+   so the review screen shows the same words the chairperson tapped. */
+function noLabelFor(q){
+  if(q.id==="changed") return L("No, still "+memberCount(), "Hapana, bado "+memberCount());
+  return QT(q,"no") || L("No","Hapana");
+}
+function choiceField(q, root){
+  var noLabel = noLabelFor(q);
+  var opts = q.kind==="yesno"
+    ? [{v:"yes",label:QT(q,"yes")||L("Yes","Ndiyo")},{v:"no",label:noLabel}]
+    : q.choices.map(function(o){
+        return { v:o.v, label:QT(o,"label"), sub:QT(o,"sub") };
+      });
+  root.innerHTML='<div class="choices">'+
+    opts.map(function(o){
+      return '<button data-v="'+o.v+'">'+o.label+
+             (o.sub?'<small>'+o.sub+'</small>':'')+'</button>';
+    }).join("")+'</div>';
+  var btns=root.querySelectorAll(".choices button");
+  function mark(){ btns.forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-v")===A[q.id]); }); }
+  btns.forEach(function(b){
+    b.addEventListener("click", function(){
+      A[q.id]=b.getAttribute("data-v");
+      /* a changed answer can make later questions irrelevant — drop what they held */
+      if(q.id==="remitted" && A.remitted==="no"){ A.remitType=""; A.remitAmount=""; }
+      if(q.id==="remitType" && A.remitType==="full"){ A.remitAmount=""; }
+      if(q.id==="changed" && A.changed==="no"){ A.members=""; }
+      /* A yes/no answer can invalidate a verdict shown by the other question
+         on this screen (README section 5). Redraw rather than just re-checking
+         the Next button, the way selectField does for cascading lists. */
+      if(currentScreen().length>1){ drawScreen(); } else { mark(); refreshNext(); }
+    });
+  });
+  mark();
+}
+
+/* ═══════════════ 4 · select — deliberately unchanged ═══════════════
+   region+district and ward+village now share a screen, so picking the first
+   of a pair has to redraw its sibling's options in place — drawScreen() does
+   that; a plain refreshNext() would leave the sibling showing stale options. */
+function selectField(q, root){
+  /* options may be a fixed list or derived from an earlier answer — region
+     decides districts, district decides wards, and so on */
+  var opts = typeof q.options==="function" ? q.options() : q.options;
+  if(!opts.length){
+    root.innerHTML='<div class="note warn">'+L(
+      "Nothing to choose from &mdash; go back and check the previous answer.",
+      "Hakuna cha kuchagua &mdash; rudi nyuma uhakiki jibu lililotangulia.")+'</div>';
+    return;
+  }
+  root.innerHTML=
+    '<select class="sel" id="'+fid(q,"sel")+'">'+
+      '<option value="">'+L("&mdash; Select &mdash;","&mdash; Chagua &mdash;")+'</option>'+
+      opts.map(function(o){return '<option'+(A[q.id]===o?" selected":"")+'>'+o+'</option>';}).join("")+
+    '</select>'+
+    '';
+  root.querySelector("#"+fid(q,"sel")).addEventListener("change", function(){
+    A[q.id]=this.value;
+    /* a changed region invalidates the district beneath it, and so on down */
+    (q.clears||[]).forEach(function(k){ A[k]=""; });
+    if(q.clears && q.clears.length){ drawScreen(); } else { refreshNext(); }
+  });
+}
+
+/* ═══════════════ 4b · village — a list where there is one, typing where there is not ═══════════════ */
+function villageField(q, root){
+  var vs = villagesIn(A.region, A.district, A.ward);
+  if(vs.length){
+    selectField({ id:q.id, options:vs }, root);
+    return;
+  }
+  /* 23 of the 48 wards carry no village list. Rather than pretend, say so —
+     this is the one place free text is unavoidable in the whole form. */
+  textField({ id:q.id, kind:"text",
+               placeholder:"Type the village name",
+               placeholder_sw:"Andika jina la kijiji" }, root);
+  root.insertAdjacentHTML("beforeend",
+    '<div class="note warn" style="margin-top:16px">'+L(
+      "No villages are listed for "+esc(A.ward||"this ward")+", so the name has to be "+
+      "typed. The council officer will check it when they verify the group.",
+      "Hakuna vijiji vilivyoorodheshwa kwa "+esc(A.ward||"kata hii")+", kwa hiyo jina "+
+      "litaandikwa. Afisa wa halmashauri atalihakiki atakapohakiki kikundi.")+'</div>');
+}
+
+/* ═══════════════ review ═══════════════
+   Unlike the entry screens, review still lists every question one at a time —
+   it is a checklist to read down, not something that benefits from pairing. */
+function renderReview(){
+  $("#prog").style.width="100%";
+  var qlist=order();  /* NOT `L` — that is the language picker */
+  var rows=qlist.map(function(q,n){
+    var v=A[q.id];
+    if(q.kind==="money") v = (v===""||v===undefined) ? "—" : "TZS "+money(v);
+    else if(q.kind==="date"&&v) v = dstr(new Date(v+"T00:00:00"));
+    else if(q.kind==="yesno") v = v==="yes" ? (QT(q,"yes")||L("Yes","Ndiyo"))
+                                  : v==="no" ? noLabelFor(q) : "\u2014";
+    else if(q.kind==="choice"&&v){
+      var c=q.choices.filter(function(x){return x.v===v;})[0]; v = c?QT(c,"label"):v;
+    }
+    return '<div class="r"><span class="k">'+esc(QT(q,"ask"))+'</span>'+
+           '<span class="v">'+(v===""||v===undefined?"\u2014":esc(v))+'</span>'+
+           '<button data-go="'+n+'">'+L("Change","Badilisha")+'</button></div>';
+  }).join("");
+
+  /* each flow gets whatever context governs what happens next */
+  var qv="";
+  if(flow==="register"){
+    qv = '<div class="note warn">'+L(
+      "<b>Nothing is checked yet.</b> Submitting creates the group and gives it an ID "+
+      "straight away &mdash; an officer at "+esc(A.district||"the district council")+
+      " then verifies it before it can borrow.",
+      "<b>Bado hakuna kilichohakikiwa.</b> Ukituma, kikundi kitasajiliwa na kupewa namba "+
+      "mara moja &mdash; kisha afisa wa "+esc(A.district||"halmashauri")+
+      " atahakiki kabla kikundi hakijaweza kukopa.")+'</div>';
+  }
+  if(flow==="loan"){
+    /* what the group never typed, and never should have to */
+    qv = '<div class="note good">'+L(
+      "<b>Sent with this application, from the group's own record:</b><br>"+
+      G.members+" members &middot; "+G.meetingsLogged+" meetings logged &middot; quorum met at "+
+      G.quorumMet+" of them &middot; "+
+      (G.priorLoan ? "one earlier loan, repaid in full" : "no earlier loan")+
+      "<br><span style=\"opacity:.85\">The lender reads this, not just the four answers "+
+      "above. Nobody assembles it.</span>",
+      "<b>Yanayotumwa pamoja na ombi hili, kutoka rekodi ya kikundi:</b><br>"+
+      "wanachama "+G.members+" &middot; mikutano "+G.meetingsLogged+" imerekodiwa &middot; "+
+      "idadi inayohitajika ilitimia katika "+G.quorumMet+" &middot; "+
+      (G.priorLoan ? "mkopo mmoja wa awali, ulilipwa wote" : "hakuna mkopo wa awali")+
+      "<br><span style=\"opacity:.85\">Mkopeshaji anasoma haya, si majibu manne tu hapo juu. "+
+      "Hakuna anayelazimika kuyakusanya.</span>")+'</div>';
+  }
+  var pres=A.present, t=threshold();
+  if(flow==="meeting" && pres!==""&&pres!==undefined){
+    qv = pres>=t
+      ? '<div class="note good">&#10003; '+L(
+          "This meeting met quorum &mdash; "+pres+" of "+memberCount()+" present. A loan "+
+          "decision could be taken at it.",
+          "Mkutano huu umetimiza idadi inayohitajika &mdash; "+pres+" kati ya "+memberCount()+
+          " wamehudhuria. Maamuzi kuhusu mkopo yanaweza kufanyika.")+'</div>'
+      : '<div class="note warn">&#9888; '+L(
+          "This meeting was below quorum &mdash; "+pres+" of "+memberCount()+" present, "+t+
+          " needed. It will be recorded, but a loan decision cannot be taken at it.",
+          "Mkutano huu haujatimiza idadi inayohitajika &mdash; "+pres+" kati ya "+memberCount()+
+          " wamehudhuria, wanaohitajika "+t+". Utarekodiwa, lakini maamuzi kuhusu mkopo "+
+          "hayawezi kufanyika.")+'</div>';
+  }
+
+  $("#main").innerHTML=
+    '<div class="step">'+L("Last step","Hatua ya mwisho")+'</div>'+
+    '<h1>'+L("Check before "+(flow==="loan"?"sending":flow==="register"?"registering":"saving"),
+             "Kagua kabla ya "+(flow==="loan"?"kutuma":flow==="register"?"kusajili":"kuhifadhi"))+'</h1>'+
+    '<div class="help">'+L("Read it back. Change anything that is wrong.",
+                           "Soma tena. Badilisha lolote lisilo sahihi.")+'</div>'+
+    qv+
+    '<div class="rev" style="margin-top:14px">'+rows+'</div>'+
+    '<button class="bigbtn" id="save">'+
+      L(flow==="loan"?"Send this application":
+          flow==="register"?"Register the group":"Save this meeting",
+        flow==="loan"?"Tuma ombi hili":
+          flow==="register"?"Sajili kikundi":"Hifadhi mkutano huu")+'</button>'+
+    '<div id="saved"></div>'+
+    '<div class="note warn" style="margin-top:14px">'+L(
+      "Make sure you send the information using an internet connection within 48 hours "+
+      "of the meeting.",
+      "Hakikisha unatuma taarifa kwa kutumia intaneti ndani ya saa 48 baada ya mkutano.")+'</div>';
+  $("#main").scrollTop=0;
+  $("#next").textContent=L("Done","Sawa");
+  $("#next").disabled=false;
+  $("#main").querySelectorAll("[data-go]").forEach(function(b){
+    b.addEventListener("click", function(){
+      /* jump to the screen that contains this question, not just its own index —
+         two questions can now share one screen */
+      var qid = qlist[parseInt(b.getAttribute("data-go"),10)].id;
+      var S=screens();
+      for(var k=0;k<S.length;k++){
+        if(S[k].some(function(x){return x.id===qid;})){ i=k; break; }
+      }
+      render();
+    });
+  });
+
+  $("#save").addEventListener("click", function(){
+    this.disabled=true;
+    this.textContent = L(flow==="loan"?"Sent":flow==="register"?"Registered":"Saved",
+                         flow==="loan"?"Imetumwa":flow==="register"?"Imesajiliwa":"Imehifadhiwa");
+    if(flow==="register"){ showRegistered(); return; }
+    $("#saved").innerHTML='<div class="note good" style="margin-top:12px">'+
+      L("<b>Nothing left this phone.</b> This is a prototype \u2014 there is no database "+
+        "behind it. In the real app this is what would be stored:",
+        "<b>Hakuna kilichotoka kwenye simu hii.</b> Hii ni sampuli ya majaribio \u2014 "+
+        "hakuna hifadhidata nyuma yake. Katika programu halisi, hii ndiyo taarifa "+
+        "ingehifadhiwa:")+'</div>'+
+      '<pre style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;'+
+      'font:12px/1.5 ui-monospace,Menlo,monospace;overflow-x:auto;margin-top:10px">'+
+      JSON.stringify(record(),null,2).replace(/</g,"&lt;")+'</pre>';
+  });
+}
+
+/* what the real app would store — the app's own field names, so this prototype
+   can be read straight across into the meetings table */
+function record(){
+  if(flow==="loan") return loanRecord();
+  if(flow==="register") return registerRecord();
+  var remit = !G.hasLoan ? 0
+            : A.remitted!=="yes" ? 0
+            : A.remitType==="full" ? G.instalment
+            : (A.remitAmount||0);
+  return {
+    cmg_id:      G.id,
+    date:        A.date || null,
+    present:     A.present===""?null:A.present,
+    savings:     A.savings===""?0:A.savings,
+    memrepay:    A.memrepay===""?0:A.memrepay,
+    disbursed:   A.disbursed===""?0:A.disbursed,
+    repaid:      remit,
+    remit_choice: G.hasLoan ? (A.remitted||"no") : "no",
+    remit_type:   (G.hasLoan && A.remitted==="yes") ? (A.remitType||null) : null,
+    notes:       A.notes || null,
+    members_now: memberCount(),
+    quorum_met:  (A.present!==""&&A.present!==undefined) ? (A.present>=threshold()) : null
+  };
+}
+
+/* Registering does not write a row the chairperson will ever look at — it
+   mints an identity. So the outcome is that identity, said plainly, rather than
+   a confirmation message. */
+function showRegistered(){
+  var id = "C1031";                       /* the server allocates this */
+  var warn = [];
+  if(A.members < 10) warn.push(L("The group has fewer than 10 members.",
+                                 "Kikundi kina wanachama chini ya 10."));
+  if(A.members > 25) warn.push(L("The group has more than 25 members.",
+                                 "Kikundi kina wanachama zaidi ya 25."));
+  if(!villagesIn(A.region,A.district,A.ward).length)
+    warn.push(L("The village was typed rather than chosen from the official list.",
+                "Jina la kijiji liliandikwa, halikuchaguliwa kwenye orodha rasmi."));
+
+  $("#saved").innerHTML =
+    '<div class="note good" style="margin-top:14px;text-align:center;padding:22px 16px">'+
+      '<div style="font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.8">'+
+        L("The group&rsquo;s new ID","Namba mpya ya kikundi")+'</div>'+
+      '<div style="font-size:44px;font-weight:800;letter-spacing:.04em;margin:8px 0 10px">'+id+'</div>'+
+      '<div style="font-size:15px;line-height:1.5">'+L(
+        "Write this down. The chairperson signs in with it from now on &mdash; there is "+
+        "no password.",
+        "Andika namba hii. Mwenyekiti ataitumia kuingia kuanzia sasa &mdash; hakuna "+
+        "nenosiri.")+'</div>'+
+    '</div>'+
+    (warn.length
+      ? '<div class="note warn" style="margin-top:12px"><b>'+
+        L("Passed on to the officer:","Yanayopelekwa kwa afisa:")+'</b><br>'+
+        warn.join('<br>')+'</div>'
+      : '')+
+    '<div class="note warn" style="margin-top:12px"><b>'+
+      L("Nothing left this phone.","Hakuna kilichotoka kwenye simu hii.")+'</b> '+
+      L("This is a prototype.","Hii ni sampuli ya majaribio.")+'</div>'+
+    '<pre style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;'+
+    'font:12px/1.5 ui-monospace,Menlo,monospace;overflow-x:auto;margin-top:10px">'+
+    JSON.stringify(registerRecord(),null,2).replace(/</g,"&lt;")+'</pre>';
+}
+
+function registerRecord(){
+  return {
+    rpc:                 "register_cmg",
+    p_name:              A.name || null,
+    p_region:            A.region || null,
+    p_district:          A.district || null,
+    p_ward:              A.ward || null,
+    p_village:           A.village || null,
+    p_members:           A.members===""?null:A.members,
+    p_quorum:            (A.quorum===""||A.quorum===undefined) ? 80 : A.quorum,
+    p_freq:              A.freq || null,
+    p_chair_name:        A.chair || null,
+    p_chair_phone:       A.chairphone || null,
+    p_treasurer_name:    A.treasurer || null,
+    p_treasurer_phone:   A.treasurerphone || null,
+    _returned_by_the_server: { cmg_id:"C1031", registry_status:"PENDING_LGA_VERIFICATION" }
+  };
+}
+
+/* The loan application, in the shape of the RPC the app actually calls.
+   Only four values come from the chairperson; the rest the server reads off
+   the group's own record, which is why the form is four questions and not
+   fourteen. */
+function loanRecord(){
+  return {
+    rpc:              "apply_for_loan",
+    p_cmg_id:         G.id,
+    p_amount:         A.amount===""?null:A.amount,
+    p_purpose:        A.purpose || null,
+    p_group_savings:  A.savings_total===""?null:A.savings_total,
+    p_years_active:   A.years===""?null:A.years,
+    _filled_in_by_the_server: {
+      fi:                     G.fi,
+      members_at_application: G.members,
+      had_prior_loan:         G.priorLoan,
+      status:                 "PENDING"
+    }
+  };
+}
+
+/* ═══════════════ wiring ═══════════════ */
+$("#next").addEventListener("click", function(){
+  if(i>=screens().length){ flow=null; A={}; i=0; render(); return; }
+  i++; render();
+});
+$("#back").addEventListener("click", function(){
+  if(i>0){ i--; render(); return; }
+  flow=null; A={}; i=0; render();          /* out of the flow, back to the chooser */
+});
+
+/* the page itself has to be cached, or "offline" just means a blank screen */
+if("serviceWorker" in navigator && location.protocol==="https:"){
+  navigator.serviceWorker.register("sw.js").catch(function(){});
+}
+
+$("#lang-en").addEventListener("click", function(){ setLang("en"); });
+$("#lang-sw").addEventListener("click", function(){ setLang("sw"); });
+document.documentElement.lang = LANG;
+$("#lang-en").setAttribute("aria-pressed", LANG==="en");
+$("#lang-sw").setAttribute("aria-pressed", LANG==="sw");
+
+render();
+window.__PROTO={ answers:function(){return A;}, go:function(n){i=n;render();},
+                 lang:function(x){ return x?setLang(x):LANG; } };
+})();
+</script>
+</body></html>
