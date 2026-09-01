@@ -2,7 +2,7 @@
    Without this, "offline" just means a blank screen — the page has to be on the
    device before any of the offline behaviour underneath it matters.
    Bump CACHE whenever a file changes, or the old copy is what people get. */
-var CACHE = "cmg-chair-v10";   /* bumped: audio removed, Swahili review applied */
+var CACHE = "cmg-chair-v11";   /* bumped: audio removed, Swahili review applied */
 var FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 /* types.html and spike.html are no longer precached: both still contain the
    removed voice code and would only ship a stale copy of it. */

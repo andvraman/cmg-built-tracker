@@ -296,11 +296,13 @@ var Q_MEETING = [
 
  { id:"remitted", kind:"yesno",
    when:function(){ return G.hasLoan; },
-   ask:"Did the group resolve to repay a loan instalment in this meeting?",
-   /* reviewer wrote "...Kama ndio, lini?" (if yes, when?) — that asks for a
-      date this flow does not capture, so the date clause is dropped and
-      "kwenye mkutano huu" restored. Needs confirming. */
-   ask_sw:"Je, kikundi kiliazimia kulipa awamu ya mkopo katika mkutano huu?",
+   ask:"Did the group repay a loan instalment in this meeting?",
+   /* Drifted twice from the reviewed string and needs re-review: the reviewer
+      wrote "...marejesho ya mkopo wa benki? Kama ndio, lini?", whose date
+      clause this flow never captures. Now phrased as an instalment actually
+      paid — which is what the yes/no labels, the follow-up amount question and
+      the app's `repaid` field all assume. */
+   ask_sw:"Je, kikundi kililipa awamu ya mkopo katika mkutano huu?",
    help:"The instalment is TZS 487,500 a month.",
    help_sw:"Awamu ni TZS 487,500 kwa mwezi.",
    yes:"Yes, we paid",       yes_sw:"Ndiyo, tulilipa",
