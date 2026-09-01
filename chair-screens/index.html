@@ -42,6 +42,8 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
 .qblock+.qblock{padding-top:24px;border-top:1px solid var(--line)}
 h1{font-size:25px;line-height:1.25;font-weight:800;color:var(--green-dark);margin-bottom:4px}
 .help{font-size:15px;color:var(--muted);margin-bottom:16px}
+.needed{font-size:14px;font-weight:600;color:var(--warn);margin-top:12px}
+.needed:empty{display:none}
 .standing{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
 .standing p{font-size:15px;line-height:1.5;color:var(--muted);margin-bottom:8px}
 .standing p:last-child{margin-bottom:0}
@@ -348,9 +350,14 @@ var Q_LOAN = [
    help:"Everything the group holds \u2014 not just this meeting.",
    help_sw:"Kila kitu ambacho kikundi kinacho \u2014 si mkutano huu tu." },
 
- { id:"years", kind:"count", max:40,
+ /* capped at 10: a lender is not weighing savings history older than that,
+    so the field should not invite it */
+ { id:"years", kind:"count", max:10, hard:true,
    ask:"How many years has the group been saving together?",
-   ask_sw:"Kikundi kimekuwa kikiweka akiba kwa miaka mingapi?" },   /* reviewed: ok */
+   ask_sw:"Kikundi kimekuwa kikiweka akiba kwa miaka mingapi?",     /* reviewed: ok */
+   help:"Maximum 10 years.", help_sw:"Kiwango cha juu ni miaka 10.",
+   rangeMsg:function(){ return L("Cannot be more than 10 years.",
+                                 "Haiwezi kuzidi miaka 10."); } },
 
  { id:"amount", kind:"money", pair:true,
    ask:"How much does the group want to borrow?",
@@ -624,6 +631,7 @@ function drawScreen(){
         '<h1>'+QT(q,"ask")+'</h1>'+
         (hl ? '<div class="help">'+hl+'</div>' : '')+
         '<div id="'+fid(q,"field")+'"></div>'+
+        '<div class="needed" id="'+fid(q,"needed")+'"></div>'+
       '</div>';
     }).join("");
   scr.forEach(function(q){
@@ -651,14 +659,26 @@ function render(){
   drawScreen();
   $("#main").scrollTop=0;
 }
+function answered(q){
+  var v=A[q.id];
+  return q.optional || (v!==undefined && v!=="" && v!==null);
+}
 function refreshNext(){
   var scr=currentScreen();
   if(!scr) return;
-  var allOk = scr.every(function(q){
-    var v=A[q.id];
-    var need = !q.optional;      /* notes and the treasurer phone declare optional:true */
-    return !need || (v!==undefined && v!=="" && v!==null);
+  var done = scr.filter(answered), allOk = done.length===scr.length;
+
+  /* On a two-question screen a disabled Next is a dead end: the other question
+     may be off the top of the phone screen, so nothing explains the grey
+     button. Name the one still missing — but only once something on the screen
+     has been answered, so arriving does not start with a complaint. */
+  scr.forEach(function(q){
+    var el = $("#"+fid(q,"needed"));
+    if(!el) return;
+    el.textContent = (!allOk && done.length>0 && !answered(q))
+      ? L("Still needed", "Bado inahitajika") : "";
   });
+
   $("#next").disabled = !allOk;
   $("#next").textContent = i===screens().length-1 ? L("Review","Kagua") : L("Next","Endelea");
 }
@@ -942,14 +962,14 @@ function renderReview(){
       G.members+" members &middot; "+G.meetingsLogged+" meetings logged &middot; quorum met at "+
       G.quorumMet+" of them &middot; "+
       (G.priorLoan ? "one earlier loan, repaid in full" : "no earlier loan")+
-      "<br><span style=\"opacity:.85\">The lender reads this, not just the four answers "+
-      "above. Nobody assembles it.</span>",
+      "<br><span style=\"opacity:.85\">The lender reads this, not just the answers "+
+      "above.</span>",
       "<b>Yanayotumwa pamoja na ombi hili, kutoka rekodi ya kikundi:</b><br>"+
       "wanachama "+G.members+" &middot; mikutano "+G.meetingsLogged+" imerekodiwa &middot; "+
       "idadi inayohitajika ilitimia katika "+G.quorumMet+" &middot; "+
       (G.priorLoan ? "mkopo mmoja wa awali, ulilipwa wote" : "hakuna mkopo wa awali")+
-      "<br><span style=\"opacity:.85\">Mkopeshaji anasoma haya, si majibu manne tu hapo juu. "+
-      "Hakuna anayelazimika kuyakusanya.</span>")+'</div>';
+      "<br><span style=\"opacity:.85\">Mkopeshaji anasoma haya, si majibu tu hapo "+
+      "juu.</span>")+'</div>';
   }
   var pres=A.present, t=threshold();
   if(flow==="meeting" && pres!==""&&pres!==undefined){
