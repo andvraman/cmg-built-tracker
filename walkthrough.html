@@ -17,7 +17,11 @@ body{font-family:system-ui,sans-serif;font-size:15px;color:var(--text);backgroun
 .shell{max-width:800px;margin:0 auto}
 .topbar{background:var(--green-dark);color:#fff;padding:.75rem 1.25rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .topbar-brand{font-size:15px;font-weight:700}
-.topbar-role{font-size:12px;background:rgba(255,255,255,.15);padding:3px 10px;border-radius:999px}
+.topbar-role{font-size:12px;background:rgba(255,255,255,.15);padding:3px 10px;border-radius:999px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar .lang-toggle{flex-shrink:0}
+.topbar-brand{flex-shrink:0}
+.topbar>div:last-child{min-width:0;flex:1 1 auto;justify-content:flex-end}
+@media(max-width:480px){.topbar-role{display:none}}
 .screen{display:none;padding:1.25rem}.screen.active{display:block}
 .card{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1rem}
 .card-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.875rem}
@@ -54,9 +58,10 @@ body{font-family:system-ui,sans-serif;font-size:15px;color:var(--text);backgroun
 .btn-sm{padding:5px 11px;font-size:13px}
 .btn-danger{color:var(--red);border-color:#fecaca}.btn-danger:hover{background:var(--red-light)}
 .btn-full{width:100%;justify-content:center;padding:11px}
-.tabs{display:flex;gap:4px;margin-bottom:1.25rem;background:var(--gray100);padding:4px;border-radius:var(--radius)}
-.tab{flex:1;padding:7px 12px;border-radius:6px;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;text-align:center}
-.tab.active{background:#fff;color:var(--green-dark);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.tabs{display:flex;gap:8px;margin-bottom:1.25rem;background:transparent;padding:0;border-radius:var(--radius)}
+.tab{flex:1;padding:8px 16px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;text-align:center;transition:all .15s}
+.tab:hover{border-color:var(--green-mid)}
+.tab.active{background:var(--green);color:#fff;border-color:var(--green);box-shadow:none;font-weight:600}
 .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600}
 .badge-ok{background:#dcfce7;color:#15803d}.badge-fail{background:#fee2e2;color:#b91c1c}
 .badge-warn{background:#fef3c7;color:#b45309}.badge-gray{background:var(--gray100);color:var(--muted)}
@@ -109,18 +114,25 @@ body{font-family:system-ui,sans-serif;font-size:15px;color:var(--text);backgroun
 .reset-confirm{background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;margin-top:1rem;text-align:center}
 .reset-confirm h3{color:var(--red);margin-bottom:.5rem}
 .reset-confirm p{font-size:14px;color:var(--muted);margin-bottom:1rem}
-/* Log meeting wizard */
-.lstep{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;color:var(--muted)}
-.lstep.active{color:var(--green-dark);font-weight:700}
-.lstep.done{color:var(--green)}
-.lstep-dot{width:22px;height:22px;border-radius:50%;background:var(--gray200);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
-.lstep.active .lstep-dot{background:var(--green);color:#fff}
-.lstep.done .lstep-dot{background:var(--green-light);color:var(--green)}
-.lstep-line{flex:1;height:1px;background:var(--gray200)}
-/* Toggle buttons */
-.tog-btn{padding:8px 20px;border-radius:var(--radius);border:2px solid var(--border);background:#fff;color:var(--text);font-size:14px;font-weight:500;cursor:pointer;transition:all .15s}
-.tog-btn:hover{border-color:var(--green-mid);background:var(--green-light)}
-.tog-btn.selected{border-color:var(--green);background:var(--green-light);color:var(--green-dark);font-weight:700}
+/* Log meeting wizard — one or two questions per screen (chair-screens/README.md §4) */
+.wz-q{padding:.25rem 0 1.25rem}
+.wz-q+.wz-q{border-top:1px solid var(--border);padding-top:1.25rem}
+.wz-q:last-child{padding-bottom:.25rem}
+.wz-ask{font-size:19px;line-height:1.3;font-weight:700;color:var(--green-dark);margin-bottom:6px}
+.wz-ask label{font:inherit;color:inherit;display:block;margin:0}
+.wz-help{font-size:13px;color:var(--muted);margin-bottom:.75rem}
+.wz-choices{display:flex;flex-direction:column;gap:8px}
+.wz-choice{min-height:52px;text-align:left;padding:10px 14px;border-radius:var(--radius);border:2px solid var(--border);background:#fff;color:var(--text);font-size:15px;font-weight:600;cursor:pointer;transition:all .15s}
+.wz-choice small{display:block;font-weight:400;font-size:12px;color:var(--muted);margin-top:2px}
+.wz-choice:hover{border-color:var(--green-mid);background:var(--green-light)}
+.wz-choice.selected{border-color:var(--green);background:var(--green-light);color:var(--green-dark)}
+.field input.wz-num{font-size:24px;font-weight:700;padding:12px 14px;font-variant-numeric:tabular-nums}
+.q-hint.warn{background:var(--amber-light);color:var(--amber)}
+.wz-rev .r{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:9px 0;border-bottom:1px solid var(--gray100);font-size:13px;flex-wrap:wrap}
+.wz-rev .r:last-child{border-bottom:none}
+.wz-rev .k{color:var(--muted);flex:1 1 55%}
+.wz-rev .v{font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.wz-rev button{background:none;border:0;color:var(--green);font-weight:600;font-size:13px;cursor:pointer;padding:0 0 0 6px}
 .alert-ok{background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:10px 14px;border-radius:var(--radius);font-size:13px;margin-top:.75rem}
 
 /* ═════ walkthrough layer ═════ */
@@ -1478,37 +1490,108 @@ window.SB_STUB = {
     </div>
 
     <div id="login-register" style="display:none">
-      <div style="font-weight:700;font-size:15px;margin-bottom:.25rem">Register a new CMG</div>
-      <div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Submit your group's details. You'll receive a CMG ID immediately and can log in with it to track status. Your application is sent to the LGA officer for verification.</div>
+      <div style="font-weight:700;font-size:15px;margin-bottom:.25rem" data-i18n="reg.title">Register a new CMG</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:1rem" data-i18n="reg.intro">Answer a few questions about the group. You get a CMG ID straight away and can log in with it to check status. The application goes to the LGA officer for verification.</div>
       <div id="reg-form">
-        <div class="field"><label>CMG name *</label><input type="text" id="reg-name" placeholder="e.g. Umoja Women Group"></div>
-        <div class="row2">
-          <div class="field"><label>Chairperson name *</label><input type="text" id="reg-chair"></div>
-          <div class="field"><label>Chairperson phone *</label><input type="text" id="reg-chairphone" placeholder="07XXXXXXXX"></div>
+        <div id="rw-step" style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:.4rem"></div>
+        <div class="progress-bar" style="margin:0 0 1rem"><div class="progress-fill" id="rw-prog" style="width:0"></div></div>
+
+        <!-- 1 · name -->
+        <div class="wz-screen" data-screen="name" style="display:none">
+          <div class="wz-q">
+            <h2 class="wz-ask"><label for="reg-name" data-i18n="reg.name.ask">What is the group called?</label></h2>
+            <div class="wz-help" data-i18n="reg.name.help">Type the group's name.</div>
+            <div class="field"><input type="text" id="reg-name" data-i18n-ph="reg.name.ph" placeholder="e.g. Tumaini Wanawake Kisongo"></div>
+          </div>
         </div>
-        <div class="row2">
-          <div class="field"><label>Treasurer name *</label><input type="text" id="reg-treasurer"></div>
-          <div class="field"><label>Treasurer phone</label><input type="text" id="reg-treasurerphone"></div>
+        <!-- 2 · region + district (the existing cascade, unchanged) -->
+        <div class="wz-screen" data-screen="place" style="display:none">
+          <div class="wz-q">
+            <h2 class="wz-ask"><label for="reg-region" data-i18n="reg.region.ask">Which region is the group in?</label></h2>
+            <div class="wz-help" data-i18n="reg.region.help">Pick from the list.</div>
+            <div class="field"><select id="reg-region"><option value="" data-i18n="wz.select">— Select —</option></select></div>
+          </div>
+          <div class="wz-q">
+            <h2 class="wz-ask"><label for="reg-district" data-i18n="reg.district.ask">Which district council?</label></h2>
+            <div class="field"><select id="reg-district" disabled=""><option value="" data-i18n="wz.select">— Select —</option></select></div>
+          </div>
         </div>
-        <div class="row2">
-          <div class="field"><label>Region *</label><select id="reg-region"><option value="">— Select —</option></select></div>
-          <div class="field"><label>District Council *</label><select id="reg-district" disabled=""><option value="">— Select —</option></select></div>
+        <!-- 3 · ward + village -->
+        <div class="wz-screen" data-screen="ward" style="display:none">
+          <div class="wz-q">
+            <h2 class="wz-ask"><label for="reg-ward" data-i18n="reg.ward.ask">Which ward?</label></h2>
+            <div class="field"><select id="reg-ward" disabled=""><option value="" data-i18n="wz.select">— Select —</option></select></div>
+          </div>
+          <div class="wz-q">
+            <h2 class="wz-ask"><label for="reg-village" data-i18n="reg.village.ask">Which village?</label></h2>
+            <div class="field">
+              <select id="reg-village-sel" style="display:none"><option value="" data-i18n="wz.select">— Select —</option></select>
+              <input type="text" id="reg-village" data-i18n-ph="reg.village.ph" placeholder="Select a ward first">
+            </div>
+            <div id="reg-village-note"></div>
+          </div>
         </div>
-        <div class="row2">
-          <div class="field"><label>Ward *</label><select id="reg-ward" disabled=""><option value="">— Select —</option></select></div>
-          <div class="field"><label>Village *</label>
-            <select id="reg-village-sel" style="display:none"><option value="">— Select —</option></select>
-            <input type="text" id="reg-village" placeholder="Select a ward first"></div>
+        <!-- 4 · members (5–30, hard) + quorum share -->
+        <div class="wz-screen" data-screen="members" style="display:none">
+          <div class="wz-q">
+            <h2 class="wz-ask"><label for="reg-members" data-i18n="reg.members.ask">How many members does the group have?</label></h2>
+            <div class="wz-help" data-i18n="reg.members.help">Minimum 5, maximum 30.</div>
+            <div class="field"><input type="number" inputmode="numeric" class="wz-num" id="reg-members" min="5" max="30" placeholder="0"></div>
+            <div id="rw-members-note"></div>
+          </div>
+          <div class="wz-q">
+            <h2 class="wz-ask"><label for="reg-quorum" data-i18n="reg.quorum.ask">What share of members must attend for a decision?</label></h2>
+            <div class="wz-help" data-i18n="reg.quorum.help">Most groups use 80%. Change it only if yours is different.</div>
+            <div class="field"><input type="number" inputmode="numeric" class="wz-num" id="reg-quorum" value="80" min="1" max="100"></div>
+            <div id="rw-quorum-note"></div>
+          </div>
         </div>
-        <div class="row2">
-          <div class="field"><label>Total members *</label><input type="number" id="reg-members" min="1" placeholder="e.g. 25"></div>
-          <div class="field"><label>Quorum %</label><input type="number" id="reg-quorum" value="80" min="1" max="100"></div>
+        <!-- 5 · frequency -->
+        <div class="wz-screen" data-screen="freq" style="display:none">
+          <div class="wz-q">
+            <h2 class="wz-ask"><label for="reg-freq" data-i18n="reg.freq.ask">How often does the group meet?</label></h2>
+            <div class="field"><select id="reg-freq"><option value="" data-i18n="wz.select">— Select —</option><option value="Weekly" data-i18n="freq.weekly">Weekly</option><option value="Fortnightly" data-i18n="freq.fortnightly">Fortnightly</option><option value="Monthly" data-i18n="freq.monthly">Monthly</option></select></div>
+          </div>
         </div>
-        <div class="field"><label>Meeting frequency</label><select id="reg-freq"><option>Monthly</option><option>Fortnightly</option><option>Weekly</option></select></div>
+        <!-- 6 · chairperson name + phone -->
+        <div class="wz-screen" data-screen="chair" style="display:none">
+          <div class="wz-q">
+            <h2 class="wz-ask"><label for="reg-chair" data-i18n="reg.chair.ask">What is the chairperson's name?</label></h2>
+            <div class="field"><input type="text" id="reg-chair" data-i18n-ph="reg.chair.ph" placeholder="e.g. Neema Elias Mollel"></div>
+          </div>
+          <div class="wz-q">
+            <h2 class="wz-ask"><label for="reg-chairphone" data-i18n="reg.chairphone.ask">What is the chairperson's phone number?</label></h2>
+            <div class="wz-help" data-i18n="reg.phone.help">Ten digits, starting 0.</div>
+            <div class="field"><input type="tel" inputmode="numeric" class="wz-num" id="reg-chairphone" placeholder="07XXXXXXXX"></div>
+            <div id="rw-chairphone-note"></div>
+          </div>
+        </div>
+        <!-- 7 · treasurer name + phone -->
+        <div class="wz-screen" data-screen="treasurer" style="display:none">
+          <div class="wz-q">
+            <h2 class="wz-ask"><label for="reg-treasurer" data-i18n="reg.treasurer.ask">What is the treasurer's name?</label></h2>
+            <div class="field"><input type="text" id="reg-treasurer" data-i18n-ph="reg.treasurer.ph" placeholder="e.g. Sikitu Joseph Laizer"></div>
+          </div>
+          <div class="wz-q">
+            <h2 class="wz-ask"><label for="reg-treasurerphone" data-i18n="reg.treasurerphone.ask">What is the treasurer's phone number?</label></h2>
+            <div class="wz-help" data-i18n="reg.treasurerphone.help">You can leave this out.</div>
+            <div class="field"><input type="tel" inputmode="numeric" class="wz-num" id="reg-treasurerphone" placeholder="07XXXXXXXX"></div>
+            <div id="rw-treasurerphone-note"></div>
+          </div>
+        </div>
+        <!-- check before registering -->
+        <div class="wz-screen" data-screen="check" style="display:none">
+          <div class="wz-q">
+            <h2 class="wz-ask" data-i18n="reg.check.title">Check before registering</h2>
+            <div class="wz-help" data-i18n="wz.check.help">Read it back. Change anything that is wrong.</div>
+            <div id="rw-check"></div>
+          </div>
+        </div>
+
         <p id="reg-err" style="color:var(--red);font-size:13px;margin-bottom:.5rem;display:none"></p>
         <div style="display:flex;gap:8px">
-          <button class="btn" id="reg-cancel">← Back</button>
-          <button class="btn btn-primary btn-full" id="reg-submit">Submit application</button>
+          <button class="btn" id="rw-back">← Back</button>
+          <button class="btn btn-primary btn-full" id="rw-next">Next →</button>
         </div>
       </div>
       <div id="reg-result" style="display:none"></div>
@@ -1523,6 +1606,10 @@ window.SB_STUB = {
     <div class="topbar-brand">PAMOJA CMG Tracker</div>
     <div style="display:flex;align-items:center;gap:10px">
       <span class="topbar-role" id="topbar-label">Administrator · ADM001</span>
+      <div class="lang-toggle" role="group" aria-label="Language" style="display:flex;border:1px solid rgba(255,255,255,.35);border-radius:8px;overflow:hidden;font-size:12px;font-weight:700">
+        <button type="button" id="lang-en-app" style="padding:4px 9px;border:none;cursor:pointer;background:transparent">EN</button>
+        <button type="button" id="lang-sw-app" style="padding:4px 9px;border:none;cursor:pointer;background:transparent">SW</button>
+      </div>
       <button class="btn btn-sm" id="logout-btn" style="color:#fff;border-color:rgba(255,255,255,.25);background:transparent">Log out</button>
     </div>
   </div>
@@ -1604,81 +1691,151 @@ window.SB_STUB = {
         </div>
       </div>
 
-      <!-- ── WIZARD (new or amend) ── -->
+      <!-- ── WIZARD (new or amend) — one or two questions per screen ──
+           Screen order is decided at runtime by wzScreens(): the "members" screen only
+           appears when membership changed, and the remittance screens only when the
+           group has a loan. Total members is asked BEFORE members present so the quorum
+           verdict is judged against the count confirmed in this meeting, not the stored
+           registry value (chair-screens/README.md §2). Field ids are unchanged so
+           saveMeeting() and maybeSetMembers() read the same inputs as before. -->
       <div id="log-wizard" style="display:none">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:1.25rem">
-          <div class="lstep active" id="ls1"><div class="lstep-dot">1</div><span>Meeting details</span></div>
-          <div class="lstep-line"></div>
-          <div class="lstep" id="ls2"><div class="lstep-dot">2</div><span>Transactions</span></div>
-          <div class="lstep-line" id="ls3-line"></div>
-          <div class="lstep" id="ls3"><div class="lstep-dot">3</div><span>Remittance</span></div>
-        </div>
-        <div id="amend-banner" style="display:none" class="alert alert-warn">✎ Amend mode — editing a saved record. All changes will be logged with a timestamp.</div>
+        <div id="wz-step" style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:.4rem"></div>
+        <div class="progress-bar" style="margin:0 0 1.25rem"><div class="progress-fill" id="wz-prog" style="width:0"></div></div>
+        <div id="amend-banner" style="display:none" class="alert alert-warn" data-i18n="mt.amend">✎ Amend mode — editing a saved record. All changes will be logged with a timestamp.</div>
 
-        <!-- STEP 1 -->
-        <div id="log-step1">
+        <!-- 1 · date + membership change -->
+        <div class="wz-screen" data-screen="date" style="display:none">
           <div class="card">
-            <div class="card-title">Meeting details</div>
-            <div class="field"><label>Meeting date *</label><input type="date" id="l-date"></div>
-            <div class="field"><label>Members present *</label><input type="number" id="l-present" min="0" placeholder="0"></div>
-            <div class="field"><label>Total members <span style="font-weight:400;color:var(--muted)">(update if members joined or left)</span></label><input type="number" id="l-members" min="1" placeholder="e.g. 25"></div>
-            <div id="l-qhint"></div>
-            <div class="field"><label>Notes (optional)</label><input type="text" id="l-notes" placeholder="Any remarks about this meeting"></div>
-          </div>
-          <p id="l-err1" style="color:var(--red);font-size:13px;margin-bottom:.5rem;display:none"></p>
-          <div style="display:flex;gap:8px">
-            <button class="btn" id="log-cancel-wizard">Cancel</button>
-            <button class="btn btn-primary btn-full" id="log-next1">Next →</button>
-          </div>
-        </div>
-
-        <!-- STEP 2 -->
-        <div id="log-step2" style="display:none">
-          <div class="card">
-            <div class="card-title">Transactions this meeting (TZS)</div>
-            <div class="alert alert-info" style="margin-bottom:.875rem">Enter 0 if nothing was collected for a particular item.</div>
-            <div class="field"><label>Total savings *</label><input type="number" id="l-savings" min="0" placeholder="0"></div>
-            <div class="field"><label>Total repayments collected from members *</label><input type="number" id="l-memrepay" min="0" placeholder="0"></div>
-            <div class="field"><label>Total loans disbursed to members *</label><input type="number" id="l-disbursed" min="0" placeholder="0"></div>
-          </div>
-          <p id="l-err2" style="color:var(--red);font-size:13px;margin-bottom:.5rem;display:none"></p>
-          <div style="display:flex;gap:8px">
-            <button class="btn" id="log-back2">← Back</button>
-            <button class="btn btn-primary btn-full" id="log-next2">Next →</button>
-          </div>
-        </div>
-
-        <!-- STEP 3 -->
-        <div id="log-step3" style="display:none">
-          <div class="card">
-            <div class="card-title">Remittance to lender</div>
-            <div class="field">
-              <label>Did the group remit any amount to the lender at this meeting? *</label>
-              <div style="display:flex;gap:10px;margin-top:6px">
-                <button class="tog-btn" id="tog-yes">Yes</button>
-                <button class="tog-btn" id="tog-no">No</button>
+            <div class="wz-q">
+              <h2 class="wz-ask" data-i18n="mt.date.ask">When was the meeting?</h2>
+              <div class="wz-choices" id="wz-date-choices">
+                <button type="button" class="wz-choice" data-d="today"><span data-i18n="mt.date.today">Today</span><small id="wz-date-today"></small></button>
+                <button type="button" class="wz-choice" data-d="yesterday"><span data-i18n="mt.date.yest">Yesterday</span><small id="wz-date-yest"></small></button>
+                <button type="button" class="wz-choice" data-d="pick"><span data-i18n="mt.date.other">Another day</span><small data-i18n="mt.date.other.sub">Choose from a calendar</small></button>
+              </div>
+              <div class="field" id="wz-date-pick" style="display:none;margin:.75rem 0 0"><label for="l-date" data-i18n="mt.date.label">Meeting date</label><input type="date" id="l-date"></div>
+            </div>
+            <div class="wz-q">
+              <h2 class="wz-ask" data-i18n="mt.changed.ask">Has anyone joined or left the group since the last meeting?</h2>
+              <div class="wz-help" id="wz-changed-help"></div>
+              <div class="wz-choices">
+                <button type="button" class="wz-choice" id="tog-changed-yes" data-i18n="mt.changed.yes">Yes, the number changed</button>
+                <button type="button" class="wz-choice" id="tog-changed-no">No</button>
               </div>
             </div>
-            <div id="remit-detail" style="display:none">
-              <div class="field" style="margin-top:.5rem">
-                <label>Full amount or partial? *</label>
-                <div style="display:flex;gap:10px;margin-top:6px">
-                  <button class="tog-btn" id="tog-full">Full amount</button>
-                  <button class="tog-btn" id="tog-partial">Partial amount</button>
-                </div>
+          </div>
+        </div>
+
+        <!-- 2 · new total (only when membership changed) -->
+        <div class="wz-screen" data-screen="members" style="display:none">
+          <div class="card">
+            <div class="wz-q">
+              <h2 class="wz-ask"><label for="l-members" data-i18n="mt.members.ask">How many members are there now?</label></h2>
+              <div class="wz-help" data-i18n="mt.members.help">This becomes the group's new total: minimum 5, maximum 30.</div>
+              <div class="field"><input type="number" inputmode="numeric" class="wz-num" id="l-members" min="5" max="30" placeholder="0"></div>
+              <div id="wz-members-note"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 · attendance, with the quorum verdict — deliberately on its own screen -->
+        <div class="wz-screen" data-screen="present" style="display:none">
+          <div class="card">
+            <div class="wz-q">
+              <h2 class="wz-ask"><label for="l-present" data-i18n="mt.present.ask">How many members attended?</label></h2>
+              <div class="wz-help" id="wz-present-help"></div>
+              <div class="field"><input type="number" inputmode="numeric" class="wz-num" id="l-present" min="1" placeholder="0"></div>
+              <div id="l-qhint"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 · savings + member repayments -->
+        <div class="wz-screen" data-screen="money" style="display:none">
+          <div class="card">
+            <div class="wz-q">
+              <h2 class="wz-ask"><label for="l-savings" data-i18n="mt.savings.ask">How much was saved at this meeting?</label></h2>
+              <div class="wz-help" data-i18n="mt.savings.help">Total shares bought by members (TZS). Enter 0 if none.</div>
+              <div class="field"><input type="number" inputmode="numeric" class="wz-num" id="l-savings" min="0" placeholder="0"></div>
+            </div>
+            <div class="wz-q">
+              <h2 class="wz-ask"><label for="l-memrepay" data-i18n="mt.memrepay.ask">How much did members repay into the group?</label></h2>
+              <div class="wz-help" data-i18n="mt.memrepay.help">Total loan repayments collected from members (TZS). Enter 0 if none.</div>
+              <div class="field"><input type="number" inputmode="numeric" class="wz-num" id="l-memrepay" min="0" placeholder="0"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5 · loans disbursed + did the group repay an instalment (only with a loan) -->
+        <div class="wz-screen" data-screen="disbursed" style="display:none">
+          <div class="card">
+            <div class="wz-q">
+              <h2 class="wz-ask"><label for="l-disbursed" data-i18n="mt.disbursed.ask">How much did the group lend out to members?</label></h2>
+              <div class="wz-help" data-i18n="mt.disbursed.help">Total loans disbursed to members (TZS). Enter 0 if the group lent nothing.</div>
+              <div class="field"><input type="number" inputmode="numeric" class="wz-num" id="l-disbursed" min="0" placeholder="0"></div>
+            </div>
+            <div class="wz-q" id="wz-remit-q">
+              <h2 class="wz-ask" data-i18n="mt.remit.ask">Did the group repay a loan instalment in this meeting?</h2>
+              <div class="wz-help" id="wz-remit-help"></div>
+              <div class="wz-choices">
+                <button type="button" class="wz-choice" id="tog-yes" data-i18n="mt.remit.yes">Yes, we paid</button>
+                <button type="button" class="wz-choice" id="tog-no" data-i18n="mt.remit.no">No, not this time</button>
               </div>
-              <div class="field" id="remit-amount-field" style="display:none">
-                <label>Amount remitted (TZS) *</label>
-                <input type="number" id="l-repaid" min="0" placeholder="0">
+            </div>
+          </div>
+        </div>
+
+        <!-- 6a · full or part — never shares a screen with the amount (README §5, the remitType hazard) -->
+        <div class="wz-screen" data-screen="remittype" style="display:none">
+          <div class="card">
+            <div class="wz-q">
+              <h2 class="wz-ask" data-i18n="mt.remittype.ask">How much was paid to the lender?</h2>
+              <div class="wz-choices">
+                <button type="button" class="wz-choice" id="tog-full"><span data-i18n="mt.remittype.full">The full instalment</span><small id="wz-full-sub"></small></button>
+                <button type="button" class="wz-choice" id="tog-partial"><span data-i18n="mt.remittype.part">Only part of it</span><small data-i18n="mt.remittype.part.sub">Enter the amount next</small></button>
               </div>
               <div id="remit-full-info" style="display:none" class="alert alert-ok"></div>
             </div>
           </div>
-          <p id="l-err3" style="color:var(--red);font-size:13px;margin-bottom:.5rem;display:none"></p>
-          <div style="display:flex;gap:8px">
-            <button class="btn" id="log-back3">← Back</button>
-            <button class="btn btn-primary btn-full" id="log-save-btn" disabled="" style="opacity:.5;cursor:not-allowed">Save meeting record</button>
+        </div>
+
+        <!-- 6b · the part amount -->
+        <div class="wz-screen" data-screen="remitamount" style="display:none">
+          <div class="card">
+            <div class="wz-q">
+              <h2 class="wz-ask"><label for="l-repaid" data-i18n="mt.remitamount.ask">How much was paid?</label></h2>
+              <div class="wz-help" id="wz-repaid-help"></div>
+              <div class="field"><input type="number" inputmode="numeric" class="wz-num" id="l-repaid" min="0" placeholder="0"></div>
+            </div>
           </div>
+        </div>
+
+        <!-- 7 · notes -->
+        <div class="wz-screen" data-screen="notes" style="display:none">
+          <div class="card">
+            <div class="wz-q">
+              <h2 class="wz-ask"><label for="l-notes" data-i18n="mt.notes.ask">Anything else to note from this meeting?</label></h2>
+              <div class="wz-help" data-i18n="mt.notes.help">Optional.</div>
+              <div class="field"><input type="text" id="l-notes" data-i18n-ph="mt.notes.ph" placeholder="e.g. Two members asked to increase their shares."></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- check before saving -->
+        <div class="wz-screen" data-screen="check" style="display:none">
+          <div class="card">
+            <div class="wz-q">
+              <h2 class="wz-ask" data-i18n="mt.check.title">Check before saving</h2>
+              <div class="wz-help" data-i18n="wz.check.help">Read it back. Change anything that is wrong.</div>
+              <div id="wz-check"></div>
+            </div>
+          </div>
+        </div>
+
+        <p id="l-err" style="color:var(--red);font-size:13px;margin-bottom:.5rem;display:none"></p>
+        <div style="display:flex;gap:8px">
+          <button class="btn" id="wz-back">Cancel</button>
+          <button class="btn btn-primary btn-full" id="wz-next">Next →</button>
         </div>
       </div>
 
@@ -1845,6 +2002,10 @@ window.SB_STUB = {
       <div id="fi-status-bar"></div>
     </div>
     <div id="fit-region" style="display: block;"></div>
+    <div id="fi-status-detail" style="display: none;">
+      <button class="back-btn" id="fi-status-back">← Back</button>
+      <div id="fi-status-detail-content"></div>
+    </div>
   </div>
 </div>
 
@@ -1987,6 +2148,54 @@ function db(){ return { groups: APP.groups }; }
 function dbSave(d){ if(d && d.groups) APP.groups = d.groups; }
 
 function fmt(n){ return 'TZS '+Math.round(n||0).toLocaleString() }
+// Escape anything a person typed before it goes near innerHTML.
+function escHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+// ── Shared wizard shell: one or two questions per screen, then a check screen ──
+// Used by the loan application and registration flows (chair-screens/README.md §4).
+// cfg: root (container id holding .wz-screen[data-screen]), step/prog/back/next/err ids, cancelLabel/finishLabel (i18n keys),
+// screens() -> ordered keys (last must be 'check'), check{key->bool ok}, refresh{key->fn},
+// onCancel, onFinish, cancelLabel, finishLabel, scrollTop.
+function makeWizard(cfg){
+  var w={idx:0};
+  function $(id){ return document.getElementById(id); }
+  w.refreshNext=function(){
+    var key=cfg.screens()[w.idx]; var bad=cfg.check[key]?!cfg.check[key]():false;
+    var b=$(cfg.next); if(!b) return;
+    b.disabled=bad; b.style.opacity=bad?'.5':'1'; b.style.cursor=bad?'not-allowed':'pointer';
+  };
+  w.show=function(n){
+    var S=cfg.screens(); if(n<0) n=0; if(n>=S.length) n=S.length-1;
+    w.idx=n; var key=S[n], total=S.length-1;
+    document.querySelectorAll('#'+cfg.root+' .wz-screen').forEach(function(el){ el.style.display=el.getAttribute('data-screen')===key?'block':'none'; });
+    var st=$(cfg.step); if(st) st.textContent=key==='check'?t('wz.last'):tf('wz.step',{n:n+1,t:total});
+    var pg=$(cfg.prog); if(pg) pg.style.width=Math.round(n/total*100)+'%';
+    var bk=$(cfg.back); if(bk) bk.textContent=n===0?t(cfg.cancelLabel||'wz.cancel'):t('wz.back');
+    var nx=$(cfg.next); if(nx) nx.textContent=key==='check'?t(cfg.finishLabel):(n===total-1?t('wz.review'):t('wz.next'));
+    var er=$(cfg.err); if(er) er.style.display='none';
+    if(cfg.refresh[key]) cfg.refresh[key]();
+    w.refreshNext();
+    if(cfg.scrollTop!==false) window.scrollTo(0,0);
+  };
+  w.goTo=function(key){ w.show(cfg.screens().indexOf(key)); };
+  // (Re)attach the footer buttons — safe to call again after the container is re-rendered.
+  w.bind=function(){
+    var bk=$(cfg.back), nx=$(cfg.next);
+    if(bk) bk.onclick=function(){ if(w.idx===0) cfg.onCancel(); else w.show(w.idx-1); };
+    if(nx) nx.onclick=function(){ if(this.disabled) return; if(cfg.screens()[w.idx]==='check') cfg.onFinish(); else w.show(w.idx+1); };
+  };
+  return w;
+}
+// Check-screen rows: [screenKey, question, answer] each with a Change link back to its screen.
+function wzReviewHtml(rows, S){
+  return '<div class="wz-rev">'+rows.map(function(r){
+    return '<div class="r"><span class="k">'+escHtml(r[1])+'</span><span class="v">'+escHtml(r[2])+
+      '<button type="button" data-go="'+S.indexOf(r[0])+'">'+escHtml(t('wz.change'))+'</button></span></div>';
+  }).join('')+'</div>';
+}
+function wzBindChange(box, wiz){
+  box.querySelectorAll('[data-go]').forEach(function(b){ b.addEventListener('click', function(){ wiz.show(parseInt(b.getAttribute('data-go'),10)); }); });
+}
 function fmtS(n){ const v=Math.round(n||0); return v>=1e6?(v/1e6).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'K':v.toString() }
 function pctOf(a,b){ return b>0?Math.min(100,Math.round(a/b*100)):0 }
 
@@ -1997,6 +2206,14 @@ if(!navigator.onLine) document.querySelectorAll('.offline-banner').forEach(b=>b.
 
 // ── STEP INDICATOR ──
 function setStep(n){
+  // Returning to any step of the stepper means we are no longer registering, so
+  // close the register panel and put its hidden step indicator back. Without
+  // this the panel stays open underneath whatever step we land on.
+  // showRegister() sets these directly and never calls setStep, so it is safe.
+  var lr=document.getElementById('login-register');
+  if(lr) lr.style.display='none';
+  var si=document.getElementById('step-indicator');
+  if(si) si.style.display='';
   // Admin has no scope step — it is a national, role-scoped view.
   var threeStep=(selectedRole==='lga'||selectedRole==='tamisemi'||selectedRole==='fi');
   var maxStep=threeStep?3:2;
@@ -2098,14 +2315,20 @@ function fillVillages(prefix, region, district, ward, selected){
   var vs=villagesFor(region, district, ward);
   if(vs.length){
     sel.innerHTML='<option value="">&#8212; Select &#8212;</option>'+
-      vs.map(function(v){ return '<option'+(selected===v?' selected':'')+'>'+v+'</option>'; }).join('');
+      vs.map(function(v){ return '<option'+(selected===v?' selected':'')+'>'+escHtml(v)+'</option>'; }).join('');
     sel.style.display=''; sel.disabled=false;
     inp.style.display='none'; inp.value='';
   } else {
     sel.style.display='none'; sel.innerHTML='';
     inp.style.display=''; inp.value=selected||'';
-    inp.placeholder = ward ? 'No villages listed for '+ward+' — type it in' : 'Select a ward first';
+    // the chairperson form is bilingual; the officer forms stay English
+    var isReg=prefix==='reg';
+    inp.placeholder = ward ? (isReg?tf('reg.village.typed.ph',{w:ward}):'No villages listed for '+ward+' — type it in')
+                           : (isReg?t('reg.village.ph'):'Select a ward first');
   }
+  // where a form carries a note slot, say plainly that this is unverified location data
+  var note=document.getElementById(prefix+'-village-note');
+  if(note){ var typed=!vs.length&&!!ward; note.className=typed?'q-hint warn':''; note.textContent=typed?tf('reg.village.typed.note',{w:ward}):''; }
 }
 function villageVal(prefix){
   var sel=document.getElementById(prefix+'-village-sel'),
@@ -2242,21 +2465,90 @@ document.getElementById('inp-cmgid').addEventListener('input', function(){
 });
 
 // ── SINGLE-CMG REGISTRATION (chairperson self-application → register_cmg) ──
+// Seven screens of one or two questions, a check screen, then the minted ID
+// (chair-screens/README.md §4). The region→district→ward→village cascade is the
+// existing one; the screens only decide which selects are on show at a time.
 function regVal(id){ var el=document.getElementById(id); return el?(el.value||'').trim():''; }
+var REG_SCREENS=['name','place','ward','members','freq','chair','treasurer','check'];
+function regMembersOk(){ var n=parseInt(regVal('reg-members')); return n>=5&&n<=30; }   // hard bound, README §5
+function regQuorumOk(){ var q=regVal('reg-quorum'); var n=parseInt(q); return q!==''&&n>=1&&n<=100; }
+function regSelectOpt(){ return '<option value="">'+escHtml(t('wz.select'))+'</option>'; }
+function regVillageTyped(){ var inp=document.getElementById('reg-village'); return !!(inp&&inp.style.display!=='none'&&(inp.value||'').trim()); }
+var regWiz=makeWizard({
+  root:'reg-form', step:'rw-step', prog:'rw-prog', back:'rw-back', next:'rw-next', err:'reg-err',
+  cancelLabel:'reg.backlogin', finishLabel:'reg.register',
+  screens:function(){ return REG_SCREENS; },
+  check:{
+    name:function(){ return !!regVal('reg-name'); },
+    place:function(){ return !!(regVal('reg-region')&&regVal('reg-district')); },
+    ward:function(){ return !!(regVal('reg-ward')&&villageVal('reg')); },
+    members:function(){ return regMembersOk()&&regQuorumOk(); },
+    freq:function(){ return !!regVal('reg-freq'); },
+    chair:function(){ return !!regVal('reg-chair')&&validPhone(regVal('reg-chairphone')); },
+    treasurer:function(){ var p=regVal('reg-treasurerphone'); return !!regVal('reg-treasurer')&&(!p||validPhone(p)); }
+  },
+  refresh:{ members:regRefreshMembers, chair:regRefreshPhones, treasurer:regRefreshPhones, check:regRenderCheck },
+  onCancel:function(){ backToLogin(); },
+  onFinish:function(){ regSubmit(); }
+});
+// Under 10 and over 25 are the softer thresholds the verifying officer wants to know about.
+function regRefreshMembers(){
+  var note=document.getElementById('rw-members-note'); var v=regVal('reg-members'); var n=parseInt(v);
+  if(v===''||isNaN(n)){ note.className=''; note.textContent=''; }
+  else if(n<5||n>30){ note.className='q-hint fail'; note.textContent=t('mt.members.range'); }
+  else if(n<10){ note.className='q-hint warn'; note.textContent=t('reg.members.lt10'); }
+  else if(n>25){ note.className='q-hint warn'; note.textContent=t('reg.members.gt25'); }
+  else { note.className='q-hint ok'; note.textContent=tf('reg.members.ok',{n:n}); }
+  var qn=document.getElementById('rw-quorum-note'); var q=regVal('reg-quorum');
+  if(q!==''&&!regQuorumOk()){ qn.className='q-hint fail'; qn.textContent=t('reg.quorum.range'); }
+  else if(q!==''&&regMembersOk()){ qn.className='q-hint ok'; qn.textContent=tf('reg.quorum.ok',{t:Math.ceil(n*parseInt(q)/100),n:n}); }
+  else { qn.className=''; qn.textContent=''; }
+}
+function regPhoneNote(id, noteId){
+  var p=regVal(id); var note=document.getElementById(noteId);
+  if(!p){ note.className=''; note.textContent=''; return; }
+  if(validPhone(p)){ note.className='q-hint ok'; note.textContent='✓ '+p; }
+  else { note.className='q-hint fail'; note.textContent=t('reg.phone.bad'); }
+}
+function regRefreshPhones(){ regPhoneNote('reg-chairphone','rw-chairphone-note'); regPhoneNote('reg-treasurerphone','rw-treasurerphone-note'); }
+function regRenderCheck(){
+  var freq=regVal('reg-freq');
+  var rows=[
+    ['name',t('reg.row.name'),regVal('reg-name')],
+    ['place',t('reg.row.region'),regVal('reg-region')],
+    ['place',t('reg.row.district'),regVal('reg-district')],
+    ['ward',t('reg.row.ward'),regVal('reg-ward')],
+    ['ward',t('reg.row.village'),villageVal('reg')+(regVillageTyped()?' '+t('reg.row.typed'):'')],
+    ['members',t('reg.row.members'),regVal('reg-members')],
+    ['members',t('reg.row.quorum'),regVal('reg-quorum')+'%'],
+    ['freq',t('reg.row.freq'),freq?t('freq.'+freq.toLowerCase()):'—'],
+    ['chair',t('reg.row.chair'),regVal('reg-chair')],
+    ['chair',t('reg.row.chairphone'),regVal('reg-chairphone')],
+    ['treasurer',t('reg.row.treasurer'),regVal('reg-treasurer')],
+    ['treasurer',t('reg.row.treasurerphone'),regVal('reg-treasurerphone')||'—']
+  ];
+  var box=document.getElementById('rw-check');
+  // reg.check.note carries its own <b>; the district name is the only untrusted part
+  box.innerHTML='<div class="q-hint warn">'+tf('reg.check.note',{d:escHtml(regVal('reg-district')||'—')})+'</div>'+wzReviewHtml(rows, REG_SCREENS);
+  wzBindChange(box, regWiz);
+}
 function showRegister(){
-  document.getElementById('login-step1').style.display='none';
-  document.getElementById('login-step2').style.display='none';
-  document.getElementById('login-step3').style.display='none';
-  document.getElementById('step-indicator').style.display='none';
+  ['login-step1','login-step2','login-step3','step-indicator'].forEach(function(id){ document.getElementById(id).style.display='none'; });
   document.getElementById('reg-result').style.display='none';
   document.getElementById('reg-form').style.display='block';
   document.getElementById('reg-err').style.display='none';
   document.getElementById('login-register').style.display='block';
+  ['reg-name','reg-members','reg-chair','reg-chairphone','reg-treasurer','reg-treasurerphone','reg-village'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('reg-quorum').value='80';
+  document.getElementById('reg-freq').value='';
   var rr=document.getElementById('reg-region');
-  rr.innerHTML='<option value="">&#8212; Select &#8212;</option>';
+  rr.innerHTML=regSelectOpt();
   Object.keys(H).sort().forEach(function(r){ var o=document.createElement('option'); o.value=o.textContent=r; rr.appendChild(o); });
-  var rd=document.getElementById('reg-district'); rd.innerHTML='<option value="">&#8212; Select &#8212;</option>'; rd.disabled=true;
-  var rw=document.getElementById('reg-ward'); rw.innerHTML='<option value="">&#8212; Select &#8212;</option>'; rw.disabled=true;
+  var rd=document.getElementById('reg-district'); rd.innerHTML=regSelectOpt(); rd.disabled=true;
+  var rw=document.getElementById('reg-ward'); rw.innerHTML=regSelectOpt(); rw.disabled=true;
+  fillVillages('reg','','','');
+  regWiz.bind();
+  regWiz.show(0);
 }
 function backToLogin(){
   document.getElementById('login-register').style.display='none';
@@ -2264,92 +2556,105 @@ function backToLogin(){
   setStep(2);
 }
 document.getElementById('open-register').addEventListener('click', function(e){ e.preventDefault(); showRegister(); });
-document.getElementById('reg-cancel').addEventListener('click', backToLogin);
 document.getElementById('reg-ward').addEventListener('change', function(){
   fillVillages('reg', document.getElementById('reg-region').value,
                       document.getElementById('reg-district').value, this.value);
+  regWiz.refreshNext();
 });
 document.getElementById('reg-region').addEventListener('change', function(){
+  // a changed region clears everything beneath it rather than leaving a stale district in place
   var rd=document.getElementById('reg-district'), rw=document.getElementById('reg-ward');
-  rd.innerHTML='<option value="">&#8212; Select &#8212;</option>'; rw.innerHTML='<option value="">&#8212; Select &#8212;</option>'; rw.disabled=true;
+  rd.innerHTML=regSelectOpt(); rw.innerHTML=regSelectOpt(); rw.disabled=true;
   fillVillages('reg', this.value, '', '');
   if(this.value && H[this.value]){
     rd.disabled=false;
     Object.keys(H[this.value]).sort().forEach(function(d){ var o=document.createElement('option'); o.value=o.textContent=d; rd.appendChild(o); });
   } else { rd.disabled=true; }
+  regWiz.refreshNext();
 });
 document.getElementById('reg-district').addEventListener('change', function(){
   var region=document.getElementById('reg-region').value;
   var rw=document.getElementById('reg-ward');
-  rw.innerHTML='<option value="">&#8212; Select &#8212;</option>';
+  rw.innerHTML=regSelectOpt();
   fillVillages('reg', region, this.value, '');
   if(this.value && H[region] && H[region][this.value]){
     rw.disabled=false;
     Object.keys(H[region][this.value]).sort().forEach(function(w){ var o=document.createElement('option'); o.value=o.textContent=w; rw.appendChild(o); });
   } else { rw.disabled=true; }
+  regWiz.refreshNext();
 });
+['reg-name','reg-village-sel','reg-village','reg-freq','reg-chair','reg-treasurer'].forEach(function(id){
+  var el=document.getElementById(id); el.addEventListener('input', regWiz.refreshNext); el.addEventListener('change', regWiz.refreshNext);
+});
+['reg-members','reg-quorum'].forEach(function(id){ document.getElementById(id).addEventListener('input', function(){ regRefreshMembers(); regWiz.refreshNext(); }); });
+['reg-chairphone','reg-treasurerphone'].forEach(function(id){ document.getElementById(id).addEventListener('input', function(){ regRefreshPhones(); regWiz.refreshNext(); }); });
+
+// The outcome is an identity, not a record: the minted ID, said plainly, with
+// anything the verifying officer should know passed on beneath it.
 function showRegResult(d){
   document.getElementById('reg-form').style.display='none';
-  var warns=(d.warnings||[]);
-  var warnHtml=warns.length?('<div class="alert alert-warn" style="margin-top:.75rem">'+warns.map(function(w){ return '&#9888; '+w.message; }).join('<br>')+'</div>'):'';
+  var warns=(d.warnings||[]).map(function(w){ return w.message; });
+  if(regVillageTyped()) warns.push(t('reg.result.typedvillage'));
   var box=document.getElementById('reg-result');
   box.style.display='block';
   box.innerHTML=
-    '<div class="alert-ok" style="margin-bottom:1rem">&#10003; Application submitted</div>'+
-    '<div class="card"><div style="font-size:13px;color:var(--muted)">Your new CMG ID</div>'+
-    '<div style="font-size:24px;font-weight:800;color:var(--green-dark);letter-spacing:.5px">'+d.cmg_id+'</div>'+
-    '<div style="font-size:13px;margin-top:.5rem">Status: <strong>Pending LGA verification</strong></div>'+
-    '<div style="font-size:13px;color:var(--muted);margin-top:.5rem">Log in any time with CMG ID <strong>'+d.cmg_id+'</strong> to check your status. An LGA officer will review and verify your group.</div>'+
-    warnHtml+'</div>'+
-    '<button class="btn btn-primary btn-full" id="reg-gologin">Continue to login &#8594;</button>';
+    '<div class="q-hint ok" style="text-align:center;padding:22px 16px">'+
+      '<div style="font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.8">'+escHtml(t('reg.result.idlabel'))+'</div>'+
+      '<div style="font-size:40px;font-weight:800;letter-spacing:.04em;margin:6px 0 8px">'+escHtml(d.cmg_id)+'</div>'+
+      '<div style="font-size:14px;line-height:1.5">'+escHtml(t('reg.result.write'))+'</div>'+
+    '</div>'+
+    '<div style="font-size:13px;color:var(--muted);margin:.75rem 0">'+t('reg.result.status')+'</div>'+
+    (warns.length?'<div class="q-hint warn"><b>'+escHtml(t('reg.result.passed'))+'</b><br>'+warns.map(escHtml).join('<br>')+'</div>':'')+
+    '<button class="btn btn-primary btn-full" id="reg-gologin">'+escHtml(t('reg.result.login'))+'</button>';
   document.getElementById('reg-gologin').addEventListener('click', async function(){
     document.getElementById('inp-cmgid').value=d.cmg_id;
     backToLogin();
     await doCmgLookup();
   });
 }
-document.getElementById('reg-submit').addEventListener('click', async function(){
+async function regSubmit(){
   var err=document.getElementById('reg-err'); err.style.display='none';
   var name=regVal('reg-name'), chair=regVal('reg-chair'), chairphone=regVal('reg-chairphone'), treasurer=regVal('reg-treasurer');
   var region=regVal('reg-region'), district=regVal('reg-district'), ward=regVal('reg-ward');
   var members=parseInt(regVal('reg-members'))||0;
+  // Every screen gated Next on its own answers; this is the belt-and-braces pass before the RPC.
   if(!name||!chair||!chairphone||!treasurer){ err.textContent='CMG name, chairperson name & phone, and treasurer name are required.'; err.style.display='block'; return; }
   if(!validPhone(chairphone)){ err.textContent='Chairperson phone must be 9 digits (or 10 with a leading 0), e.g. 0712345678.'; err.style.display='block'; return; }
   var _rtp=regVal('reg-treasurerphone'); if(_rtp && !validPhone(_rtp)){ err.textContent='Treasurer phone must be 9 digits (or 10 with a leading 0).'; err.style.display='block'; return; }
   if(!region||!district||!ward){ err.textContent='Please select region, district and ward.'; err.style.display='block'; return; }
   if(!villageVal('reg')){ err.textContent='Please select the village.'; err.style.display='block'; return; }
-  if(!members){ err.textContent='Please enter the number of members.'; err.style.display='block'; return; }
-  var btn=this; btn.disabled=true; btn.textContent='Submitting…';
+  if(!regMembersOk()){ err.textContent='Members must be between 5 and 30.'; err.style.display='block'; return; }
+  var btn=document.getElementById('rw-next'); btn.disabled=true; btn.textContent=t('reg.registering');
   var resp=await SB.rpc('register_cmg', {
     p_chair_name:chair, p_chair_phone:chairphone, p_treasurer_name:treasurer,
-    p_name:name, p_treasurer_phone:regVal('reg-treasurerphone')||null,
+    p_name:name, p_treasurer_phone:_rtp||null,
     p_region:region, p_district:district, p_ward:ward, p_village:villageVal('reg')||null,
     p_members:members, p_quorum:parseInt(regVal('reg-quorum'))||80,
     p_freq:regVal('reg-freq')||null
   });
-  btn.disabled=false; btn.textContent='Submit application';
+  btn.disabled=false; btn.textContent=t('reg.register');
   if(resp.error){
     if(resp.error.code==='23505'){ showRegDuplicate(resp.error); return; }
     err.textContent='Registration failed: '+(resp.error.message||'unknown error'); err.style.display='block'; return;
   }
   showRegResult(resp.data);
-});
+}
 function showRegDuplicate(e){
   var existId=e.hint||'';
   document.getElementById('reg-form').style.display='none';
   var box=document.getElementById('reg-result'); box.style.display='block';
   box.innerHTML=
-    '<div class="alert alert-warn" style="margin-bottom:1rem">&#9888; '+(e.message||'This group already appears to be registered.')+'</div>'+
-    '<div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Duplicate registrations aren’t allowed. If this is your group, log in with your existing CMG ID'+(existId?(' (<strong>'+existId+'</strong>)'):'')+' to check its status.</div>'+
-    (existId?('<button class="btn btn-primary btn-full" id="reg-dup-login">Log in with '+existId+' &#8594;</button>'):'')+
-    '<button class="btn btn-full" id="reg-dup-back" style="margin-top:8px">&#8592; Edit details</button>';
+    '<div class="alert alert-warn" style="margin-bottom:1rem">&#9888; '+escHtml(e.message||'This group already appears to be registered.')+'</div>'+
+    '<div style="font-size:13px;color:var(--muted);margin-bottom:1rem">'+tf('reg.dup.body',{id:existId?(' (<strong>'+escHtml(existId)+'</strong>)'):''})+'</div>'+
+    (existId?('<button class="btn btn-primary btn-full" id="reg-dup-login">'+escHtml(tf('reg.dup.login',{id:existId}))+'</button>'):'')+
+    '<button class="btn btn-full" id="reg-dup-back" style="margin-top:8px">'+escHtml(t('reg.dup.edit'))+'</button>';
   if(existId){
     document.getElementById('reg-dup-login').addEventListener('click', async function(){
       document.getElementById('inp-cmgid').value=existId; backToLogin(); await doCmgLookup();
     });
   }
   document.getElementById('reg-dup-back').addEventListener('click', function(){
-    box.style.display='none'; document.getElementById('reg-form').style.display='block';
+    box.style.display='none'; document.getElementById('reg-form').style.display='block'; regWiz.goTo('check');
   });
 }
 
@@ -2379,6 +2684,7 @@ document.getElementById('step2-continue').addEventListener('click', async functi
     // Go to step 3: scope selection
     document.getElementById('tamisemi-scope').style.display='block';
     document.getElementById('lga-scope').style.display='none';
+    document.getElementById('fi-scope').style.display='none';
     // Populate region dropdown
     var tr=document.getElementById('tamisemi-region');
     tr.innerHTML='<option value="">&#8212; All regions &#8212;</option>';
@@ -2441,7 +2747,13 @@ document.getElementById('step2-continue').addEventListener('click', async functi
   }
 });
 
-document.getElementById('step3-back').addEventListener('click', function(){ setStep(2); });
+document.getElementById('step3-back').addEventListener('click', function(){
+  // Step 2 shows one identity panel per role; without re-selecting it here we
+  // land on whichever panel happened to be open last.
+  ['chair-identity','lga-identity','fi-identity','tamisemi-identity','admin-identity'].forEach(function(id){ document.getElementById(id).style.display='none'; });
+  if(selectedRole) document.getElementById(selectedRole+'-identity').style.display='block';
+  setStep(2);
+});
 document.getElementById('step3-continue').addEventListener('click', function(){
   var err=document.getElementById('s3-err'); err.style.display='none';
   // No mandatory field for either — both support "All" selections
@@ -2491,9 +2803,36 @@ function buildSession(){
   else enterObserver();
 }
 
+// ── SESSION TEARDOWN ──
+// showAppScreen only toggles the .screen wrapper, so a screen keeps its rendered
+// HTML and its sub-view display state after a logout. Without this, the next
+// person to sign in could still see the previous session's data — the FI status
+// drill-down stayed open beneath every tab — and it remained readable in the DOM
+// even where it was hidden. Wipe every dynamic panel and restore the defaults.
+var DYNAMIC_PANELS=[
+  // FI lender
+  'fi-title','fi-sub','fi-notif','fi-loans','fi-status-bar','fit-portfolio','fit-region','fi-status-detail-content',
+  // LGA officer
+  'obs-title','obs-sub','obs-pending','obs-summary','obs-status-bar','obs-loans','obs-tbody',
+  'obs-detail-content','obs-reg-result','obs-bulk-result',
+  // TAMISEMI / Administrator / chairperson
+  'tam-content','adm-officers','c-dash-content','c-loan-content','c-loan-alert','c-resubmit','review-card',
+  'topbar-label'
+];
+// [id, display] pairs putting each screen's sub-views back to their markup defaults
+var DEFAULT_SUBVIEWS=[
+  ['fi-status-detail','none'],
+  ['obs-list-view','block'],['obs-detail-view','none'],['obs-reg-view','none'],['obs-bulk-view','none']
+];
+function resetAppViews(){
+  DYNAMIC_PANELS.forEach(function(id){ var el=document.getElementById(id); if(el) el.innerHTML=''; });
+  DEFAULT_SUBVIEWS.forEach(function(v){ var el=document.getElementById(v[0]); if(el) el.style.display=v[1]; });
+}
+
 document.getElementById('logout-btn').addEventListener('click', function(){
-  SB.auth.signOut(); APP.groups=[];
+  SB.auth.signOut(); APP.groups=[]; APP.loanApps=[];
   SESSION=null; selectedRole=null; _lookedUpCmgId=null; _lgaOfficer=null; _tamOfficer=null; _admOfficer=null;
+  resetAppViews();
   document.querySelectorAll('.role-card').forEach(function(c){ c.classList.remove('selected'); });
   document.getElementById('app-shell').style.display='none';
   document.getElementById('login-screen').style.display='flex';
@@ -2501,8 +2840,9 @@ document.getElementById('logout-btn').addEventListener('click', function(){
 });
 
 document.getElementById('step3-logout').addEventListener('click', function(){
-  SB.auth.signOut(); APP.groups=[];
+  SB.auth.signOut(); APP.groups=[]; APP.loanApps=[];
   SESSION=null; selectedRole=null; _lookedUpCmgId=null; _lgaOfficer=null; _tamOfficer=null; _admOfficer=null;
+  resetAppViews();
   document.querySelectorAll('.role-card').forEach(function(c){ c.classList.remove('selected'); });
   document.getElementById('login-screen').style.display='flex';
   setStep(1);
@@ -2555,7 +2895,7 @@ function applyChairGating(g){
   ['ct-dash','ct-log','ct-hist'].forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='none'; });
   banner.style.display='block';
   if(g.registryStatus==='REJECTED'){
-    banner.innerHTML='<div class="alert" style="background:var(--red-light);color:var(--red);border:1px solid #fecaca">&#10007; <strong>Application rejected.</strong>'+(g.rejectionReason?('<br>Reason: '+g.rejectionReason+'.'):'')+'<br>You can edit your details and resubmit for verification.</div>'+
+    banner.innerHTML='<div class="alert" style="background:var(--red-light);color:var(--red);border:1px solid #fecaca">&#10007; <strong>Application rejected.</strong>'+(g.rejectionReason?('<br>Reason: '+escHtml(g.rejectionReason)+'.'):'')+'<br>You can edit your details and resubmit for verification.</div>'+
       '<button class="btn btn-primary" id="c-edit-resubmit" style="margin-top:.75rem">Edit &amp; resubmit application</button>';
     var eb=document.getElementById('c-edit-resubmit'); if(eb) eb.addEventListener('click', function(){ showResubmit(g); });
   } else {
@@ -2585,7 +2925,7 @@ function showResubmit(g){
     '<p id="rs-err" style="color:var(--red);font-size:13px;display:none;margin-bottom:.5rem"></p>'+
     '<div style="display:flex;gap:8px"><button class="btn" id="rs-cancel">Cancel</button>'+
       '<button class="btn btn-primary btn-full" id="rs-submit">Resubmit application</button></div></div>';
-  function opts(list, sel){ return '<option value="">&#8212; Select &#8212;</option>'+list.map(function(x){ return '<option'+(sel===x?' selected':'')+'>'+x+'</option>'; }).join(''); }
+  function opts(list, sel){ return '<option value="">&#8212; Select &#8212;</option>'+list.map(function(x){ return '<option'+(sel===x?' selected':'')+'>'+escHtml(x)+'</option>'; }).join(''); }
   function fillDistricts(region, sel){ var rd=document.getElementById('rs-district'); rd.innerHTML=opts(H[region]?Object.keys(H[region]).sort():[], sel); rd.disabled=!region; }
   function fillWards(region, district, sel){ var rw=document.getElementById('rs-ward'); rw.innerHTML=opts((H[region]&&H[region][district])?Object.keys(H[region][district]).sort():[], sel); rw.disabled=!district; }
   document.getElementById('rs-region').innerHTML=opts(regions, g.region);
@@ -2728,10 +3068,7 @@ function renderChairLoan(){
     }
   }
   box.innerHTML=html;
-  var applyBtn=document.getElementById('la-submit');
-  if(applyBtn) applyBtn.addEventListener('click', submitLoanApplication);
-  var toggle=document.getElementById('la-open');
-  if(toggle) toggle.addEventListener('click', function(){ document.getElementById('la-form').style.display='block'; this.style.display='none'; });
+  laBind();
   if(app && app.status==='APPROVED'){
     var accBtn=document.getElementById('acc-submit'); if(accBtn) accBtn.addEventListener('click', function(){ chairAcceptLoan(app.id); });
     var decBtn=document.getElementById('dec-submit'); if(decBtn) decBtn.addEventListener('click', function(){ chairDeclineLoan(app.id); });
@@ -2804,48 +3141,129 @@ function renderLoanStatusCard(app){
     ((app.total_repayable&&app.tenure_months)?'<div class="stat"><div class="stat-label">Monthly repayment</div><div class="stat-val">'+fmtMoney(app.total_repayable/app.tenure_months)+'</div></div>':'')+
     '</div>';
   return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div class="card-title" style="margin:0">Loan application</div>'+badge+'</div>'+
-    '<div style="font-size:13px;color:var(--muted);margin-top:.4rem">'+note+'</div>'+
-    (app.purpose?'<div style="font-size:13px;margin-top:.4rem"><strong>Purpose:</strong> '+app.purpose+'</div>':'')+
+    '<div style="font-size:13px;color:var(--muted);margin-top:.4rem">'+escHtml(note)+'</div>'+
+    (app.purpose?'<div style="font-size:13px;margin-top:.4rem"><strong>Purpose:</strong> '+escHtml(app.purpose)+'</div>':'')+
     rows+'</div>';
 }
+// ── LOAN APPLICATION: two screens, then the check (chair-screens/README.md §4) ──
+// Savings is asked before the amount so the figure can be compared as it is typed.
+// The Loan tab is re-rendered from innerHTML after every load, so the answers live
+// in LA rather than in the inputs; renderApplyForm() writes them back on each render.
+var LA={savings:'', years:'', amount:'', purpose:''};
+var LA_SCREENS=['savings','amount','check'];
+function laReset(){ LA={savings:'', years:'', amount:'', purpose:''}; laWiz.idx=0; }
+var laWiz=makeWizard({
+  root:'la-form', step:'la-step', prog:'la-prog', back:'la-back', next:'la-next', err:'la-err',
+  cancelLabel:'wz.cancel', finishLabel:'la.send', scrollTop:false,
+  screens:function(){ return LA_SCREENS; },
+  check:{
+    savings:function(){ var s=parseFloat(LA.savings), y=parseFloat(LA.years); return LA.savings!==''&&s>=0&&LA.years!==''&&y>=0&&y<=10; },
+    amount:function(){ return parseFloat(LA.amount)>0&&!!LA.purpose.trim(); }
+  },
+  refresh:{ savings:laRefreshYears, amount:laRefreshAmount, check:laRenderCheck },
+  onCancel:function(){ laReset(); renderChairLoan(); },
+  onFinish:function(){ submitLoanApplication(); }
+});
 function renderApplyForm(g, app){
-  var prior = (g.loan>0) ? ('Yes · '+fmtMoney(g.loan)+' · status: '+((STATUS_CFG[loanStatus(g)]||{}).label||loanStatus(g))) : 'No';
-  var heading = app ? 'Apply for a new loan' : 'Apply for a loan';
+  var heading = escHtml(t(app ? 'la.heading.new' : 'la.heading'));
   var opener = app ? '<button class="btn btn-primary" id="la-open" style="margin-top:.5rem">'+heading+'</button>' : '';
   return '<div class="card">'+
     '<div class="card-title">'+heading+'</div>'+
     opener+
     '<div id="la-form" style="'+(app?'display:none':'')+'">'+
-      '<div class="field"><label>Loan amount required (TZS) *</label><input type="number" id="la-amount" min="1" placeholder="e.g. 2000000"></div>'+
-      '<div class="field"><label>Purpose of the loan *</label><input type="text" id="la-purpose" placeholder="e.g. Working capital for members’ businesses"></div>'+
-      '<div class="row2">'+
-        '<div class="field"><label>Total group savings (TZS) *</label><input type="number" id="la-savings" min="0" placeholder="e.g. 1500000"></div>'+
-        '<div class="field"><label>Years group has been active *</label><input type="number" id="la-years" min="0" step="0.5" placeholder="e.g. 3"></div>'+
+      '<div id="la-step" style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:.4rem"></div>'+
+      '<div class="progress-bar" style="margin:0 0 1rem"><div class="progress-fill" id="la-prog" style="width:0"></div></div>'+
+      '<div class="wz-screen" data-screen="savings" style="display:none">'+
+        '<div class="wz-q"><h2 class="wz-ask"><label for="la-savings">'+escHtml(t('la.savings.ask'))+'</label></h2>'+
+        '<div class="wz-help">'+escHtml(t('la.savings.help'))+'</div>'+
+        '<div class="field"><input type="number" inputmode="numeric" class="wz-num" id="la-savings" min="0" placeholder="0" value="'+escHtml(LA.savings)+'"></div></div>'+
+        '<div class="wz-q"><h2 class="wz-ask"><label for="la-years">'+escHtml(t('la.years.ask'))+'</label></h2>'+
+        '<div class="wz-help">'+escHtml(t('la.years.help'))+'</div>'+
+        '<div class="field"><input type="number" inputmode="decimal" class="wz-num" id="la-years" min="0" max="10" step="0.5" placeholder="0" value="'+escHtml(LA.years)+'"></div>'+
+        '<div id="la-years-note"></div></div>'+
       '</div>'+
-      '<div class="row2">'+
-        '<div class="field"><label>Number of members</label><input type="text" value="'+(g.members||'')+'" readonly></div>'+
-        '<div class="field"><label>Prior loan on record</label><input type="text" value="'+prior.replace(/&middot;/g,'·').replace(/&/g,"&amp;")+'" readonly></div>'+
+      '<div class="wz-screen" data-screen="amount" style="display:none">'+
+        '<div class="wz-q"><h2 class="wz-ask"><label for="la-amount">'+escHtml(t('la.amount.ask'))+'</label></h2>'+
+        '<div class="wz-help">'+escHtml(tf('la.amount.help',{fi:g.fi||'—'}))+'</div>'+
+        '<div class="field"><input type="number" inputmode="numeric" class="wz-num" id="la-amount" min="1" placeholder="0" value="'+escHtml(LA.amount)+'"></div>'+
+        '<div id="la-amount-note"></div></div>'+
+        '<div class="wz-q"><h2 class="wz-ask"><label for="la-purpose">'+escHtml(t('la.purpose.ask'))+'</label></h2>'+
+        '<div class="wz-help">'+escHtml(t('la.purpose.help'))+'</div>'+
+        '<div class="field"><input type="text" id="la-purpose" placeholder="'+escHtml(t('la.purpose.ph'))+'" value="'+escHtml(LA.purpose)+'"></div></div>'+
+      '</div>'+
+      '<div class="wz-screen" data-screen="check" style="display:none">'+
+        '<div class="wz-q"><h2 class="wz-ask">'+escHtml(t('la.check.title'))+'</h2>'+
+        '<div class="wz-help">'+escHtml(t('wz.check.help'))+'</div>'+
+        '<div id="la-check"></div></div>'+
       '</div>'+
       '<p id="la-err" style="color:var(--red);font-size:13px;display:none;margin-bottom:.5rem"></p>'+
-      '<button class="btn btn-primary btn-full" id="la-submit">Submit application</button>'+
+      '<div style="display:flex;gap:8px"><button class="btn" id="la-back">'+escHtml(t('wz.cancel'))+'</button><button class="btn btn-primary btn-full" id="la-next">'+escHtml(t('wz.next'))+'</button></div>'+
     '</div>'+
   '</div>';
+}
+// Called after renderChairLoan() has written the tab: wire the inputs and show the current screen.
+function laBind(){
+  var toggle=document.getElementById('la-open');
+  if(toggle) toggle.addEventListener('click', function(){ document.getElementById('la-form').style.display='block'; this.style.display='none'; });
+  if(!document.getElementById('la-form')) return;
+  ['savings','years','amount','purpose'].forEach(function(k){
+    document.getElementById('la-'+k).addEventListener('input', function(){
+      LA[k]=this.value;
+      if(k==='years') laRefreshYears();
+      if(k==='amount'||k==='savings') laRefreshAmount();
+      laWiz.refreshNext();
+    });
+  });
+  laWiz.bind();
+  laWiz.show(laWiz.idx);
+}
+function laRefreshYears(){
+  var note=document.getElementById('la-years-note'); if(!note) return;
+  var y=parseFloat(LA.years);
+  if(LA.years!==''&&(y<0||y>10)){ note.className='q-hint fail'; note.textContent=t('la.years.max'); }
+  else { note.className=''; note.textContent=''; }
+}
+// The comparison the lender will make, shown while the figure is still being chosen.
+function laRefreshAmount(){
+  var note=document.getElementById('la-amount-note'); if(!note) return;
+  var a=parseFloat(LA.amount), s=parseFloat(LA.savings);
+  if(!(a>0)||!(s>0)){ note.className=''; note.textContent=''; return; }
+  note.className='q-hint ok';
+  note.textContent=tf('la.amount.verdict',{x:Math.round(a/s*10)/10});
+}
+function laRenderCheck(){
+  var g=getG(); var st=gStats(g);
+  var prior=(g.loan>0)?tf('la.note.prior.one',{amt:fmtMoney(g.loan),status:((STATUS_CFG[loanStatus(g)]||{}).label||loanStatus(g))}):t('la.note.prior.none');
+  var rows=[
+    ['savings',t('la.row.savings'),fmtMoney(LA.savings)],
+    ['savings',t('la.row.years'),LA.years],
+    ['amount',t('la.row.amount'),fmtMoney(LA.amount)],
+    ['amount',t('la.row.purpose'),LA.purpose.trim()]
+  ];
+  var box=document.getElementById('la-check');
+  // what the group never typed, and never should have to
+  box.innerHTML='<div class="q-hint ok"><b>'+escHtml(t('la.note.head'))+'</b><br>'+
+    escHtml([tf('la.note.members',{n:g.members||0}), tf('la.note.meetings',{n:st.count}), tf('la.note.quorum',{n:st.qOk}), prior].join(' · '))+
+    '<br><span style="opacity:.85">'+escHtml(t('la.note.tail'))+'</span></div>'+
+    wzReviewHtml(rows, LA_SCREENS);
+  wzBindChange(box, laWiz);
 }
 async function submitLoanApplication(){
   var err=document.getElementById('la-err'); err.style.display='none';
   var g=getG();
-  var amount=parseFloat(document.getElementById('la-amount').value)||0;
-  var purpose=(document.getElementById('la-purpose').value||'').trim();
-  var savings=parseFloat(document.getElementById('la-savings').value);
-  var years=parseFloat(document.getElementById('la-years').value);
+  var amount=parseFloat(LA.amount)||0;
+  var purpose=LA.purpose.trim();
+  var savings=parseFloat(LA.savings);
+  var years=parseFloat(LA.years);
   if(!amount){ err.textContent='Please enter the loan amount required.'; err.style.display='block'; return; }
   if(!purpose){ err.textContent='Please enter the purpose of the loan.'; err.style.display='block'; return; }
   if(isNaN(savings)){ err.textContent='Please enter your total group savings.'; err.style.display='block'; return; }
-  if(isNaN(years)){ err.textContent='Please enter how many years the group has been active.'; err.style.display='block'; return; }
-  var btn=document.getElementById('la-submit'); btn.disabled=true; btn.textContent='Submitting…';
+  if(isNaN(years)||years>10){ err.textContent='Please enter how many years the group has been saving (up to 10).'; err.style.display='block'; return; }
+  var btn=document.getElementById('la-next'); btn.disabled=true; btn.textContent=t('la.sending');
   var r=await SB.rpc('apply_for_loan',{ p_cmg_id:g.id, p_amount:amount, p_purpose:purpose, p_group_savings:savings, p_years_active:years });
-  btn.disabled=false; btn.textContent='Submit application';
+  btn.disabled=false; btn.textContent=t('la.send');
   if(r.error){ err.textContent='Could not submit: '+(r.error.message||''); err.style.display='block'; return; }
+  laReset();
   await loadData(); renderChairLoan();
 }
 
@@ -2887,18 +3305,11 @@ function renderChairDash(){
     '</div>';
 }
 
-document.getElementById('l-present').addEventListener('input', function(){
-  var g=getG(); if(!g) return;
-  var thresh=Math.ceil((g.members||0)*(g.quorum||80)/100);
-  var present=parseInt(this.value)||0;
-  var el=document.getElementById('l-qhint');
-  if(!present){ el.textContent=''; el.className=''; return; }
-  el.className='q-hint '+(present>=thresh?'ok':'fail');
-  el.innerHTML=present>=thresh?'&#10003; Quorum met ('+present+' present, threshold '+thresh+')':'&#10007; Below quorum ('+present+' present, need '+thresh+')';
-});
-
 // ── LOG MEETING: state ──
 var logRemitChoice=null, logFullPartial=null, logAmendId=null;
+var logChanged=null;      // 'yes' | 'no' — did membership change since the last meeting?
+var wzIdx=0;              // which screen of wzScreens() is showing
+var wzDatePick=false;     // "Another day" chosen, so show the calendar even if it lands on today
 
 // ── enterLogTab: decide whether to show review or fresh wizard ──
 function enterLogTab(){
@@ -2918,7 +3329,7 @@ function renderLoanAlert(g){
   var app=currentLoanApp(g.id);
   if(app && app.status==='APPROVED'){
     box.innerHTML='<div class="alert alert-warn" style="margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'+
-      '<div>&#128276; <strong>An approved loan from '+app.fi+' is awaiting the group’s decision.</strong> If this meeting has met quorum, open the Loan tab to accept or decline it.</div>'+
+      '<div>&#128276; <strong>An approved loan from '+escHtml(app.fi)+' is awaiting the group’s decision.</strong> If this meeting has met quorum, open the Loan tab to accept or decline it.</div>'+
       '<button class="btn btn-sm btn-primary" id="c-loan-alert-go" style="white-space:nowrap">Open Loan tab &#8594;</button></div>';
     var b=document.getElementById('c-loan-alert-go'); if(b) b.addEventListener('click', function(){ switchTab('loan'); });
   } else { box.innerHTML=''; }
@@ -2947,7 +3358,7 @@ function showReview(m){
       '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">Amendment log</div>'+
       m.amendments.map(function(a){
         return '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">'+
-          '<span style="color:var(--amber)">&#9998;</span> '+a.ts+' &mdash; '+a.summary+'</div>';
+          '<span style="color:var(--amber)">&#9998;</span> '+a.ts+' &mdash; '+escHtml(a.summary)+'</div>';
       }).join('')+'</div>';
   }
 
@@ -2966,7 +3377,7 @@ function showReview(m){
     (g.loan>0?'<div class="mtg-item"><span>Remitted to lender</span><strong>'+fmt(m.repaid)+'</strong></div>':'')+
     '</div>'+
     (g.loan>0?'<div style="font-size:12px;color:var(--muted)">Remittance: '+remitLabel+'</div>':'')+
-    (m.notes?'<div style="margin-top:.5rem;font-size:13px;color:var(--muted)">Notes: '+m.notes+'</div>':'')+
+    (m.notes?'<div style="margin-top:.5rem;font-size:13px;color:var(--muted)">Notes: '+escHtml(m.notes)+'</div>':'')+
     amendHtml+
     '</div>';
 
@@ -3013,202 +3424,272 @@ document.getElementById('amend-confirm').addEventListener('click', function(){
   showWizardAmend(m);
 });
 
+// ── WIZARD: shared helpers ──
+function wzVal(id){ var el=document.getElementById(id); return el?el.value:''; }
+function wzIsoDay(d){ return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+// toLocaleDateString has no usable sw-TZ on most Androids, so the Kiswahili names are spelled out.
+var SW_DAYS=['Jumapili','Jumatatu','Jumanne','Jumatano','Alhamisi','Ijumaa','Jumamosi'];
+var SW_MONTHS=['Januari','Februari','Machi','Aprili','Mei','Juni','Julai','Agosti','Septemba','Oktoba','Novemba','Desemba'];
+function wzLongDate(d){
+  if(window.i18nLang && i18nLang()==='sw') return SW_DAYS[d.getDay()]+', '+d.getDate()+' '+SW_MONTHS[d.getMonth()]+' '+d.getFullYear();
+  return d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+function monthlyInstalment(g){ return g&&g.totaldue?Math.round(g.totaldue/12):0; }
+function wzMark(btn, on){ var el=document.getElementById(btn); if(el) el.classList.toggle('selected', !!on); }
+
+// The member count this meeting is judged against: the total confirmed on the
+// membership screen if it changed, otherwise the registry value. Never the stored
+// value while a new one is on its way to the server (chair-screens/README.md §2).
+function confirmedMembers(){
+  var g=getG(); var stored=g?(g.members||0):0;
+  if(logChanged==='yes'){ var n=parseInt(wzVal('l-members')); if(n>0) return n; }
+  return stored;
+}
+function quorumThresh(){ var g=getG(); return Math.ceil(confirmedMembers()*((g&&g.quorum)||80)/100); }
+
+// Which screens apply on this run, in order. Recomputed on every step because
+// earlier answers add or remove later screens.
+function wzScreens(){
+  var g=getG(); var loan=!!(g&&g.loan>0);
+  var s=['date'];
+  if(logChanged==='yes') s.push('members');
+  s.push('present','money','disbursed');
+  if(loan&&logRemitChoice==='yes') s.push('remittype');
+  if(loan&&logRemitChoice==='yes'&&logFullPartial==='partial') s.push('remitamount');
+  s.push('notes','check');
+  return s;
+}
+
+// What still blocks Next on each screen ('' = nothing). Hard bounds live here.
+var WZ_CHECK={
+  date:function(){ if(!wzVal('l-date')) return 'date'; if(!logChanged) return 'changed'; return ''; },
+  members:function(){ var n=parseInt(wzVal('l-members')); return (n>=5&&n<=30)?'':'members'; },
+  present:function(){ var n=parseInt(wzVal('l-present')); return (n>=1&&n<=confirmedMembers())?'':'present'; },
+  money:function(){ var s=wzVal('l-savings'), r=wzVal('l-memrepay'); return (s!==''&&r!==''&&parseFloat(s)>=0&&parseFloat(r)>=0)?'':'money'; },
+  disbursed:function(){ var g=getG(); var d=wzVal('l-disbursed'); if(d===''||parseFloat(d)<0) return 'disbursed'; if(g&&g.loan>0&&!logRemitChoice) return 'remit'; return ''; },
+  remittype:function(){ return logFullPartial?'':'remittype'; },
+  remitamount:function(){ return (parseFloat(wzVal('l-repaid'))||0)>0?'':'remitamount'; },
+  notes:function(){ return ''; },
+  check:function(){ return ''; }
+};
+
+function wzRefreshNext(){
+  var key=wzScreens()[wzIdx];
+  var bad=!!WZ_CHECK[key]();
+  var b=document.getElementById('wz-next');
+  b.disabled=bad; b.style.opacity=bad?'.5':'1'; b.style.cursor=bad?'not-allowed':'pointer';
+}
+
+function wzShow(n){
+  var S=wzScreens();
+  if(n<0) n=0; if(n>=S.length) n=S.length-1;
+  wzIdx=n;
+  var key=S[n];
+  document.querySelectorAll('#log-wizard .wz-screen').forEach(function(el){
+    el.style.display=el.getAttribute('data-screen')===key?'block':'none';
+  });
+  var total=S.length-1;   // the check screen is "last step", not a numbered one
+  document.getElementById('wz-step').textContent=key==='check'?t('wz.last'):tf('wz.step',{n:n+1,t:total});
+  document.getElementById('wz-prog').style.width=Math.round(n/total*100)+'%';
+  document.getElementById('wz-back').textContent=n===0?t('wz.cancel'):t('wz.back');
+  document.getElementById('wz-next').textContent=key==='check'?t('mt.save'):(n===total-1?t('wz.review'):t('wz.next'));
+  document.getElementById('l-err').style.display='none';
+  if(key==='date') wzRefreshDate();
+  if(key==='members') wzRefreshMembers();
+  if(key==='present') wzRefreshPresent();
+  if(key==='disbursed') wzRefreshRemitQ();
+  if(key==='remittype') wzRefreshRemitType();
+  if(key==='remitamount') wzRefreshRemitAmount();
+  if(key==='check') wzRenderCheck();
+  wzRefreshNext();
+  window.scrollTo(0,0);
+}
+
+// ── screen 1: date + membership change ──
+function wzRefreshDate(){
+  var today=new Date(), yest=new Date(Date.now()-864e5);
+  var tIso=wzIsoDay(today), yIso=wzIsoDay(yest);
+  document.getElementById('wz-date-today').textContent=wzLongDate(today);
+  document.getElementById('wz-date-yest').textContent=wzLongDate(yest);
+  document.getElementById('l-date').max=tIso;
+  var v=wzVal('l-date');
+  var which=(wzDatePick||(v&&v!==tIso&&v!==yIso))?'pick':v===tIso?'today':v===yIso?'yesterday':'';
+  document.querySelectorAll('#wz-date-choices .wz-choice').forEach(function(b){ b.classList.toggle('selected', b.getAttribute('data-d')===which); });
+  document.getElementById('wz-date-pick').style.display=which==='pick'?'block':'none';
+  var g=getG(); var m=g?(g.members||0):0;
+  document.getElementById('wz-changed-help').textContent=tf('mt.changed.help',{n:m});
+  document.getElementById('tog-changed-no').textContent=tf('mt.changed.no',{n:m});
+  wzMark('tog-changed-yes', logChanged==='yes');
+  wzMark('tog-changed-no', logChanged==='no');
+}
+document.querySelectorAll('#wz-date-choices .wz-choice').forEach(function(b){
+  b.addEventListener('click', function(){
+    var d=b.getAttribute('data-d');
+    if(d==='pick'){ wzDatePick=true; wzRefreshDate(); document.getElementById('l-date').focus(); }
+    else { wzDatePick=false; document.getElementById('l-date').value=d==='today'?wzIsoDay(new Date()):wzIsoDay(new Date(Date.now()-864e5)); wzRefreshDate(); }
+    wzRefreshNext();
+  });
+});
+document.getElementById('l-date').addEventListener('change', wzRefreshNext);
+document.getElementById('tog-changed-yes').addEventListener('click', function(){ logChanged='yes'; wzRefreshDate(); wzRefreshNext(); });
+document.getElementById('tog-changed-no').addEventListener('click', function(){
+  logChanged='no'; document.getElementById('l-members').value='';   // no new total to push
+  wzRefreshDate(); wzRefreshNext();
+});
+
+// ── screen 2: new total (5–30, a hard bound — README §5) ──
+function wzRefreshMembers(){
+  var g=getG(); var v=wzVal('l-members'); var n=parseInt(v); var note=document.getElementById('wz-members-note');
+  if(v===''||isNaN(n)){ note.className=''; note.textContent=''; return; }
+  if(n<5||n>30){ note.className='q-hint fail'; note.textContent=t('mt.members.range'); return; }
+  note.className='q-hint ok';
+  note.textContent=(g&&g.members&&g.members!==n)?tf('mt.members.new.was',{n:n,was:g.members}):tf('mt.members.new',{n:n});
+}
+document.getElementById('l-members').addEventListener('input', function(){ wzRefreshMembers(); wzRefreshNext(); });
+
+// ── screen 3: attendance + quorum verdict, against the count just confirmed ──
+function wzRefreshPresent(){
+  var m=confirmedMembers(), th=quorumThresh();
+  document.getElementById('wz-present-help').textContent=tf('mt.present.help',{n:m});
+  document.getElementById('l-present').max=m;
+  var el=document.getElementById('l-qhint'); var v=wzVal('l-present'); var n=parseInt(v);
+  if(v===''||isNaN(n)||n<=0){ el.className=''; el.textContent=''; return; }
+  if(n>m){ el.className='q-hint fail'; el.textContent=tf('mt.present.max',{n:m}); return; }
+  el.className='q-hint '+(n>=th?'ok':'fail');
+  el.textContent=tf(n>=th?'mt.quorum.ok':'mt.quorum.fail',{n:n,m:m,t:th});
+}
+document.getElementById('l-present').addEventListener('input', function(){ wzRefreshPresent(); wzRefreshNext(); });
+
+// ── screen 4: savings + member repayments ──
+['l-savings','l-memrepay','l-disbursed'].forEach(function(id){ document.getElementById(id).addEventListener('input', wzRefreshNext); });
+
+// ── screen 5: disbursed + did the group repay an instalment (only with a loan) ──
+function wzRefreshRemitQ(){
+  var g=getG(); var loan=!!(g&&g.loan>0);
+  document.getElementById('wz-remit-q').style.display=loan?'':'none';
+  document.getElementById('wz-remit-help').textContent=tf('mt.remit.help',{amt:fmt(monthlyInstalment(g))});
+  wzMark('tog-yes', logRemitChoice==='yes');
+  wzMark('tog-no', logRemitChoice==='no');
+}
+document.getElementById('tog-yes').addEventListener('click', function(){ logRemitChoice='yes'; wzRefreshRemitQ(); wzRefreshNext(); });
+document.getElementById('tog-no').addEventListener('click', function(){
+  logRemitChoice='no'; logFullPartial=null; document.getElementById('l-repaid').value='';   // later answers no longer apply
+  wzRefreshRemitQ(); wzRefreshNext();
+});
+
+// ── screen 6a: full or part ──
+function wzRefreshRemitType(){
+  var g=getG(); var monthly=monthlyInstalment(g);
+  document.getElementById('wz-full-sub').textContent=fmt(monthly);
+  wzMark('tog-full', logFullPartial==='full');
+  wzMark('tog-partial', logFullPartial==='partial');
+  var info=document.getElementById('remit-full-info');
+  info.style.display=logFullPartial==='full'?'block':'none';
+  info.textContent=tf('mt.remittype.fullinfo',{amt:fmt(monthly)});
+}
+document.getElementById('tog-full').addEventListener('click', function(){ logFullPartial='full'; document.getElementById('l-repaid').value=''; wzRefreshRemitType(); wzRefreshNext(); });
+document.getElementById('tog-partial').addEventListener('click', function(){ logFullPartial='partial'; wzRefreshRemitType(); wzRefreshNext(); });
+
+// ── screen 6b: the part amount ──
+function wzRefreshRemitAmount(){
+  document.getElementById('wz-repaid-help').textContent=tf('mt.remitamount.help',{amt:fmt(monthlyInstalment(getG()))});
+}
+document.getElementById('l-repaid').addEventListener('input', wzRefreshNext);
+
+// ── check before saving: every answer, each with a Change link ──
+function wzRenderCheck(){
+  var g=getG(); var loan=!!(g&&g.loan>0);
+  var m=confirmedMembers(), th=quorumThresh(), pres=parseInt(wzVal('l-present'))||0;
+  var d=wzVal('l-date'); var dStr=d?wzLongDate(new Date(d+'T00:00:00')):'—';
+  var rows=[
+    ['date',t('mt.date.ask'),dStr],
+    ['date',t('mt.row.changed'),logChanged==='yes'?t('mt.changed.yes'):tf('mt.changed.no',{n:m})]
+  ];
+  if(logChanged==='yes') rows.push(['members',t('mt.members.ask'),m]);
+  rows.push(['present',t('mt.present.ask'),pres]);
+  rows.push(['money',t('mt.row.savings'),fmt(wzVal('l-savings'))]);
+  rows.push(['money',t('mt.row.memrepay'),fmt(wzVal('l-memrepay'))]);
+  rows.push(['disbursed',t('mt.row.disbursed'),fmt(wzVal('l-disbursed'))]);
+  if(loan){
+    rows.push(['disbursed',t('mt.row.remit'),logRemitChoice==='yes'?t('mt.remit.yes'):t('mt.remit.no')]);
+    if(logRemitChoice==='yes') rows.push(['remittype',t('mt.row.paid'),logFullPartial==='full'?tf('mt.row.paid.full',{amt:fmt(monthlyInstalment(g))}):tf('mt.row.paid.part',{amt:fmt(wzVal('l-repaid'))})]);
+  }
+  rows.push(['notes',t('mt.row.notes'),wzVal('l-notes').trim()||'—']);
+  var verdict='<div class="q-hint '+(pres>=th?'ok':'warn')+'">'+escHtml(tf(pres>=th?'mt.check.ok':'mt.check.fail',{n:pres,m:m,t:th}))+'</div>';
+  var box=document.getElementById('wz-check');
+  box.innerHTML=verdict+wzReviewHtml(rows, wzScreens());
+  wzBindChange(box, {show:wzShow});
+}
+
+// ── footer ──
+function wzCancel(){
+  var g=getG(); var ms=g?g.meetings||[]:[];
+  if(ms.length>0) showReview(ms[0]); else { document.getElementById('log-wizard').style.display='none'; }
+}
+document.getElementById('wz-back').addEventListener('click', function(){ if(wzIdx===0) wzCancel(); else wzShow(wzIdx-1); });
+document.getElementById('wz-next').addEventListener('click', function(){
+  if(this.disabled) return;
+  if(wzScreens()[wzIdx]==='check'){ saveMeeting(); return; }
+  wzShow(wzIdx+1);
+});
+
+// Language switched mid-flow: static text is swapped by applyI18n(); the JS-built
+// parts of whichever chairperson screen is open are rebuilt here. Answers are kept.
+window.onLangChange=function(){
+  var lw=document.getElementById('log-wizard');
+  if(lw && lw.style.display==='block') wzShow(wzIdx);
+  var lr=document.getElementById('login-register');
+  if(lr && lr.style.display==='block' && document.getElementById('reg-form').style.display!=='none') regWiz.show(regWiz.idx);
+  if(document.getElementById('la-form') && typeof getG==='function' && getG()) renderChairLoan();
+};
+
 // ── WIZARD: fresh new entry ──
 function showWizardFresh(){
-  logAmendId=null; logRemitChoice=null; logFullPartial=null;
+  logAmendId=null; logRemitChoice=null; logFullPartial=null; logChanged=null; wzDatePick=false;
   document.getElementById('amend-banner').style.display='none';
-  document.getElementById('l-date').value=new Date().toISOString().slice(0,10);
-  document.getElementById('l-present').value='';
-  (function(){ var g=getG(); document.getElementById('l-members').value=g?(g.members||''):''; })();
-  document.getElementById('l-notes').value='';
-  document.getElementById('l-savings').value='';
-  document.getElementById('l-memrepay').value='';
-  document.getElementById('l-disbursed').value='';
-  var rp=document.getElementById('l-repaid'); if(rp) rp.value='';
-  document.getElementById('l-qhint').innerHTML='';
-  document.querySelectorAll('.tog-btn').forEach(function(b){ b.classList.remove('selected'); });
-  document.getElementById('remit-detail').style.display='none';
-  document.getElementById('remit-amount-field').style.display='none';
-  document.getElementById('remit-full-info').style.display='none';
-  resetSaveBtn();
+  document.getElementById('l-date').value=wzIsoDay(new Date());
+  ['l-present','l-members','l-notes','l-savings','l-memrepay','l-disbursed','l-repaid'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('log-review').style.display='none';
   document.getElementById('log-wizard').style.display='block';
-  logStepShow(1);
+  wzShow(0);
 }
 
 // ── WIZARD: amend existing ──
 function showWizardAmend(m){
   logAmendId=m.id; logRemitChoice=m.remitChoice||null; logFullPartial=m.remitType||null;
+  logChanged='no'; wzDatePick=false;   // amending a past record does not re-open the member count
   document.getElementById('amend-banner').style.display='block';
   document.getElementById('l-date').value=m.date||'';
   document.getElementById('l-present').value=m.present||'';
-  (function(){ var g=getG(); document.getElementById('l-members').value=g?(g.members||''):''; })();
+  document.getElementById('l-members').value='';
   document.getElementById('l-notes').value=m.notes||'';
   document.getElementById('l-savings').value=m.savings||0;
   document.getElementById('l-memrepay').value=m.memrepay||0;
   document.getElementById('l-disbursed').value=m.disbursed||0;
-  // fire quorum hint
-  var g=getG();
-  var thresh=Math.ceil((g.members||0)*(g.quorum||80)/100);
-  var present=m.present||0;
-  var el=document.getElementById('l-qhint');
-  el.className='q-hint '+(present>=thresh?'ok':'fail');
-  el.innerHTML=present>=thresh?'&#10003; Quorum met ('+present+' present, threshold '+thresh+')':'&#10007; Below quorum ('+present+' present, need '+thresh+')';
-  // restore step 3 state
-  document.querySelectorAll('.tog-btn').forEach(function(b){ b.classList.remove('selected'); });
-  document.getElementById('remit-detail').style.display='none';
-  document.getElementById('remit-amount-field').style.display='none';
-  document.getElementById('remit-full-info').style.display='none';
-  if(logRemitChoice==='no'){
-    document.getElementById('tog-no').classList.add('selected');
-  } else if(logRemitChoice==='yes'){
-    document.getElementById('tog-yes').classList.add('selected');
-    document.getElementById('remit-detail').style.display='block';
-    if(logFullPartial==='full'){
-      document.getElementById('tog-full').classList.add('selected');
-      var monthly=g&&g.totaldue?Math.round(g.totaldue/12):0;
-      var info=document.getElementById('remit-full-info');
-      info.style.display='block';
-      info.innerHTML='&#10003; Full monthly instalment: '+fmt(monthly)+' will be recorded.';
-    } else if(logFullPartial==='partial'){
-      document.getElementById('tog-partial').classList.add('selected');
-      document.getElementById('remit-amount-field').style.display='block';
-      var rp=document.getElementById('l-repaid'); if(rp) rp.value=m.repaid||0;
-    }
-  }
-  checkSaveReady();
+  document.getElementById('l-repaid').value=logFullPartial==='partial'?(m.repaid||''):'';
   document.getElementById('log-review').style.display='none';
   document.getElementById('log-wizard').style.display='block';
-  logStepShow(1);
-}
-
-// ── Step navigation ──
-// Remittance (step 3) only applies once the group has a disbursed loan.
-function setWizardLoanMode(){
-  var g=getG(); var loanActive=!!(g && g.loan>0);
-  var ls3=document.getElementById('ls3'), ls3l=document.getElementById('ls3-line');
-  if(ls3) ls3.style.display=loanActive?'':'none';
-  if(ls3l) ls3l.style.display=loanActive?'':'none';
-  var n2=document.getElementById('log-next2'); if(n2) n2.textContent=loanActive?'Next →':'Save meeting record';
-}
-function logStepShow(n){
-  setWizardLoanMode();
-  [1,2,3].forEach(function(i){
-    document.getElementById('log-step'+i).style.display=i===n?'block':'none';
-    document.getElementById('ls'+i).className='lstep'+(i<n?' done':i===n?' active':'');
-  });
-  ['l-err1','l-err2','l-err3'].forEach(function(id){ document.getElementById(id).style.display='none'; });
-}
-
-document.getElementById('log-cancel-wizard').addEventListener('click', function(){
-  var g=getG(); var ms=g?g.meetings||[]:[];
-  if(ms.length>0) showReview(ms[0]); else { document.getElementById('log-wizard').style.display='none'; }
-});
-
-document.getElementById('log-next1').addEventListener('click', function(){
-  var date=document.getElementById('l-date').value;
-  var present=parseInt(document.getElementById('l-present').value)||0;
-  var err=document.getElementById('l-err1');
-  if(!date){ err.textContent='Please enter the meeting date.'; err.style.display='block'; return; }
-  if(!present){ err.textContent='Please enter members present.'; err.style.display='block'; return; }
-  err.style.display='none'; logStepShow(2);
-});
-
-document.getElementById('log-back2').addEventListener('click', function(){ logStepShow(1); });
-
-document.getElementById('log-next2').addEventListener('click', function(){
-  var s=document.getElementById('l-savings').value;
-  var r=document.getElementById('l-memrepay').value;
-  var d2=document.getElementById('l-disbursed').value;
-  var err=document.getElementById('l-err2');
-  if(s===''||r===''||d2===''){ err.textContent='Please enter all three fields (use 0 if nil).'; err.style.display='block'; return; }
-  err.style.display='none';
-  var g=getG();
-  if(g && g.loan>0){ logStepShow(3); }   // has a disbursed loan -> remittance step
-  else { logRemitChoice='no'; logFullPartial=null; saveMeeting(); }  // no loan -> save directly
-});
-
-document.getElementById('log-back3').addEventListener('click', function(){ logStepShow(2); });
-
-// Yes / No toggles
-document.getElementById('tog-yes').addEventListener('click', function(){
-  logRemitChoice='yes'; logFullPartial=null;
-  document.getElementById('tog-yes').classList.add('selected');
-  document.getElementById('tog-no').classList.remove('selected');
-  document.getElementById('remit-detail').style.display='block';
-  document.getElementById('remit-amount-field').style.display='none';
-  document.getElementById('remit-full-info').style.display='none';
-  document.getElementById('tog-full').classList.remove('selected');
-  document.getElementById('tog-partial').classList.remove('selected');
-  checkSaveReady();
-});
-document.getElementById('tog-no').addEventListener('click', function(){
-  logRemitChoice='no'; logFullPartial=null;
-  document.getElementById('tog-no').classList.add('selected');
-  document.getElementById('tog-yes').classList.remove('selected');
-  document.getElementById('remit-detail').style.display='none';
-  checkSaveReady();
-});
-
-// Full / Partial toggles
-document.getElementById('tog-full').addEventListener('click', function(){
-  logFullPartial='full';
-  document.getElementById('tog-full').classList.add('selected');
-  document.getElementById('tog-partial').classList.remove('selected');
-  document.getElementById('remit-amount-field').style.display='none';
-  var g=getG();
-  var monthly=g&&g.totaldue?Math.round(g.totaldue/12):0;
-  var info=document.getElementById('remit-full-info');
-  info.style.display='block';
-  info.innerHTML='&#10003; Full monthly instalment: '+fmt(monthly)+' will be recorded.';
-  checkSaveReady();
-});
-document.getElementById('tog-partial').addEventListener('click', function(){
-  logFullPartial='partial';
-  document.getElementById('tog-partial').classList.add('selected');
-  document.getElementById('tog-full').classList.remove('selected');
-  document.getElementById('remit-amount-field').style.display='block';
-  document.getElementById('remit-full-info').style.display='none';
-  document.getElementById('l-repaid').value='';
-  checkSaveReady();
-});
-document.getElementById('l-repaid').addEventListener('input', checkSaveReady);
-
-function resetSaveBtn(){
-  var btn=document.getElementById('log-save-btn');
-  btn.disabled=true; btn.style.opacity='0.5'; btn.style.cursor='not-allowed';
-}
-function checkSaveReady(){
-  var ready=false;
-  if(logRemitChoice==='no') ready=true;
-  else if(logRemitChoice==='yes'&&logFullPartial==='full') ready=true;
-  else if(logRemitChoice==='yes'&&logFullPartial==='partial'){
-    ready=(parseFloat(document.getElementById('l-repaid').value)||0)>0;
-  }
-  var btn=document.getElementById('log-save-btn');
-  btn.disabled=!ready;
-  btn.style.opacity=ready?'1':'0.5';
-  btn.style.cursor=ready?'pointer':'not-allowed';
+  wzShow(0);
 }
 
 // ── SAVE (new or amend) ──
-// Update the CMG's total members if the chairperson changed it during this meeting.
+// Update the CMG's total members if the chairperson confirmed a new total this meeting.
 async function maybeSetMembers(g){
-  var el=document.getElementById('l-members');
-  var newM=parseInt(el&&el.value)||0;
+  if(logChanged!=='yes') return;
+  var newM=parseInt(wzVal('l-members'))||0;
   if(newM>0 && newM!==g.members){
     var r=await SB.rpc('set_cmg_members',{ p_cmg_id:g.id, p_members:newM });
     if(r.error) alert('Meeting saved, but the member count could not be updated: '+(r.error.message||''));
   }
 }
-document.getElementById('log-save-btn').addEventListener('click', function(){ if(this.disabled) return; saveMeeting(); });
 async function saveMeeting(){
   var g=getG();
-  var err=document.getElementById((g&&g.loan>0)?'l-err3':'l-err2');
+  var err=document.getElementById('l-err');
+  if(!(g&&g.loan>0)){ logRemitChoice='no'; logFullPartial=null; }   // no loan -> nothing to remit
   var repaidAmt=0;
   if(logRemitChoice==='yes'){
     if(logFullPartial==='full'){
-      repaidAmt=g&&g.totaldue?Math.round(g.totaldue/12):0;
+      repaidAmt=monthlyInstalment(g);
     } else {
       repaidAmt=parseFloat(document.getElementById('l-repaid').value)||0;
       if(!repaidAmt){ err.textContent='Please enter the partial amount remitted.'; err.style.display='block'; return; }
@@ -3216,7 +3697,7 @@ async function saveMeeting(){
   }
   err.style.display='none';
   var now=new Date().toLocaleString('en-GB');
-  var btn=document.getElementById('log-save-btn'); btn.disabled=true;
+  var btn=document.getElementById('wz-next'); btn.disabled=true;
   var rec={
     date:document.getElementById('l-date').value,
     present:parseInt(document.getElementById('l-present').value)||0,
@@ -3288,7 +3769,7 @@ function renderChairHist(){
         '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">&#9998; Amendment log ('+m.amendments.length+')</div>'+
         m.amendments.map(function(a){
           return '<div style="font-size:12px;color:var(--muted);padding:4px 0;border-bottom:1px solid var(--gray100)">'+
-            '<span style="color:var(--amber);font-weight:600">'+a.ts+'</span><br>'+a.summary+'</div>';
+            '<span style="color:var(--amber);font-weight:600">'+a.ts+'</span><br>'+escHtml(a.summary)+'</div>';
         }).join('')+'</div>';
     }
     if(m.voided){
@@ -3299,7 +3780,7 @@ function renderChairHist(){
         '<div style="font-size:12px;color:var(--muted);margin-bottom:.5rem;text-decoration:line-through">'+m.present+' of '+g.members+' present &middot; '+fmt(m.repaid)+' remitted</div>'+
         '<div style="font-size:12px;color:var(--red);border-top:1px dashed var(--border);padding-top:.6rem">'+
           '<strong>Annulled</strong>'+(m.voidedBy?' by '+m.voidedBy:'')+(vWhen?' &middot; '+vWhen:'')+'<br>'+
-          'Reason: '+(m.voidedReason||'&mdash;')+'</div>'+
+          'Reason: '+(escHtml(m.voidedReason)||'&mdash;')+'</div>'+
         amendHtml+
         '</div>';
     }
@@ -3314,7 +3795,7 @@ function renderChairHist(){
       '<div class="mtg-item"><span>Loans disbursed to members</span><strong>'+fmt(m.disbursed)+'</strong></div>'+
       (g.loan>0?'<div class="mtg-item"><span>Remitted to lender</span><strong>'+fmt(m.repaid)+'</strong></div>':'')+
       '</div>'+
-      (m.notes?'<div style="margin-top:.75rem;font-size:13px;color:var(--muted);border-top:1px solid var(--border);padding-top:.75rem">'+m.notes+'</div>':'')+
+      (m.notes?'<div style="margin-top:.75rem;font-size:13px;color:var(--muted);border-top:1px solid var(--border);padding-top:.75rem">'+escHtml(m.notes)+'</div>':'')+
       amendHtml+
       '</div>';
   }).join('');
@@ -3368,13 +3849,15 @@ function loanStatusFull(g){
   var st=gStats(g);
   var hasLoan=!!(g.loan&&g.loan>0);
 
-  // Pre-loan: distinguish a real loan application from a group that has only
-  // been assigned an FI. 'applied' requires a live loan_application record
-  // (PENDING/APPROVED/ACCEPTED); otherwise the group is merely 'assigned'.
+  // Pre-loan: three distinct states, in order.
+  //   'applied'    - a live loan_application record exists (PENDING/APPROVED/ACCEPTED)
+  //   'assigned'   - no application yet, but a partner FI has been assigned
+  //   'registered' - verified and on the registry, no partner FI assigned yet
   if(!hasLoan){
     var app=currentLoanApp(g.id);
     var liveApp=app&&['PENDING','APPROVED','ACCEPTED'].indexOf(app.status)>=0;
-    return {status: liveApp?'applied':'assigned', dpd:null};
+    if(liveApp) return {status:'applied', dpd:null};
+    return {status: g.fi?'assigned':'registered', dpd:null};
   }
   if(st.pct>=100) return {status:'completed', dpd:null};
 
@@ -3411,6 +3894,7 @@ function loanStatusFull(g){
 function loanStatus(g){ return loanStatusFull(g).status; }
 
 var STATUS_CFG={
+  registered:    {label:'Registered \u2013 no FI', bg:'#f8fafc',color:'#94a3b8',border:'#e2e8f0'},
   assigned:      {label:'FI assigned',          bg:'#f9fafb',color:'#6b7280',border:'#e5e7eb'},
   applied:       {label:'Applied',              bg:'#eff6ff',color:'#1d4ed8',border:'#bfdbfe'},
   approved:      {label:'Approved',             bg:'#fef3c7',color:'#92400e',border:'#fcd34d'},
@@ -3421,15 +3905,29 @@ var STATUS_CFG={
   'overdue-dpd': {label:'Overdue',              bg:'#fef9c3',color:'#854d0e',border:'#fde047'},
   delinquent:    {label:'Delinquent',           bg:'#fee2e2',color:'#b91c1c',border:'#fecaca'}
 };
-var STATUS_ORDER=['assigned','applied','approved','disbursed','active-ok','active-behind','completed','overdue-dpd','delinquent'];
+var STATUS_ORDER=['registered','assigned','applied','approved','disbursed','active-ok','active-behind','completed','overdue-dpd','delinquent'];
 // Statuses shown in CMG-level table columns and row badges (pre-loan pipeline statuses appear only in the top summary)
 var STATUS_ORDER_TABLE=['active-ok','active-behind','completed','overdue-dpd','delinquent'];
+// An FI lender only ever sees CMGs it is already the partner for, so 'registered'
+// (no partner FI) is unreachable from that seat and 'FI assigned' is a tautology —
+// drop the first and relabel the second to what it actually tells a lender.
+var STATUS_ORDER_FI=STATUS_ORDER.filter(function(s){ return s!=='registered'; });
+var STATUS_LABEL_FI={assigned:'Not yet applied'};
+var STATUS_VIEW_FI={order:STATUS_ORDER_FI, labels:STATUS_LABEL_FI};
+// The lender's region rollup is a portfolio view — CMGs that have not applied yet
+// carry no loan figures to roll up, so that chip is dropped there as well.
+var STATUS_ORDER_FI_TREE=STATUS_ORDER_FI.filter(function(s){ return s!=='assigned'; });
+var STATUS_VIEW_FI_TREE={order:STATUS_ORDER_FI_TREE, labels:STATUS_LABEL_FI};
+// Label for a status, honouring a per-view override map (see STATUS_LABEL_FI).
+function statusLabelOf(s, labels){
+  return (labels&&labels[s])||(STATUS_CFG[s]||{}).label||s;
+}
 
 // statusBadge: for overdue-dpd, appends the live DPD count to the label.
 // Pass the group object (g) to get the dynamic label; or pass null for a generic badge.
-function statusBadge(status, g){
+function statusBadge(status, g, labels){
   var c=STATUS_CFG[status]||{label:status,bg:'#f3f4f6',color:'#6b7280',border:'#e5e7eb'};
-  var label=c.label;
+  var label=statusLabelOf(status, labels)||c.label;
   if(status==='overdue-dpd'&&g){
     var dpd=loanStatusFull(g).dpd;
     if(dpd!==null) label='Overdue (DPD: '+dpd+')';
@@ -3441,17 +3939,23 @@ function statusBadge(status, g){
   return '<span style="display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;background:'+c.bg+';color:'+c.color+';border:1px solid '+c.border+'">'+label+'</span>';
 }
 
-function statusCountBar(groups, asRows){
+function statusCountBar(groups, asRows, clickable, highlight, view){
+  var order=(view&&view.order)||STATUS_ORDER, labels=view&&view.labels;
   var counts={};
-  STATUS_ORDER.forEach(function(s){ counts[s]=0; });
+  order.forEach(function(s){ counts[s]=0; });
   groups.forEach(function(g){ var s=loanStatus(g); if(counts[s]!==undefined) counts[s]++; });
   if(asRows){
     var rows='<div class="status-rows">';
-    STATUS_ORDER.forEach(function(s){
+    order.forEach(function(s){
       var c=STATUS_CFG[s]; var n=counts[s];
-      rows+='<div class="status-row">'+
+      var isClickable=clickable&&n>0;
+      var shouldHighlight=(highlight||clickable)&&n>0;
+      var rowClass='status-row'+(isClickable?' clickable-status-row':'');
+      var rowStyle=shouldHighlight?'border:2px solid '+c.color+';border-radius:6px;padding:2px;'+(isClickable?'cursor:pointer;':''):'';
+      var dataAttr=isClickable?' data-status="'+s+'"':'';
+      rows+='<div class="'+rowClass+'"'+dataAttr+(rowStyle?' style="'+rowStyle+'"':'')+'>' +
         '<span style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:'+c.color+'">'+
-          '<span style="width:10px;height:10px;border-radius:3px;background:'+c.bg+';border:1px solid '+c.border+';flex-shrink:0"></span>'+c.label+'</span>'+
+          '<span style="width:10px;height:10px;border-radius:3px;background:'+c.bg+';border:1px solid '+c.border+';flex-shrink:0"></span>'+statusLabelOf(s,labels)+'</span>'+
         '<span style="font-size:15px;font-weight:700;color:'+c.color+';font-variant-numeric:tabular-nums">'+n+'</span>'+
       '</div>';
     });
@@ -3459,11 +3963,11 @@ function statusCountBar(groups, asRows){
   }
   var total=groups.length;
   var html='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem">';
-  STATUS_ORDER.forEach(function(s){
+  order.forEach(function(s){
     var c=STATUS_CFG[s]; var n=counts[s];
     html+='<div style="display:flex;align-items:center;gap:6px;background:'+c.bg+';border:1px solid '+c.border+';border-radius:var(--radius);padding:6px 12px">'+
       '<span style="font-size:18px;font-weight:700;color:'+c.color+'">'+n+'</span>'+
-      '<span style="font-size:12px;font-weight:600;color:'+c.color+'">'+c.label+'</span></div>';
+      '<span style="font-size:12px;font-weight:600;color:'+c.color+'">'+statusLabelOf(s,labels)+'</span></div>';
   });
   html+='</div>';
   return html;
@@ -3489,8 +3993,9 @@ function enterFi(){
     document.getElementById('fit-region').innerHTML=empty;
   } else {
     document.getElementById('fit-portfolio').innerHTML=aggStatsCardHtml(groups, SESSION.fi);
-    document.getElementById('fi-status-bar').innerHTML=aggStatusCardHtml(groups, true);
-    document.getElementById('fit-region').innerHTML=aggTreeHtml(groups, showWards, true);
+    document.getElementById('fi-status-bar').innerHTML=fiStatusCardHtml(groups, true);
+    document.getElementById('fit-region').innerHTML=aggTreeHtml(groups, showWards, true, STATUS_VIEW_FI_TREE);
+    wireFiStatusRows(groups);
   }
   showAppScreen('screen-fi');
   renderFiNotifications();
@@ -3500,6 +4005,9 @@ function enterFi(){
 
 // FI dashboard tabs.
 function switchFiTab(tab){
+  // The drill-down is a full-screen overlay on the tabs, and nothing else closes
+  // it — leaving it open meant the previous lender's table sat under every tab.
+  var det=document.getElementById('fi-status-detail'); if(det) det.style.display='none';
   ['portfolio','loans','region'].forEach(function(t){
     var el=document.getElementById('fit-'+t);
     if(el) el.style.display = t===tab?'block':'none';
@@ -3512,6 +4020,45 @@ function switchFiTab(tab){
 ['portfolio','loans','region'].forEach(function(t){
   var b=document.getElementById('tab-fi-'+t);
   if(b) b.addEventListener('click', function(){ switchFiTab(t); });
+});
+// Wire up clickable status rows for FI lender drill-down
+function wireFiStatusRows(groups){
+  document.querySelectorAll('.clickable-status-row').forEach(function(row){
+    row.addEventListener('click', function(){
+      var status=this.getAttribute('data-status');
+      fiStatusDetail(groups, status);
+    });
+  });
+}
+// Show detail view for groups matching a status
+function fiStatusDetail(groups, status){
+  var filtered=groups.filter(function(g){ return loanStatus(g)===status; });
+  // No heading or count line: the lender is already inside its own dashboard, and every
+  // row carries its own status badge — restating either just repeats the obvious.
+  var html='<div class="card" style="padding:0;overflow:hidden"><div style="overflow-x:auto">'+
+    '<table class="tbl"><thead><tr>'+
+    '<th>Group</th><th>CMG #</th><th>Ward</th><th class="num">Loan (TZS)</th><th class="num">Repaid</th><th class="num">Outstanding</th><th>Status</th>'+
+    '</tr></thead><tbody>';
+  filtered.forEach(function(g){
+    var st=gStats(g);
+    html+='<tr>'+
+      '<td><strong>'+escHtml(g.name)+'</strong></td>'+
+      '<td><span class="fi-pill">'+(g.cmgNumber||g.id)+'</span></td>'+
+      '<td>'+(escHtml(g.ward)||'—')+'</td>'+
+      '<td class="num">'+fmt(g.loan)+'</td>'+
+      '<td class="num">'+fmt(st.totRep)+'</td>'+
+      '<td class="num">'+fmt(st.out)+'</td>'+
+      '<td>'+statusBadge(loanStatus(g),g,STATUS_LABEL_FI)+'</td>'+
+      '</tr>';
+  });
+  html+='</tbody></table></div></div>';
+  document.getElementById('fi-status-detail-content').innerHTML=html;
+  document.getElementById('fit-loans').style.display='none';
+  document.getElementById('fi-status-detail').style.display='block';
+}
+document.getElementById('fi-status-back').addEventListener('click', function(){
+  document.getElementById('fi-status-detail').style.display='none';
+  document.getElementById('fit-loans').style.display='block';
 });
 // ── FI LOAN APPLICATION QUEUE (approve full/partial + terms, or reject) ──
 function renderFiLoans(){
@@ -3536,7 +4083,7 @@ function renderFiLoans(){
     html+='<div class="card" style="margin-bottom:1rem"><div class="card-title" style="color:var(--muted)">In progress</div>'+
       others.map(function(a){
         var lbl=a.status==='APPROVED'?'Approved — awaiting group acceptance':'Declined by group';
-        return '<div style="font-size:13px;padding:.4rem 0;border-bottom:1px solid var(--gray100)"><strong>'+nameOf(a.cmg_id)+'</strong> <span class="fi-pill">'+a.cmg_id+'</span> &mdash; '+fmtMoney(a.approved_amount||a.amount_requested)+' &middot; '+lbl+'</div>';
+        return '<div style="font-size:13px;padding:.4rem 0;border-bottom:1px solid var(--gray100)"><strong>'+escHtml(nameOf(a.cmg_id))+'</strong> <span class="fi-pill">'+a.cmg_id+'</span> &mdash; '+fmtMoney(a.approved_amount||a.amount_requested)+' &middot; '+lbl+'</div>';
       }).join('')+'</div>';
   }
   box.innerHTML=html;
@@ -3546,7 +4093,7 @@ function renderFiLoans(){
 function renderFiDisburseCard(a, name){
   var today=new Date().toISOString().slice(0,10);
   return '<div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:.85rem 1rem;margin-top:.6rem">'+
-    '<div style="font-weight:700">'+name+' <span class="fi-pill">'+a.cmg_id+'</span></div>'+
+    '<div style="font-weight:700">'+escHtml(name)+' <span class="fi-pill">'+a.cmg_id+'</span></div>'+
     '<div style="font-size:12px;color:var(--muted);margin-top:.25rem">Approved '+fmtMoney(a.approved_amount)+' &middot; '+a.monthly_interest_rate+'%/mo &middot; '+a.tenure_months+' mo &middot; total '+fmtMoney(a.total_repayable)+'</div>'+
     (a.accepted_meeting_date?'<div style="font-size:12px;color:var(--muted)">Group accepted '+a.accepted_meeting_date+' ('+a.accepted_present+' of '+a.accepted_members+' present)</div>':'')+
     '<div style="margin-top:.6rem;border-top:1px solid var(--border);padding-top:.6rem">'+
@@ -3579,9 +4126,9 @@ async function fiDisburse(id){
 }
 function renderFiAppCard(a, name){
   return '<div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:.85rem 1rem;margin-top:.6rem">'+
-    '<div style="font-weight:700">'+name+' <span class="fi-pill">'+a.cmg_id+'</span></div>'+
+    '<div style="font-weight:700">'+escHtml(name)+' <span class="fi-pill">'+a.cmg_id+'</span></div>'+
     '<div style="font-size:12px;color:var(--muted);margin-top:.25rem">Requested '+fmtMoney(a.amount_requested)+' &middot; '+(a.members_at_application||'-')+' members &middot; '+(a.years_active||'-')+' yrs active &middot; savings '+fmtMoney(a.group_savings)+'</div>'+
-    (a.purpose?'<div style="font-size:12px;color:var(--muted)">Purpose: '+a.purpose+'</div>':'')+
+    (a.purpose?'<div style="font-size:12px;color:var(--muted)">Purpose: '+escHtml(a.purpose)+'</div>':'')+
     '<div style="font-size:12px;color:var(--muted)">Prior loan: '+(a.had_prior_loan?('Yes &middot; '+fmtMoney(a.prior_loan_amount)+' &middot; '+(a.prior_loan_status||'-')):'No')+'</div>'+
     '<div style="margin-top:.6rem;border-top:1px solid var(--border);padding-top:.6rem">'+
       '<div class="row2">'+
@@ -3657,7 +4204,7 @@ async function renderFiNotifications(){
     rows.map(function(n){
       var dt=n.created_at?new Date(n.created_at).toLocaleString('en-GB'):'';
       return '<div style="font-size:13px;padding:.5rem 0;border-bottom:1px solid rgba(0,0,0,.06)'+(!n.read_at?';font-weight:600':'')+'">'+
-        (!n.read_at?'<span style="color:var(--blue)">&#9679; </span>':'')+n.message+
+        (!n.read_at?'<span style="color:var(--blue)">&#9679; </span>':'')+escHtml(n.message)+
         '<div style="font-size:11px;color:var(--muted);font-weight:400;margin-top:2px">'+dt+'</div></div>';
     }).join('')+'</div>';
   var rb=document.getElementById('fi-notif-read');
@@ -3686,29 +4233,35 @@ function enterObserver(){
 // LGA visibility into the loan lifecycle: applications, FI decisions, group decisions, disbursal.
 function renderLgaLoanPipeline(){
   var box=document.getElementById('obs-loans'); if(!box) return;
-  var apps=(APP.loanApps||[]).slice().sort(function(a,b){ return b.id-a.id; });
+  // Scope to the officer's own groups. RLS should already do this server-side,
+  // but the pipeline is the one LGA panel that read APP.loanApps wholesale, so
+  // a loose policy would have surfaced another district's applications here.
+  var scope=SESSION._groups||[];
+  var inScope={}; scope.forEach(function(g){ inScope[g.id||g.cmgNumber]=g; });
+  var apps=(APP.loanApps||[]).filter(function(a){ return !!inScope[a.cmg_id]; })
+    .sort(function(a,b){ return b.id-a.id; });
   // This is a tab of its own now, so an empty pipeline needs to say so rather
   // than leave the officer looking at a blank panel.
   if(!apps.length){
     box.innerHTML='<div class="card"><div class="card-title">Loan pipeline</div>'+
-      '<div class="empty-state">No loan applications in '+(SESSION.district||'your district')+' yet. '+
+      '<div class="empty-state">No loan applications in '+(escHtml(SESSION.district)||'your district')+' yet. '+
       'Applications appear here once a group with an assigned partner FI applies.</div></div>';
     return;
   }
-  var nameOf=function(cmgId){ var g=(APP.groups||[]).find(function(x){ return x.id===cmgId; }); return g?g.name:cmgId; };
+  var nameOf=function(cmgId){ var g=inScope[cmgId]; return g?g.name:cmgId; };
   var stage=function(a){
     if(a.status==='PENDING')   return ['badge-warn','Applied — pending FI review'];
     if(a.status==='APPROVED')  return ['badge-ok','FI approved '+fmtMoney(a.approved_amount)+' — awaiting group decision'];
-    if(a.status==='REJECTED')  return ['badge-fail','FI rejected'+(a.rejection_reason?(': '+a.rejection_reason):'')];
+    if(a.status==='REJECTED')  return ['badge-fail','FI rejected'+(a.rejection_reason?(': '+escHtml(a.rejection_reason)):'')];
     if(a.status==='ACCEPTED')  return ['badge-ok','Group accepted — awaiting disbursal'];
-    if(a.status==='DECLINED')  return ['badge-fail','Group declined'+(a.rejection_reason?(': '+a.rejection_reason):'')];
+    if(a.status==='DECLINED')  return ['badge-fail','Group declined'+(a.rejection_reason?(': '+escHtml(a.rejection_reason)):'')];
     if(a.status==='DISBURSED') return ['badge-ok','Disbursed — active (repayment tracked below)'];
     return ['badge-gray', a.status];
   };
   box.innerHTML='<div class="card" style="margin-bottom:1rem"><div class="card-title">Loan pipeline ('+apps.length+')</div>'+
     apps.map(function(a){ var s=stage(a);
       return '<div style="font-size:13px;padding:.45rem 0;border-bottom:1px solid var(--gray100);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center">'+
-        '<span><strong>'+nameOf(a.cmg_id)+'</strong> <span class="fi-pill">'+a.cmg_id+'</span> &middot; '+fmtMoney(a.amount_requested)+' &middot; '+a.fi+'</span>'+
+        '<span><strong>'+escHtml(nameOf(a.cmg_id))+'</strong> <span class="fi-pill">'+a.cmg_id+'</span> &middot; '+fmtMoney(a.amount_requested)+' &middot; '+escHtml(a.fi)+'</span>'+
         '<span class="badge '+s[0]+'">'+s[1]+'</span></div>';
     }).join('')+'</div>';
 }
@@ -3776,8 +4329,8 @@ function renderObsList(groups){
     var repB=st.pct>=100?'<span class="badge badge-ok">Fully repaid</span>':st.pct>=50?'<span class="badge badge-warn">'+st.pct+'%</span>':'<span class="badge badge-fail">'+st.pct+'%</span>';
     var qB=st.count===0?'<span class="badge badge-gray">&mdash;</span>':st.qPct>=80?'<span class="badge badge-ok">'+st.qPct+'%</span>':'<span class="badge badge-warn">'+st.qPct+'%</span>';
     return '<tr class="clickable" data-gid="'+(g.id||g.cmgNumber)+'">'+
-      '<td><strong>'+g.name+'</strong></td><td><span class="fi-pill">'+(g.cmgNumber||g.id)+'</span></td>'+
-      '<td>'+(g.ward||'&mdash;')+'</td><td>'+(g.fi||'&mdash;')+'</td>'+
+      '<td><strong>'+escHtml(g.name)+'</strong></td><td><span class="fi-pill">'+(g.cmgNumber||g.id)+'</span></td>'+
+      '<td>'+(escHtml(g.ward)||'&mdash;')+'</td><td>'+(escHtml(g.fi)||'&mdash;')+'</td>'+
       '<td class="num">'+st.count+'</td><td class="num">'+qB+'</td>'+
       '<td class="num">'+fmt(g.loan)+'</td><td class="num">'+fmt(st.totRep)+'</td><td class="num">'+fmt(st.out)+'</td>'+
       '<td>'+statusBadge(loanStatus(g),g)+'</td>'+
@@ -3802,9 +4355,9 @@ function renderPendingQueue(pending, rejected){
         var flagHtml=flags.length?'<div style="font-size:12px;color:var(--amber);margin-top:.35rem">&#9888; '+flags.join(' &middot; ')+'</div>':'';
         return '<div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:.75rem 1rem;margin-top:.6rem">'+
           '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">'+
-            '<div><div style="font-weight:700">'+g.name+' <span class="fi-pill">'+g.cmgNumber+'</span></div>'+
-              '<div style="font-size:12px;color:var(--muted);margin-top:.2rem">'+(g.ward||'&mdash;')+(g.village?' / '+g.village:'')+' &middot; '+g.members+' members &middot; quorum '+g.quorum+'%</div>'+
-              '<div style="font-size:12px;color:var(--muted)">Chair: '+g.chair+' ('+(g.phone||'&mdash;')+') &middot; Treasurer: '+(g.treasurer||'&mdash;')+'</div>'+
+            '<div><div style="font-weight:700">'+escHtml(g.name)+' <span class="fi-pill">'+g.cmgNumber+'</span></div>'+
+              '<div style="font-size:12px;color:var(--muted);margin-top:.2rem">'+(escHtml(g.ward)||'&mdash;')+(g.village?' / '+escHtml(g.village):'')+' &middot; '+g.members+' members &middot; quorum '+g.quorum+'%</div>'+
+              '<div style="font-size:12px;color:var(--muted)">Chair: '+escHtml(g.chair)+' ('+(escHtml(g.phone)||'&mdash;')+') &middot; Treasurer: '+(escHtml(g.treasurer)||'&mdash;')+'</div>'+
               flagHtml+'</div>'+
             '<div style="display:flex;gap:6px;flex-shrink:0">'+
               '<button class="btn btn-sm btn-primary" data-approve="'+g.cmgNumber+'">Approve</button>'+
@@ -3826,7 +4379,7 @@ function renderPendingQueue(pending, rejected){
   if(rejected.length){
     html+='<div class="card" style="margin-bottom:1rem"><div class="card-title" style="color:var(--muted)">Rejected ('+rejected.length+')</div>'+
       rejected.map(function(g){
-        return '<div style="font-size:13px;padding:.4rem 0;border-bottom:1px solid var(--gray100)"><strong>'+g.name+'</strong> <span class="fi-pill">'+g.cmgNumber+'</span> &mdash; <span style="color:var(--red)">'+(g.rejectionReason||'no reason recorded')+'</span></div>';
+        return '<div style="font-size:13px;padding:.4rem 0;border-bottom:1px solid var(--gray100)"><strong>'+escHtml(g.name)+'</strong> <span class="fi-pill">'+g.cmgNumber+'</span> &mdash; <span style="color:var(--red)">'+(escHtml(g.rejectionReason)||'no reason recorded')+'</span></div>';
       }).join('')+'</div>';
   }
   box.innerHTML=html;
@@ -3876,16 +4429,16 @@ function obsDetail(gid){
       '<div class="mtg-item"><span>Member repayments collected</span><strong>'+fmt(m.memrepay)+'</strong></div>'+
       '<div class="mtg-item"><span>Loans disbursed to members</span><strong>'+fmt(m.disbursed)+'</strong></div>'+
       (g.loan>0?'<div class="mtg-item"><span>Remitted to lender</span><strong>'+fmt(m.repaid)+'</strong></div>':'')+
-      '</div>'+(m.notes?'<div style="margin-top:.75rem;font-size:13px;color:var(--muted);border-top:1px solid var(--border);padding-top:.75rem">'+m.notes+'</div>':'')+
+      '</div>'+(m.notes?'<div style="margin-top:.75rem;font-size:13px;color:var(--muted);border-top:1px solid var(--border);padding-top:.75rem">'+escHtml(m.notes)+'</div>':'')+
       '</div>';
   }).join(''):'<div class="empty-state">No meetings logged yet.</div>';
   // Only TAMISEMI-authorised institutions are assignable. If this group is already
   // attached to one that has since been suspended or withdrawn, show it as a
   // disabled selected option so the current partner stays visible but unpickable.
-  var fiOpts = FI_LIST.map(function(n){ return '<option'+(g.fi===n?' selected':'')+'>'+n+'</option>'; }).join('');
+  var fiOpts = FI_LIST.map(function(n){ return '<option'+(g.fi===n?' selected':'')+'>'+escHtml(n)+'</option>'; }).join('');
   if(g.fi && FI_LIST.indexOf(g.fi)===-1){
-    var st=fiStatusOf(g.fi);
-    fiOpts='<option selected disabled>'+g.fi+' ('+(st==='SUSPENDED'?'suspended':'not authorised')+')</option>'+fiOpts;
+    var fiSt=fiStatusOf(g.fi);
+    fiOpts='<option selected disabled>'+escHtml(g.fi)+' ('+(fiSt==='SUSPENDED'?'suspended':'not authorised')+')</option>'+fiOpts;
   }
   // FI is locked (cannot be changed) once an issued loan is active (not written off, not fully repaid).
   var loanActive = (g.loan>0) && !g.writtenOff && (st.totRep < (g.totaldue||0));
@@ -3894,19 +4447,19 @@ function obsDetail(gid){
   if(fiLocked){
     fiSection =
       '<div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
-        '<span class="fi-pill">'+g.fi+'</span>'+
+        '<span class="fi-pill">'+escHtml(g.fi)+'</span>'+
         '<span style="font-size:11px;color:var(--muted)" title="Partner FI is fixed while a loan is active">&#128274; FI locked &mdash; active loan</span>'+
       '</div>';
   } else {
     fiSection =
       '<div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
-        (g.fi?'<span class="fi-pill">'+g.fi+'</span>':'<span style="font-size:12px;color:var(--muted)">No partner FI assigned</span>')+
+        (g.fi?'<span class="fi-pill">'+escHtml(g.fi)+'</span>':'<span style="font-size:12px;color:var(--muted)">No partner FI assigned</span>')+
         '<button class="btn btn-sm" id="fi-assign-toggle">'+(g.fi?'Change FI':'Assign FI')+'</button>'+
       '</div>'+
       '<div id="fi-assign-form" style="display:none;margin-top:8px;padding:.75rem;border:1px solid var(--border);border-radius:var(--radius);background:var(--gray50)">'+
         '<div class="row2">'+
           '<div class="field"><label>Partner FI</label><select id="fi-assign-select"><option value="">&#8212; Select &#8212;</option>'+fiOpts+'</select></div>'+
-          '<div class="field"><label>Branch (optional)</label><input type="text" id="fi-assign-branch" value="'+(g.branch||'')+'"></div>'+
+          '<div class="field"><label>Branch (optional)</label><input type="text" id="fi-assign-branch" value="'+escHtml(g.branch||'')+'"></div>'+
         '</div>'+
         '<p id="fi-assign-err" style="color:var(--red);font-size:12px;display:none;margin-bottom:.4rem"></p>'+
         '<div style="display:flex;gap:8px"><button class="btn btn-sm" id="fi-assign-cancel">Cancel</button><button class="btn btn-sm btn-primary" id="fi-assign-save">Save FI</button></div>'+
@@ -3915,10 +4468,10 @@ function obsDetail(gid){
   document.getElementById('obs-detail-content').innerHTML=
     '<div class="card">'+
     '<div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:1rem">'+
-    '<div><div style="font-size:17px;font-weight:700;color:var(--green-dark)">'+g.name+'</div>'+
-    '<div style="font-size:12px;color:var(--muted);margin-top:3px">'+(g.cmgNumber||g.id)+' &middot; '+(g.ward||'&mdash;')+(g.village?' / '+g.village:'')+' &middot; '+(g.district||'')+'</div>'+
+    '<div><div style="font-size:17px;font-weight:700;color:var(--green-dark)">'+escHtml(g.name)+'</div>'+
+    '<div style="font-size:12px;color:var(--muted);margin-top:3px">'+(g.cmgNumber||g.id)+' &middot; '+(escHtml(g.ward)||'&mdash;')+(g.village?' / '+escHtml(g.village):'')+' &middot; '+escHtml(g.district||'')+'</div>'+
     fiSection+'</div>'+
-    '<div style="text-align:right;font-size:12px;color:var(--muted)">'+g.members+' members &middot; '+(g.freq||'Monthly')+'<br>Quorum: '+(g.quorum||80)+'% ('+st.thresh+')<br>Chair: '+g.chair+'</div></div>'+
+    '<div style="text-align:right;font-size:12px;color:var(--muted)">'+g.members+' members &middot; '+escHtml(g.freq||'Monthly')+'<br>Quorum: '+(g.quorum||80)+'% ('+st.thresh+')<br>Chair: '+escHtml(g.chair)+'</div></div>'+
     '<hr style="border:none;border-top:1px solid var(--border);margin:1rem 0">'+
     '<div class="stat-grid">'+
     '<div class="stat"><div class="stat-label">Loan amount</div><div class="stat-val">'+fmt(g.loan)+'</div></div>'+
@@ -3984,7 +4537,7 @@ function showLgaReg(){
 function showLgaRegResult(d){
   document.getElementById('obs-reg-form').style.display='none';
   var warns=(d.warnings||[]);
-  var warnHtml=warns.length?('<div class="alert alert-warn" style="margin-top:.75rem">'+warns.map(function(w){ return '&#9888; '+w.message; }).join('<br>')+'</div>'):'';
+  var warnHtml=warns.length?('<div class="alert alert-warn" style="margin-top:.75rem">'+warns.map(function(w){ return '&#9888; '+escHtml(w.message); }).join('<br>')+'</div>'):'';
   var box=document.getElementById('obs-reg-result'); box.style.display='block';
   box.innerHTML='<div class="alert-ok" style="margin-bottom:1rem">&#10003; CMG registered</div>'+
     '<div class="card"><div style="font-size:13px;color:var(--muted)">New CMG ID</div>'+
@@ -4118,10 +4671,10 @@ function showBulkReject(headline, notes, rows){
   document.getElementById('obs-bulk-err').style.display='none';
   document.getElementById('obs-bulk-result').innerHTML=
     '<div class="card" style="margin-top:1rem"><div class="card-title" style="color:var(--red)">Upload rejected</div>'+
-    '<div style="font-size:13px;font-weight:600;margin-bottom:.35rem">'+headline+'</div>'+
+    '<div style="font-size:13px;font-weight:600;margin-bottom:.35rem">'+escHtml(headline)+'</div>'+
     notes.map(function(n){ return '<div style="font-size:13px;color:var(--muted);margin-bottom:.5rem">'+n+'</div>'; }).join('')+
     (rows.length?('<div style="max-height:260px;overflow:auto;border-top:1px solid var(--border);margin-top:.5rem">'+
-      rows.map(function(t){ return '<div style="font-size:13px;padding:.3rem 0;border-bottom:1px solid var(--gray100);color:var(--red)">'+t+'</div>'; }).join('')+
+      rows.map(function(t){ return '<div style="font-size:13px;padding:.3rem 0;border-bottom:1px solid var(--gray100);color:var(--red)">'+escHtml(t)+'</div>'; }).join('')+
     '</div>'):'')+
     '<button class="btn btn-full" id="obs-bulk-reject-back" style="margin-top:.75rem">Back</button></div>';
   document.getElementById('obs-bulk-reject-back').addEventListener('click', showNewChoice);
@@ -4137,15 +4690,15 @@ function renderBulkResults(totalParsed, validRows, clientErrors, server){
   if(okList.length){
     html+='<div style="font-size:12px;font-weight:700;color:var(--green-dark);margin:.5rem 0 .25rem">Registered (Pending verification)</div>'+
       okList.map(function(res){
-        var warn=(res.warnings&&res.warnings.length)?(' <span style="color:var(--amber)">&#9888; '+res.warnings.map(function(w){ return w.message; }).join('; ')+'</span>'):'';
+        var warn=(res.warnings&&res.warnings.length)?(' <span style="color:var(--amber)">&#9888; '+res.warnings.map(function(w){ return escHtml(w.message); }).join('; ')+'</span>'):'';
         return '<div style="font-size:13px;padding:.3rem 0;border-bottom:1px solid var(--gray100)"><span class="fi-pill">'+res.cmg_id+'</span> '+nameByServerRow(res)+warn+'</div>';
       }).join('');
   }
-  var allErrors=clientErrors.map(function(e){ return e.label+' &mdash; '+e.error; })
-    .concat((server.errors||[]).map(function(e){ var vr=validRows[e.row-1]; return (vr?vr.name:('row '+e.row))+' &mdash; '+e.error; }));
+  var allErrors=clientErrors.map(function(e){ return e.label+' — '+e.error; })
+    .concat((server.errors||[]).map(function(e){ var vr=validRows[e.row-1]; return (vr?vr.name:('row '+e.row))+' — '+e.error; }));
   if(allErrors.length){
     html+='<div style="font-size:12px;font-weight:700;color:var(--red);margin:.6rem 0 .25rem">Not registered</div>'+
-      allErrors.map(function(t){ return '<div style="font-size:13px;padding:.3rem 0;border-bottom:1px solid var(--gray100);color:var(--red)">'+t+'</div>'; }).join('');
+      allErrors.map(function(t){ return '<div style="font-size:13px;padding:.3rem 0;border-bottom:1px solid var(--gray100);color:var(--red)">'+escHtml(t)+'</div>'; }).join('');
   }
   html+='<button class="btn btn-primary btn-full" id="obs-bulk-done" style="margin-top:.75rem">Back to groups</button></div>';
   box.innerHTML=html;
@@ -4190,6 +4743,9 @@ document.getElementById('lreg-submit').addEventListener('click', async function(
 // For LGA/TAMISEMI: go to step 3 (scope) so officer doesn't have to re-verify
 // For Chair/FI: go to step 2 (identity)
 function goBackToIdentity(){
+  // Read the lender off the session before it is dropped — the FI branch below
+  // needs it, and the institution dropdown is only filled on the manual path.
+  var sessionFi=SESSION?SESSION.fi:null;
   SESSION=null;
   document.getElementById('app-shell').style.display='none';
   document.getElementById('login-screen').style.display='flex';
@@ -4223,7 +4779,7 @@ function goBackToIdentity(){
     document.getElementById('fi-scope').style.display='block';
     document.getElementById('lga-scope').style.display='none';
     document.getElementById('tamisemi-scope').style.display='none';
-    var fiName=SESSION?SESSION.fi:document.getElementById('fi-institution').value;
+    var fiName=sessionFi||document.getElementById('fi-institution').value;
     document.getElementById('fi-scope-title').textContent=(fiName||'FI')+' — Select scope';
     var fiGroups=(db().groups||[]).filter(function(g){ return g.fi===fiName; });
     var fiRegions=[]; fiGroups.forEach(function(g){ if(g.region&&fiRegions.indexOf(g.region)===-1) fiRegions.push(g.region); }); fiRegions.sort();
@@ -4289,12 +4845,13 @@ function kvRows(pairs){
   }).join('')+'</div>';
 }
 
-function statusMiniBar(counts){
+function statusMiniBar(counts, view){
+  var order=(view&&view.order)||STATUS_ORDER, labels=view&&view.labels;
   var html='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">';
-  STATUS_ORDER.forEach(function(s){
+  order.forEach(function(s){
     if(!counts[s]) return;
     var c=STATUS_CFG[s];
-    html+='<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:'+c.bg+';color:'+c.color+';border:1px solid '+c.border+'">'+c.label+': '+counts[s]+'</span>';
+    html+='<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:'+c.bg+';color:'+c.color+';border:1px solid '+c.border+'">'+statusLabelOf(s,labels)+': '+counts[s]+'</span>';
   });
   html+='</div>';
   return html;
@@ -4310,7 +4867,7 @@ function aggStatsCardHtml(groups, fiLabel, inner){
   var titleLabel=fiLabel?('Portfolio — '+fiLabel):'Overall summary';
   var html='';
   html+='<div class="card">'+
-    '<div class="card-title">'+titleLabel+'</div>'+
+    '<div class="card-title">'+escHtml(titleLabel)+'</div>'+
     '<div class="stat-grid">'+
     '<div class="stat"><div class="stat-label">Total CMGs</div><div class="stat-val">'+overall.counts.total+'</div></div>'+
     '<div class="stat"><div class="stat-label">Total loan portfolio</div><div class="stat-val">'+fmtS(overall.totLoan)+'</div></div>'+
@@ -4332,7 +4889,11 @@ function aggStatusCardHtml(groups, rowsLayout){
   return '<div class="card" style="margin-bottom:1rem"><div class="card-title">Loan status breakdown</div>'+
     statusCountBar(groups, rowsLayout)+'</div>';
 }
-function aggTreeHtml(groups, showWards, rowsLayout){
+function fiStatusCardHtml(groups, rowsLayout){
+  return '<div class="card" style="margin-bottom:1rem"><div class="card-title">Loan status breakdown</div>'+
+    statusCountBar(groups, rowsLayout, true, false, STATUS_VIEW_FI)+'</div>';
+}
+function aggTreeHtml(groups, showWards, rowsLayout, view){
   var html='';
   // Build Region → District → Ward tree
   var tree={};
@@ -4349,25 +4910,25 @@ function aggTreeHtml(groups, showWards, rowsLayout){
     var rAgg=aggStats(rGroups);
     html+='<div class="card" style="margin-bottom:1rem">'+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">'+
-      '<div><span style="font-size:15px;font-weight:700;color:var(--green-dark)">&#127757; '+region+'</span>'+
+      '<div><span style="font-size:15px;font-weight:700;color:var(--green-dark)">&#127757; '+escHtml(region)+'</span>'+
       '<span style="font-size:13px;color:var(--muted);margin-left:8px">'+rGroups.length+' CMG'+(rGroups.length!==1?'s':'')+'</span></div>'+
       '<div style="text-align:right;font-size:12px;color:var(--muted)">'+
       'Loan: <strong>'+fmtS(rAgg.totLoan)+'</strong> &middot; Active loans: <strong>'+rAgg.activeLoans+'</strong> &middot; Repaid: <strong style="color:#15803d">'+fmtS(rAgg.totRep)+'</strong> &middot; Outstanding: <strong style="color:#b45309">'+fmtS(rAgg.totOut)+'</strong>'+
       '</div></div>'+
-      statusMiniBar(rAgg.counts);
+      statusMiniBar(rAgg.counts, view);
 
     Object.keys(tree[region]).sort().forEach(function(district){
       var dcGroups=groups.filter(function(g){ return g.region===region&&g.district===district; });
       var dcAgg=aggStats(dcGroups);
       html+='<div style="margin-left:1rem;margin-top:.875rem;padding:.875rem;background:var(--gray50);border:1px solid var(--border);border-radius:var(--radius)">'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">'+
-        '<div><span style="font-size:14px;font-weight:700;color:var(--text)">&#127968; '+district+'</span>'+
+        '<div><span style="font-size:14px;font-weight:700;color:var(--text)">&#127968; '+escHtml(district)+'</span>'+
         '<span style="font-size:12px;color:var(--muted);margin-left:8px">'+dcGroups.length+' CMG'+(dcGroups.length!==1?'s':'')+'</span></div>'+
         (rowsLayout?'':'<div style="text-align:right;font-size:12px;color:var(--muted)">'+
         'Loan: <strong>'+fmtS(dcAgg.totLoan)+'</strong> &middot; Active loans: <strong>'+dcAgg.activeLoans+'</strong> &middot; Repaid: <strong style="color:#15803d">'+fmtS(dcAgg.totRep)+'</strong> &middot; Outstanding: <strong style="color:#b45309">'+fmtS(dcAgg.totOut)+'</strong>'+
         '</div>')+'</div>'+
         (rowsLayout?kvRows([['Loan',fmtS(dcAgg.totLoan)],['Active loans',String(dcAgg.activeLoans)],['Repaid',fmtS(dcAgg.totRep),'good'],['Outstanding',fmtS(dcAgg.totOut),'warn']]):'')+
-        statusMiniBar(dcAgg.counts);
+        statusMiniBar(dcAgg.counts, view);
 
       // Ward table: only when a specific district is in scope
       if(showWards){
@@ -4380,7 +4941,7 @@ function aggTreeHtml(groups, showWards, rowsLayout){
           var wGroups=tree[region][district][ward];
           var wAgg=aggStats(wGroups);
           html+='<tr>'+
-            '<td><strong>'+ward+'</strong></td>'+
+            '<td><strong>'+escHtml(ward)+'</strong></td>'+
             '<td class="num">'+wGroups.length+'</td>'+
             '<td class="num">'+fmtS(wAgg.totLoan)+'</td>'+
             '<td class="num" style="color:#15803d">'+fmtS(wAgg.totRep)+'</td>'+
@@ -4485,7 +5046,7 @@ async function renderFiAuthPanel(){
     html+='<div data-fi-row="'+i+'" style="display:flex;align-items:center;justify-content:space-between;gap:12px;'+
       'padding:.6rem 0;border-top:1px solid var(--border);cursor:pointer">'+
       '<div style="min-width:0">'+
-        '<div style="font-size:14px;font-weight:600">'+f.name+'</div>'+
+        '<div style="font-size:14px;font-weight:600">'+escHtml(f.name)+'</div>'+
         '<div style="font-size:12px;color:var(--muted);margin-top:2px">'+fiStatusChip(f.status)+
           '<span style="margin-left:8px">'+(n?(n+' CMG'+(n!==1?'s':'')):'No CMGs')+'</span></div>'+
       '</div>'+
@@ -4517,14 +5078,14 @@ async function renderFiDetail(name){
     return d.toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}); };
 
   var rows=[['Status', fiStatusChip(f.status)],
-            ['Lender login', f.login_email || '<span style="color:var(--muted)">not yet provisioned</span>'],
+            ['Lender login', escHtml(f.login_email) || '<span style="color:var(--muted)">not yet provisioned</span>'],
             ['CMGs assigned', String(gs.length)],
             ['Authorised', fmtDate(f.authorised_at)]];
   if(f.status==='SUSPENDED') rows.push(['Suspended', fmtDate(f.suspended_at)]);
 
   var html='<div class="card">'+
     '<button class="btn btn-sm" id="fi-detail-back" style="margin-bottom:.75rem">&#8592; All lenders</button>'+
-    '<div class="card-title">'+f.name+'</div>'+
+    '<div class="card-title">'+escHtml(f.name)+'</div>'+
     '<div class="status-rows" style="margin-top:.25rem">'+
       rows.map(function(p){ return '<div class="status-row">'+
         '<span style="font-size:12px;font-weight:600;color:var(--muted)">'+p[0]+'</span>'+
@@ -4534,8 +5095,8 @@ async function renderFiDetail(name){
   if(gs.length){
     html+='<div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:1rem 0 .35rem">CMGs funded</div>'+
       gs.map(function(g){ return '<div style="font-size:13px;padding:.3rem 0;border-bottom:1px solid var(--gray100)">'+
-        '<span class="fi-pill">'+g.cmgNumber+'</span> '+g.name+
-        '<span style="color:var(--muted)"> &middot; '+(g.ward||'—')+', '+(g.district||'—')+'</span></div>'; }).join('');
+        '<span class="fi-pill">'+g.cmgNumber+'</span> '+escHtml(g.name)+
+        '<span style="color:var(--muted)"> &middot; '+(escHtml(g.ward)||'—')+', '+(escHtml(g.district)||'—')+'</span></div>'; }).join('');
   }
 
   if(log.length){
@@ -4545,7 +5106,7 @@ async function renderFiDetail(name){
           '<strong>'+(FI_STATUS_CFG[e.to_status]||{label:e.to_status}).label+'</strong>'+
           '<span style="color:var(--muted)"> &middot; '+fmtDate(e.at)+
           (e.actor_officer_id?(' &middot; '+e.actor_officer_id):'')+'</span>'+
-          (e.note?('<div style="color:var(--muted);font-size:12px;margin-top:2px">“'+e.note+'”</div>'):'')+
+          (e.note?('<div style="color:var(--muted);font-size:12px;margin-top:2px">“'+escHtml(e.note)+'”</div>'):'')+
         '</div>'; }).join('');
   }
 
@@ -4644,9 +5205,9 @@ function renderAdminOfficers(){
   // the same district name under two regions stays distinguishable.
   var districtOpts='';
   Object.keys(H).sort().forEach(function(r){
-    districtOpts+='<optgroup label="'+r+'">';
+    districtOpts+='<optgroup label="'+escHtml(r)+'">';
     Object.keys(H[r]).sort().forEach(function(d){
-      districtOpts+='<option value="'+d+'" data-region="'+r+'">'+d+'</option>';
+      districtOpts+='<option value="'+escHtml(d)+'" data-region="'+escHtml(r)+'">'+escHtml(d)+'</option>';
     });
     districtOpts+='</optgroup>';
   });
@@ -4739,7 +5300,7 @@ function renderAdminSuspended(){
   var html='';
   susp.forEach(function(f){
     var gs=groups.filter(function(g){ return g.fi===f.name; });
-    html+='<div class="card"><div class="card-title">'+f.name+' '+fiStatusChip('SUSPENDED')+'</div>'+
+    html+='<div class="card"><div class="card-title">'+escHtml(f.name)+' '+fiStatusChip('SUSPENDED')+'</div>'+
       '<div style="font-size:13px;color:var(--muted);margin-bottom:.75rem">'+
       'This lender can no longer sign in. Its portfolio is shown here for administrative oversight only.</div>'+
       '<div id="adm-fi-'+gs.length+'-'+f.name.replace(/[^a-z0-9]/gi,'')+'"></div></div>';
@@ -4821,36 +5382,259 @@ window.addEventListener('DOMContentLoaded', function(){
     }
   };
 
-  let lang = localStorage.getItem('pamoja_lang') || 'en';
+  /* ── Chairperson entry screens (meeting log · loan application · registration) ──
+     Added 2 Sep 2026 with the chair-screens integration. Kiswahili comes from
+     android/Eng_Sw_Chair_prompts_translation.xlsx via chair-screens/index.html:
+       reviewed  — accepted by the native-speaker review (or the reviewer's own replacement)
+       PROPOSAL  — reviewer rejected the original without a replacement; working proposal
+       unreviewed — interface chrome, helper lines, notes; never in the review sheet
+     Keys: wz.* shared chrome · mt.* meeting log · la.* loan · reg.* registration. */
+  Object.assign(I18N.en, {
+    'wz.step':'Step {n} of {t}', 'wz.last':'Last step', 'wz.next':'Next →', 'wz.review':'Review →',
+    'wz.back':'← Back', 'wz.cancel':'Cancel', 'wz.change':'Change', 'wz.select':'— Select —',
+    'wz.check.help':'Read it back. Change anything that is wrong.',
+    'mt.amend':'✎ Amend mode — editing a saved record. All changes will be logged with a timestamp.',
+    'mt.date.ask':'When was the meeting?', 'mt.date.today':'Today', 'mt.date.yest':'Yesterday',
+    'mt.date.other':'Another day', 'mt.date.other.sub':'Choose from a calendar', 'mt.date.label':'Meeting date',
+    'mt.changed.ask':'Has anyone joined or left the group since the last meeting?',
+    'mt.changed.help':'The group has {n} members on record.',
+    'mt.changed.yes':'Yes, the number changed', 'mt.changed.no':'No, still {n}',
+    'mt.members.ask':'How many members are there now?',
+    'mt.members.help':'This becomes the group\'s new total: minimum 5, maximum 30.',
+    'mt.members.range':'Enter a number between 5 and 30.',
+    'mt.members.new':'✓ New total: {n} members.', 'mt.members.new.was':'✓ New total: {n} members (was {was}).',
+    'mt.present.ask':'How many members attended?',
+    'mt.present.help':'Count everyone who attended. The group has {n} members.',
+    'mt.present.max':'Cannot be more than the {n} members on record.',
+    'mt.quorum.ok':'✓ Quorum met — {n} of {m} present, {t} needed.',
+    'mt.quorum.fail':'✗ Below quorum — {n} of {m} present, {t} needed. The meeting can still be recorded, but the group cannot take a loan decision at it.',
+    'mt.savings.ask':'How much was saved at this meeting?',
+    'mt.savings.help':'Total shares bought by members (TZS). Enter 0 if none.',
+    'mt.memrepay.ask':'How much did members repay into the group?',
+    'mt.memrepay.help':'Total loan repayments collected from members (TZS). Enter 0 if none.',
+    'mt.disbursed.ask':'How much did the group lend out to members?',
+    'mt.disbursed.help':'Total loans disbursed to members (TZS). Enter 0 if the group lent nothing.',
+    'mt.remit.ask':'Did the group repay a loan instalment in this meeting?',
+    'mt.remit.help':'The instalment is {amt} a month.',
+    'mt.remit.yes':'Yes, we paid', 'mt.remit.no':'No, not this time',
+    'mt.remittype.ask':'How much was paid to the lender?',
+    'mt.remittype.full':'The full instalment', 'mt.remittype.part':'Only part of it',
+    'mt.remittype.part.sub':'Enter the amount next',
+    'mt.remittype.fullinfo':'✓ Full monthly instalment: {amt} will be recorded.',
+    'mt.remitamount.ask':'How much was paid?',
+    'mt.remitamount.help':'Less than the full instalment of {amt} (TZS).',
+    'mt.notes.ask':'Anything else to note from this meeting?', 'mt.notes.help':'Optional.',
+    'mt.notes.ph':'e.g. Two members asked to increase their shares.',
+    'mt.check.title':'Check before saving', 'mt.save':'Save meeting record',
+    'mt.check.ok':'✓ This meeting met quorum — {n} of {m} present. A loan decision could be taken at it.',
+    'mt.check.fail':'⚠ This meeting was below quorum — {n} of {m} present, {t} needed. It will be recorded, but a loan decision cannot be taken at it.',
+    'mt.row.changed':'Has anyone joined or left?', 'mt.row.savings':'Saved at this meeting',
+    'mt.row.memrepay':'Repaid by members into the group', 'mt.row.disbursed':'Lent out to members',
+    'mt.row.remit':'Repaid a loan instalment?', 'mt.row.paid':'Paid to the lender',
+    'mt.row.paid.full':'The full instalment ({amt})', 'mt.row.paid.part':'{amt} (part)', 'mt.row.notes':'Notes',
+    'la.heading':'Apply for a loan', 'la.heading.new':'Apply for a new loan',
+    'la.savings.ask':'In this cycle, how much has the group saved altogether?',
+    'la.savings.help':'Everything the group holds (TZS) — not just this meeting.',
+    'la.years.ask':'How many years has the group been saving together?',
+    'la.years.help':'Maximum 10 years.', 'la.years.max':'Cannot be more than 10 years.',
+    'la.amount.ask':'How much does the group want to borrow?',
+    'la.amount.help':'This application goes to {fi}, the group\'s assigned lender (TZS).',
+    'la.amount.verdict':'✓ That is about {x} times what the group has saved.',
+    'la.purpose.ask':'What will the borrowed funds be used for?', 'la.purpose.help':'A few words is enough.',
+    'la.purpose.ph':'e.g. Seed, fertiliser and a shared maize sheller',
+    'la.check.title':'Check before sending',
+    'la.note.head':'Sent with this application, from the group\'s own record:',
+    'la.note.members':'{n} members', 'la.note.meetings':'{n} meetings logged', 'la.note.quorum':'quorum met at {n} of them',
+    'la.note.prior.none':'no earlier loan', 'la.note.prior.one':'one earlier loan, {amt}, {status}',
+    'la.note.tail':'The lender reads this, not just the answers above.',
+    'la.row.savings':'Saved altogether this cycle', 'la.row.years':'Years saving together',
+    'la.row.amount':'Wants to borrow', 'la.row.purpose':'For',
+    'la.send':'Send this application', 'la.sending':'Sending…',
+    'reg.title':'Register a new CMG',
+    'reg.intro':'Answer a few questions about the group. You get a CMG ID straight away and can log in with it to check status. The application goes to the LGA officer for verification.',
+    'reg.backlogin':'← Back to login', 'reg.register':'Register the group', 'reg.registering':'Registering…',
+    'reg.name.ask':'What is the group called?', 'reg.name.help':'Type the group\'s name.', 'reg.name.ph':'e.g. Tumaini Wanawake Kisongo',
+    'reg.region.ask':'Which region is the group in?', 'reg.region.help':'Pick from the list.',
+    'reg.district.ask':'Which district council?', 'reg.ward.ask':'Which ward?', 'reg.village.ask':'Which village?',
+    'reg.village.ph':'Select a ward first', 'reg.village.typed.ph':'No villages listed for {w} — type it in',
+    'reg.village.typed.note':'No villages are listed for {w}, so the name has to be typed. The council officer will check it when they verify the group.',
+    'reg.members.ask':'How many members does the group have?', 'reg.members.help':'Minimum 5, maximum 30.',
+    'reg.members.lt10':'⚠ Fewer than 10 members. The group can still register, but the council officer will check this when they verify it.',
+    'reg.members.gt25':'⚠ More than 25 members. The officer will check this too.', 'reg.members.ok':'✓ {n} members.',
+    'reg.quorum.ask':'What share of members must attend for a decision?',
+    'reg.quorum.help':'Most groups use 80%. Change it only if yours is different.',
+    'reg.quorum.range':'Must be between 1 and 100.', 'reg.quorum.ok':'✓ {t} of {n} members must attend for a decision.',
+    'reg.freq.ask':'How often does the group meet?', 'freq.weekly':'Weekly', 'freq.fortnightly':'Fortnightly', 'freq.monthly':'Monthly',
+    'reg.chair.ask':'What is the chairperson\'s name?', 'reg.chair.ph':'e.g. Neema Elias Mollel',
+    'reg.chairphone.ask':'What is the chairperson\'s phone number?', 'reg.phone.help':'Ten digits, starting 0.',
+    'reg.phone.bad':'Enter 10 digits starting with 0, e.g. 0712345678.',
+    'reg.treasurer.ask':'What is the treasurer\'s name?', 'reg.treasurer.ph':'e.g. Sikitu Joseph Laizer',
+    'reg.treasurerphone.ask':'What is the treasurer\'s phone number?', 'reg.treasurerphone.help':'You can leave this out.',
+    'reg.check.title':'Check before registering',
+    'reg.check.note':'<b>Nothing is checked yet.</b> Registering creates the group and gives it an ID straight away — an officer at {d} then verifies it before it can borrow.',
+    'reg.row.name':'Group name', 'reg.row.region':'Region', 'reg.row.district':'District council', 'reg.row.ward':'Ward',
+    'reg.row.village':'Village', 'reg.row.typed':'(typed)', 'reg.row.members':'Members',
+    'reg.row.quorum':'Share of members needed for a decision', 'reg.row.freq':'Meets', 'reg.row.chair':'Chairperson',
+    'reg.row.chairphone':'Chairperson phone', 'reg.row.treasurer':'Treasurer', 'reg.row.treasurerphone':'Treasurer phone',
+    'reg.result.idlabel':'The group’s new ID',
+    'reg.result.write':'Write this down. The chairperson signs in with it from now on — there is no password.',
+    'reg.result.status':'Status: <strong>Pending LGA verification</strong>. An LGA officer will review and verify the group — log in any time with the ID to check.',
+    'reg.result.passed':'Passed on to the officer:',
+    'reg.result.typedvillage':'The village was typed rather than chosen from the official list.',
+    'reg.result.login':'Continue to login →',
+    'reg.dup.body':'Duplicate registrations aren’t allowed. If this is your group, log in with your existing CMG ID{id} to check its status.',
+    'reg.dup.login':'Log in with {id} →', 'reg.dup.edit':'← Edit details'
+  });
+  Object.assign(I18N.sw, {
+    /* chrome — unreviewed */
+    'wz.step':'Hatua {n} kati ya {t}', 'wz.last':'Hatua ya mwisho', 'wz.next':'Endelea →', 'wz.review':'Kagua →',
+    'wz.back':'← Rudi', 'wz.cancel':'Ghairi', 'wz.change':'Badilisha', 'wz.select':'— Chagua —',
+    'wz.check.help':'Soma tena. Badilisha lolote lisilo sahihi.',
+    'mt.amend':'✎ Hali ya kurekebisha — unahariri rekodi iliyohifadhiwa. Mabadiliko yote yatarekodiwa na muda.',   /* unreviewed */
+    'mt.date.ask':'Mkutano ulifanyika lini?',                                    /* reviewed */
+    'mt.date.today':'Leo', 'mt.date.yest':'Jana', 'mt.date.other':'Siku nyingine', 'mt.date.other.sub':'Chagua kwenye kalenda',
+    'mt.date.label':'Tarehe ya mkutano',
+    'mt.changed.ask':'Je, kuna mwanachama aliyejiunga au kuondoka tangu mkutano wa mwisho?',   /* PROPOSAL */
+    'mt.changed.help':'Kikundi kina wanachama {n} kwenye rekodi.',
+    'mt.changed.yes':'Ndiyo, idadi imebadilika', 'mt.changed.no':'Hapana, bado {n}',
+    'mt.members.ask':'Kikundi kina wanachama wangapi?',                          /* reviewed */
+    'mt.members.help':'Hii inakuwa jumla mpya ya kikundi: kiwango cha chini 5, kiwango cha juu 30.',
+    'mt.members.range':'Andika idadi kati ya 5 na 30.',
+    'mt.members.new':'✓ Jumla mpya: wanachama {n}.', 'mt.members.new.was':'✓ Jumla mpya: wanachama {n} (awali {was}).',
+    'mt.present.ask':'Wanachama wangapi walihudhuria?',                          /* reviewed */
+    'mt.present.help':'Hesabu kila mtu aliyehudhuria. Kikundi kina wanachama {n}.',
+    'mt.present.max':'Haiwezi kuzidi wanachama {n} waliopo kwenye rekodi.',
+    'mt.quorum.ok':'✓ Idadi inayohitajika imetimia — {n} kati ya {m} wamehudhuria, wanaohitajika {t}.',
+    'mt.quorum.fail':'✗ Idadi haijatimia — {n} kati ya {m} wamehudhuria, wanaohitajika {t}. Mkutano bado unaweza kurekodiwa, lakini kikundi hakiwezi kufanya maamuzi kuhusu mkopo katika mkutano huu.',
+    'mt.savings.ask':'Jumla ya hisa zilizonunuliwa na wanakikundi ni kiasi gani?',   /* reviewed */
+    'mt.savings.help':'Jumla ya hisa zilizonunuliwa (TZS). Andika 0 ikiwa hakuna.',
+    'mt.memrepay.ask':'Jumla ya marejesho ya mikopo ni kiasi gani?',             /* reviewed */
+    'mt.memrepay.help':'Jumla ya marejesho ya mikopo kutoka kwa wanachama (TZS). Andika 0 ikiwa hakuna.',
+    'mt.disbursed.ask':'Jumla ya mikopo iliyotolewa ni kiasi gani?',             /* reviewed */
+    'mt.disbursed.help':'Jumla ya mikopo iliyotolewa kwa wanachama (TZS). Andika 0 ikiwa kikundi hakikutoa mkopo.',
+    'mt.remit.ask':'Je, kikundi kililipa awamu ya mkopo katika mkutano huu?',    /* drifted from review — see chair-screens/README.md §6 */
+    'mt.remit.help':'Awamu ni {amt} kwa mwezi.',
+    'mt.remit.yes':'Ndiyo, tulilipa', 'mt.remit.no':'Hapana, si mara hii',
+    'mt.remittype.ask':'Kiasi gani kililipwa benki?',                            /* reviewed */
+    'mt.remittype.full':'Awamu kamili', 'mt.remittype.part':'Sehemu tu', 'mt.remittype.part.sub':'Andika kiasi kifuatacho',
+    'mt.remittype.fullinfo':'✓ Awamu kamili ya mwezi: {amt} itarekodiwa.',
+    'mt.remitamount.ask':'Kiasi gani kililipwa?',                                /* unreviewed */
+    'mt.remitamount.help':'Chini ya awamu kamili ya {amt} (TZS).',
+    'mt.notes.ask':'Kuna jambo lingine la kuandika kutoka mkutano huu?',         /* unreviewed */
+    'mt.notes.help':'Si lazima.', 'mt.notes.ph':'mfano: Wanachama wawili wameomba kuongeza hisa zao.',
+    'mt.check.title':'Kagua kabla ya kuhifadhi', 'mt.save':'Hifadhi mkutano huu',
+    'mt.check.ok':'✓ Mkutano huu umetimiza idadi inayohitajika — {n} kati ya {m} wamehudhuria. Maamuzi kuhusu mkopo yanaweza kufanyika.',
+    'mt.check.fail':'⚠ Mkutano huu haujatimiza idadi inayohitajika — {n} kati ya {m} wamehudhuria, wanaohitajika {t}. Utarekodiwa, lakini maamuzi kuhusu mkopo hayawezi kufanyika.',
+    'mt.row.changed':'Kuna aliyejiunga au kuondoka?', 'mt.row.savings':'Hisa zilizonunuliwa',
+    'mt.row.memrepay':'Marejesho ya wanachama', 'mt.row.disbursed':'Mikopo iliyotolewa',
+    'mt.row.remit':'Awamu ya mkopo ililipwa?', 'mt.row.paid':'Kililipwa benki',
+    'mt.row.paid.full':'Awamu kamili ({amt})', 'mt.row.paid.part':'{amt} (sehemu)', 'mt.row.notes':'Maelezo',
+    'la.heading':'Omba mkopo', 'la.heading.new':'Omba mkopo mpya',
+    'la.savings.ask':'Katika mzunguko huu, kikundi kimeweka jumla kiasi gani kama akiba?',
+    'la.savings.help':'Kila kitu ambacho kikundi kinacho (TZS) — si mkutano huu tu.',
+    'la.years.ask':'Kikundi kimekuwa kikiweka akiba kwa miaka mingapi?',         /* reviewed */
+    'la.years.help':'Kiwango cha juu ni miaka 10.', 'la.years.max':'Haiwezi kuzidi miaka 10.',
+    'la.amount.ask':'Kikundi kinataka kukopa kiasi gani?',                       /* reviewed */
+    'la.amount.help':'Ombi hili linakwenda {fi}, mkopeshaji aliyeteuliwa wa kikundi (TZS).',
+    'la.amount.verdict':'✓ Ni takriban mara {x} ya akiba ya kikundi.',
+    'la.purpose.ask':'Fedha zitakazokopwa zitatumika kwa shughuli gani?',        /* reviewed */
+    'la.purpose.help':'Maneno machache yanatosha.',
+    'la.purpose.ph':'mfano: Mbegu, mbolea na mashine ya pamoja ya kukoboa mahindi',
+    'la.check.title':'Kagua kabla ya kutuma',
+    'la.note.head':'Yanayotumwa pamoja na ombi hili, kutoka rekodi ya kikundi:',
+    'la.note.members':'wanachama {n}', 'la.note.meetings':'mikutano {n} imerekodiwa', 'la.note.quorum':'idadi inayohitajika ilitimia katika {n}',
+    'la.note.prior.none':'hakuna mkopo wa awali', 'la.note.prior.one':'mkopo mmoja wa awali, {amt}, {status}',
+    'la.note.tail':'Mkopeshaji anasoma haya, si majibu tu hapo juu.',
+    'la.row.savings':'Akiba ya jumla mzunguko huu', 'la.row.years':'Miaka ya kuweka akiba pamoja',
+    'la.row.amount':'Kinataka kukopa', 'la.row.purpose':'Kwa ajili ya',
+    'la.send':'Tuma ombi hili', 'la.sending':'Inatuma…',
+    'reg.title':'Sajili Kikundi Kipya',
+    'reg.intro':'Jibu maswali machache kuhusu kikundi. Utapata namba ya kikundi mara moja na unaweza kuingia nayo kuangalia hali. Ombi linapelekwa kwa afisa wa halmashauri kwa uhakiki.',   /* unreviewed */
+    'reg.backlogin':'← Rudi kuingia', 'reg.register':'Sajili kikundi', 'reg.registering':'Inasajili…',
+    'reg.name.ask':'Kikundi kinaitwaje?',                                        /* reviewed */
+    'reg.name.help':'Andika jina la kikundi.', 'reg.name.ph':'mfano: Tumaini Wanawake Kisongo',
+    'reg.region.ask':'Kikundi kipo mkoa gani?', 'reg.region.help':'Chagua kwenye orodha.',   /* reviewed */
+    'reg.district.ask':'Halmashauri gani?', 'reg.ward.ask':'Kata gani?', 'reg.village.ask':'Kijiji gani?',   /* reviewed */
+    'reg.village.ph':'Chagua kata kwanza', 'reg.village.typed.ph':'Hakuna vijiji vilivyoorodheshwa kwa {w} — andika jina',
+    'reg.village.typed.note':'Hakuna vijiji vilivyoorodheshwa kwa {w}, kwa hiyo jina litaandikwa. Afisa wa halmashauri atalihakiki atakapohakiki kikundi.',
+    'reg.members.ask':'Kikundi kina wanachama wangapi?',                         /* reviewed */
+    'reg.members.help':'Kiwango cha chini 5, kiwango cha juu 30.',
+    'reg.members.lt10':'⚠ Chini ya wanachama 10. Kikundi bado kinaweza kusajiliwa, lakini afisa wa halmashauri atahakiki hili.',
+    'reg.members.gt25':'⚠ Zaidi ya wanachama 25. Afisa atahakiki hili pia.', 'reg.members.ok':'✓ Wanachama {n}.',
+    'reg.quorum.ask':'Ni asilimia ngapi ya wanachama wanatakiwa kuhudhuria ili kufanya maamuzi?',   /* PROPOSAL — "akidi" avoided */
+    'reg.quorum.help':'Vikundi vingi hutumia 80%. Badilisha tu kama kikundi chako ni tofauti.',
+    'reg.quorum.range':'Lazima iwe kati ya 1 na 100.', 'reg.quorum.ok':'✓ Wanachama {t} kati ya {n} lazima wahudhurie ili kufanya maamuzi.',
+    'reg.freq.ask':'Kikundi hukutana mara ngapi?',                               /* reviewed */
+    'freq.weekly':'Kila wiki', 'freq.fortnightly':'Kila wiki mbili', 'freq.monthly':'Kila mwezi',
+    'reg.chair.ask':'Jina la mwenyekiti ni nani?', 'reg.chair.ph':'mfano: Neema Elias Mollel',   /* reviewed */
+    'reg.chairphone.ask':'Taja namba ya simu ya mwenyekiti',                     /* reviewed replacement */
+    'reg.phone.help':'Tarakimu kumi, kuanzia na 0.', 'reg.phone.bad':'Andika tarakimu 10 kuanzia na 0, mfano 0712345678.',
+    'reg.treasurer.ask':'Jina la mhazini ni nani?', 'reg.treasurer.ph':'mfano: Sikitu Joseph Laizer',   /* reviewed */
+    'reg.treasurerphone.ask':'Taja namba ya simu ya mhazini',                    /* reviewed replacement */
+    'reg.treasurerphone.help':'Unaweza kuacha hii wazi.',
+    'reg.check.title':'Kagua kabla ya kusajili',
+    'reg.check.note':'<b>Bado hakuna kilichohakikiwa.</b> Ukisajili, kikundi kitapewa namba mara moja — kisha afisa wa {d} atahakiki kabla kikundi hakijaweza kukopa.',
+    'reg.row.name':'Jina la kikundi', 'reg.row.region':'Mkoa', 'reg.row.district':'Halmashauri', 'reg.row.ward':'Kata',
+    'reg.row.village':'Kijiji', 'reg.row.typed':'(imeandikwa)', 'reg.row.members':'Wanachama',
+    'reg.row.quorum':'Asilimia ya wanachama kwa maamuzi', 'reg.row.freq':'Hukutana', 'reg.row.chair':'Mwenyekiti',
+    'reg.row.chairphone':'Simu ya mwenyekiti', 'reg.row.treasurer':'Mhazini', 'reg.row.treasurerphone':'Simu ya mhazini',
+    'reg.result.idlabel':'Namba mpya ya kikundi',
+    'reg.result.write':'Andika namba hii. Mwenyekiti ataitumia kuingia kuanzia sasa — hakuna nenosiri.',
+    'reg.result.status':'Hali: <strong>Inasubiri uhakiki wa halmashauri</strong>. Afisa wa halmashauri atahakiki kikundi — ingia wakati wowote kwa namba hii kuangalia.',
+    'reg.result.passed':'Yanayopelekwa kwa afisa:',
+    'reg.result.typedvillage':'Jina la kijiji liliandikwa, halikuchaguliwa kwenye orodha rasmi.',
+    'reg.result.login':'Endelea kuingia →',
+    'reg.dup.body':'Usajili wa mara mbili hauruhusiwi. Kama hiki ni kikundi chako, ingia kwa namba yako ya kikundi iliyopo{id} kuangalia hali yake.',
+    'reg.dup.login':'Ingia kwa {id} →', 'reg.dup.edit':'← Badilisha taarifa'
+  });
+
+  let lang = (function(){
+    try { return localStorage.getItem('pamoja_lang') || 'en'; }
+    catch(e) { return 'en'; }
+  })();
 
   window.t = function(key){ return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; };
+  // t() with {name} placeholders filled in: tf('wz.step',{n:2,t:7})
+  window.tf = function(key, vars){ var s=window.t(key); Object.keys(vars||{}).forEach(function(k){ s=s.split('{'+k+'}').join(vars[k]); }); return s; };
+  window.i18nLang = function(){ return lang; };
 
+  var i18nCache = { els: null, phs: null };
   window.applyI18n = function(next){
-    if(next) lang = next;
-    localStorage.setItem('pamoja_lang', lang);
+    var switched = !!next && next!==lang;
+    if(next) { if(!['en', 'sw'].includes(next)) return; lang = next; }
+    try { localStorage.setItem('pamoja_lang', lang); }
+    catch(e) { /* localStorage unavailable; lang persists only for this session */ }
     document.documentElement.lang = lang;
-    document.querySelectorAll('[data-i18n]').forEach(function(el){
+    (i18nCache.els || (i18nCache.els = document.querySelectorAll('[data-i18n]'))).forEach(function(el){
       const v = window.t(el.getAttribute('data-i18n')); if(v) el.textContent = v;
     });
-    document.querySelectorAll('[data-i18n-ph]').forEach(function(el){
+    (i18nCache.phs || (i18nCache.phs = document.querySelectorAll('[data-i18n-ph]'))).forEach(function(el){
       const v = window.t(el.getAttribute('data-i18n-ph')); if(v) el.placeholder = v;
     });
-    // toggle button states
-    const en = document.getElementById('lang-en'), sw = document.getElementById('lang-sw');
-    if(en && sw){
-      [['en',en],['sw',sw]].forEach(function(p){
-        const on = p[0]===lang;
-        p[1].style.background = on ? 'var(--green)' : 'transparent';
-        p[1].style.color = on ? '#fff' : 'var(--muted)';
-        p[1].setAttribute('aria-pressed', on);
-      });
+    // toggle button states — update each independently so partial DOM doesn't break styling
+    if(cachedButtons){
+      function updateButtonState(btn, isActive, onDark){
+        if(!btn) return;
+        btn.style.background = isActive ? (onDark ? '#fff' : '#1a6b3c') : 'transparent';
+        btn.style.color = isActive ? (onDark ? '#134f2d' : '#fff') : (onDark ? 'rgba(255,255,255,.75)' : '#6b7280');
+        btn.setAttribute('aria-pressed', isActive);
+      }
+      updateButtonState(cachedButtons.en, 'en'===lang);
+      updateButtonState(cachedButtons.sw, 'sw'===lang);
+      updateButtonState(cachedButtons.enApp, 'en'===lang, true);
+      updateButtonState(cachedButtons.swApp, 'sw'===lang, true);
     }
+    // JS-rendered chairperson screens rebuild their current view in the new language
+    if(switched && window.onLangChange) window.onLangChange();
   };
 
+  var cachedButtons = null;
   function wire(){
-    const en = document.getElementById('lang-en'), sw = document.getElementById('lang-sw');
-    if(en) en.addEventListener('click', function(){ applyI18n('en'); });
-    if(sw) sw.addEventListener('click', function(){ applyI18n('sw'); });
+    var en = document.getElementById('lang-en'), sw = document.getElementById('lang-sw');
+    var enApp = document.getElementById('lang-en-app'), swApp = document.getElementById('lang-sw-app');
+    cachedButtons = { en: en, sw: sw, enApp: enApp, swApp: swApp };
+    [en, enApp].forEach(function(b){ if(b) b.addEventListener('click', function(){ applyI18n('en'); }); });
+    [sw, swApp].forEach(function(b){ if(b) b.addEventListener('click', function(){ applyI18n('sw'); }); });
     applyI18n();
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
@@ -5090,44 +5874,80 @@ async function seedMeeting(m){
   });
   await loadData();
 }
-async function wizardMeeting(m){
-  if(haveMeeting(m.date)) return;
+/* The meeting wizard is one or two questions per screen behind a single Next
+   button (wz-next), which stays disabled until the screen's answers pass — so
+   every screen is filled before it is advanced. `upTo` stops on a named screen
+   (the tour's spots) instead of saving. Screen keys: date · members · present ·
+   money · disbursed · remittype · remitamount · notes · check. */
+async function meetingDrive(m, upTo){
   await asChair("log");
   showWizardFresh();
   setVal("l-date", m.date);
+  click("tog-changed-no");                            /* membership unchanged */
+  if(upTo==="date") return;
+  click("wz-next");                                   /* → present */
   setVal("l-present", m.present);
-  click("log-next1");
-  setVal("l-savings", m.savings);
-  setVal("l-memrepay", m.memrepay);
+  if(upTo==="present") return;
+  click("wz-next");                                   /* → savings + repayments */
+  setVal("l-savings", m.savings); setVal("l-memrepay", m.memrepay);
+  click("wz-next");                                   /* → disbursed (+ instalment question with a loan) */
   setVal("l-disbursed", 0);
-  click("log-next2");                    /* saves here when there is no loan */
-  await tick();
-  if(document.getElementById("log-step3") &&
-     document.getElementById("log-step3").style.display!=="none"){
-    if(m.repaid){ click("tog-yes"); click("tog-full"); }
-    else click("tog-no");
-    click("log-save-btn");
+  var hasLoan=!!(getG() && getG().loan>0);
+  if(hasLoan) click(m.repaid ? "tog-yes" : "tog-no");
+  click("wz-next");                                   /* → remittype, or notes */
+  if(hasLoan && m.repaid){
+    click("tog-full");
+    if(upTo==="remittype") return;
+    click("wz-next");                                 /* → notes */
   }
+  click("wz-next");                                   /* → check */
+  if(upTo==="check") return;
+  click("wz-next");                                   /* save */
+}
+async function wizardMeeting(m){
+  if(haveMeeting(m.date)) return;
+  await meetingDrive(m);
   await until(function(){ return haveMeeting(m.date); });
 }
 
-async function doRegister(){
-  if(rawG()) return;
+/* Registration is seven screens behind rw-next, then a check screen; the same
+   Next button becomes "Register the group" there. Screen keys: name · place ·
+   ward · members · freq · chair · treasurer · check. */
+function regDrive(upTo){
   showLogin();
   showRegister();
   setVal("reg-name", D.name);
-  setVal("reg-chair", D.chair);
-  setVal("reg-chairphone", D.chairPhone);
-  setVal("reg-treasurer", D.treasurer);
-  setVal("reg-treasurerphone", D.treasurerPhone);
+  if(upTo==="name") return;
+  click("rw-next");
   setVal("reg-region", D.region);                      /* cascades to district */
   setVal("reg-district", D.district);                  /* cascades to ward     */
+  if(upTo==="place") return;
+  click("rw-next");
   setVal("reg-ward", D.ward);                          /* cascades to village  */
   setVal("reg-village-sel", D.village);
+  if(upTo==="ward") return;
+  click("rw-next");
   setVal("reg-members", D.members);
   setVal("reg-quorum", D.quorum);
+  if(upTo==="members") return;
+  click("rw-next");
   setVal("reg-freq", D.freq);
-  click("reg-submit");
+  if(upTo==="freq") return;
+  click("rw-next");
+  setVal("reg-chair", D.chair);
+  setVal("reg-chairphone", D.chairPhone);
+  if(upTo==="chair") return;
+  click("rw-next");
+  setVal("reg-treasurer", D.treasurer);
+  setVal("reg-treasurerphone", D.treasurerPhone);
+  if(upTo==="treasurer") return;
+  click("rw-next");                                    /* → check */
+  if(upTo==="check") return;
+  click("rw-next");                                    /* Register the group */
+}
+async function doRegister(){
+  if(rawG()) return;
+  regDrive();
   await until(function(){ return rawG(); });
 }
 
@@ -5160,17 +5980,29 @@ async function doRecord(){
   await wizardMeeting(M.m4);
 }
 
+/* Savings + years, then amount + purpose, then the check screen; la-next is
+   the one button and reads "Send this application" on the check. The answers
+   live in the app's LA state, which survives the tab re-rendering — so start
+   from a clean one rather than whatever a previous step left there. */
+async function loanDrive(upTo){
+  await asChair("loan");
+  laReset(); renderChairLoan();
+  click("la-open"); await tick();                     /* only present after an earlier application */
+  setVal("la-savings", D.savingsDeclared);
+  setVal("la-years", D.yearsActive);
+  if(upTo==="savings") return;
+  click("la-next");
+  setVal("la-amount", D.requested);
+  setVal("la-purpose", D.purpose);
+  if(upTo==="amount") return;
+  click("la-next");                                   /* → check */
+  if(upTo==="check") return;
+  click("la-next");                                   /* send */
+}
 async function doApply(){
   await doRecord();
   if(rawApp()) return;
-  await asChair("loan");
-  click("la-open");
-  await tick();
-  setVal("la-amount", D.requested);
-  setVal("la-purpose", D.purpose);
-  setVal("la-savings", D.savingsDeclared);
-  setVal("la-years", D.yearsActive);
-  click("la-submit");
+  await loanDrive();
   await until(function(){ return rawApp(); });
 }
 
@@ -5260,16 +6092,9 @@ var STEPS = [
   text:"No forms carried to the district office, no queue. The chairperson opens the page and enters the group. Region, district, ward and village come from the <em>official administrative list</em>, so the record is clean the moment it is created — not cleaned up months later.",
   act:async function(){
     if(rawG()){ showLogin(); showRegister(); return; }
-    showLogin(); showRegister();
-    setVal("reg-name", D.name); setVal("reg-chair", D.chair);
-    setVal("reg-chairphone", D.chairPhone); setVal("reg-treasurer", D.treasurer);
-    setVal("reg-treasurerphone", D.treasurerPhone);
-    setVal("reg-region", D.region); setVal("reg-district", D.district);
-    setVal("reg-ward", D.ward); setVal("reg-village-sel", D.village);
-    setVal("reg-members", D.members); setVal("reg-quorum", D.quorum);
-    setVal("reg-freq", D.freq);
+    regDrive("ward");
   },
-  spot:function(){ return q("#reg-form"); }, hold:9500 },
+  spot:function(){ return q('#reg-form [data-screen="ward"]'); }, hold:9500 },
 
 { ch:"c1", title:"An identity, immediately",
   text:"Submitting mints <em>"+D.id+"</em> — the number every later action hangs off. The group can log in with it from this moment, before any officer has looked at them.",
@@ -5298,16 +6123,14 @@ var STEPS = [
   spot:function(){ return q("#c-dash-content"); }, hold:9500 },
 
 { ch:"c2", title:"Logging a meeting",
-  text:"Date and attendance first. The chairperson does this on a phone, in the meeting, while everyone is still in the room — which is the only way the numbers stay true.",
+  text:"One or two questions a screen, phone-sized. The date, then whether anyone has joined or left — the group's size is <em>confirmed before attendance is counted</em>, so the quorum rule is judged against today's group. The chairperson does this in the meeting, while everyone is still in the room, which is the only way the numbers stay true.",
   act:async function(){
     await doAssign();
     await seedMeeting(M.m1); await seedMeeting(M.m2); await seedMeeting(M.m3);
     if(haveMeeting(M.m4.date)){ await asChair("log"); return; }
-    await asChair("log");
-    showWizardFresh();
-    setVal("l-date", M.m4.date);
+    await meetingDrive(M.m4, "date");
   },
-  spot:function(){ return q("#log-step1"); }, hold:8500 },
+  spot:function(){ return q('#log-wizard [data-screen="date"]'); }, hold:9500 },
 
 { ch:"c2", title:"Quorum, checked as you type",
   text:"Nine of twelve present. The threshold is ten. The system says so <em>immediately</em> — not at the end of the year when someone audits the minute book. Governance is checked at the point of entry, where it is still cheap to fix.",
@@ -5315,9 +6138,7 @@ var STEPS = [
     await doAssign();
     await seedMeeting(M.m1); await seedMeeting(M.m2); await seedMeeting(M.m3);
     if(haveMeeting(M.m4.date)){ await asChair("log"); return; }
-    await asChair("log");
-    showWizardFresh();
-    setVal("l-date", M.m4.date); setVal("l-present", M.m4.present);
+    await meetingDrive(M.m4, "present");
   },
   spot:function(){ return q("#l-qhint"); }, ping:true, hold:10000 },
 
@@ -5328,27 +6149,23 @@ var STEPS = [
 
 /* ── 03 apply ── */
 { ch:"c3", title:"Applying, from the same screen",
-  text:"No branch visit, no separate form, no intermediary. The group asks its assigned lender for <em>"+money(D.requested)+"</em> directly.",
+  text:"No branch visit, no separate form, no intermediary. The group asks its assigned lender for <em>"+money(D.requested)+"</em> directly — and is told, as the figure is typed, that it is about "+(Math.round(D.requested/D.savingsDeclared*10)/10)+" times what the group has saved.",
   act:async function(){
     await doRecord();
     if(rawApp()){ await asChair("loan"); return; }
-    await asChair("loan"); click("la-open"); await tick();
-    setVal("la-amount", D.requested); setVal("la-purpose", D.purpose);
-    setVal("la-savings", D.savingsDeclared); setVal("la-years", D.yearsActive);
+    await loanDrive("amount");
   },
-  spot:function(){ return q("#la-form"); }, hold:9000 },
+  spot:function(){ return q('#la-form [data-screen="amount"]'); }, hold:9500 },
 
 { ch:"c3", title:"The history goes with it",
   text:"Member count, years active, total savings — and behind them every meeting the group has logged. The application is not a set of claims to be verified later; it is <em>evidence the system already holds</em>.",
   act:async function(){
     await doRecord();
     if(rawApp()){ await asChair("loan"); return; }
-    await asChair("loan"); click("la-open"); await tick();
-    setVal("la-amount", D.requested); setVal("la-purpose", D.purpose);
-    setVal("la-savings", D.savingsDeclared); setVal("la-years", D.yearsActive);
+    await loanDrive("check");
   },
-  spot:function(){ return q("#la-savings") ? q("#la-savings").closest(".row2")||q("#la-savings") : q("#la-form"); },
-  hold:9500 },
+  spot:function(){ return q("#la-check .q-hint") || q("#la-form"); },
+  ping:true, hold:9500 },
 
 { ch:"c3", title:"Submitted",
   text:"The group can see its own application sitting with the lender. <em>Nothing is invisible to the people it concerns</em> — which is most of what borrowers complain about elsewhere.",
@@ -5373,9 +6190,7 @@ var STEPS = [
   act:async function(){
     await doDecide();
     if(haveMeeting(M.m5.date)){ await asChair("log"); return; }
-    await asChair("log");
-    showWizardFresh();
-    setVal("l-date", M.m5.date); setVal("l-present", M.m5.present);
+    await meetingDrive(M.m5, "present");
   },
   spot:function(){ return q("#l-qhint"); }, ping:true, hold:10000 },
 
@@ -5390,16 +6205,9 @@ var STEPS = [
   act:async function(){
     await doDisburse();
     if(haveMeeting(M.m6.date)){ await asChair("log"); return; }
-    await asChair("log");
-    showWizardFresh();
-    setVal("l-date", M.m6.date); setVal("l-present", M.m6.present);
-    click("log-next1");
-    setVal("l-savings", M.m6.savings); setVal("l-memrepay", M.m6.memrepay);
-    setVal("l-disbursed", 0);
-    click("log-next2"); await tick();
-    click("tog-yes"); click("tog-full");
+    await meetingDrive(M.m6, "remittype");
   },
-  spot:function(){ return q("#remit-detail"); }, ping:true, hold:9500 },
+  spot:function(){ return q('#log-wizard [data-screen="remittype"]'); }, ping:true, hold:9500 },
 
 { ch:"c5", title:"Two instalments in, and on track",
   text:"<em>"+money(2*D.instalment)+"</em> repaid of "+money(D.totalDue)+"; "+money(D.totalDue-2*D.instalment)+" outstanding, against a schedule of "+money(D.instalment)+" a month. The status is not typed in by anyone — it is <em>derived from the meetings</em>, which is why nobody can quietly report a loan as healthier than it is.",
