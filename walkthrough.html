@@ -2707,6 +2707,14 @@ async function loadFiPublicList(){
   applyFiRows((data||[]).slice().sort(function(a,b){ return a.name<b.name?-1:a.name>b.name?1:0; }));
 }
 function applyFiRows(data){
+  // The lender register is never empty — it is seeded with eighteen
+  // institutions — so an empty result means "you were not allowed to see them",
+  // not "there are none". Clobbering a populated list with that is how a
+  // permissions change becomes a wrong answer on screen instead of an error.
+  if((!data || !data.length) && FI_ALL && FI_ALL.length){
+    console.error('applyFiRows: refusing to clear the lender register on an empty read');
+    return;
+  }
   FI_ALL  = data || [];
   FI_LIST = FI_ALL.filter(function(f){ return f.status==='AUTHORISED'; })
                   .map(function(f){ return f.name; });
@@ -3473,8 +3481,11 @@ document.getElementById('step2-continue').addEventListener('click', async functi
     if(!document.getElementById('fi-institution').value){ err.textContent='Please select your institution.'; err.style.display='block'; return; }
     var _fiName=document.getElementById('fi-institution').value;
     // Re-read authorisation state at click time: a suspension may have landed
-    // while this login screen was open.
-    await loadFiInstitutions();
+    // while this login screen was open. This runs BEFORE any session exists, so
+    // it must use the narrow public function — G15 made the full table
+    // authenticated-only, and reading it as anon returns zero rows with no
+    // error, which used to wipe the very list this line is about to consult.
+    await loadFiPublicList();
     if(fiStatusOf(_fiName)==='SUSPENDED'){
       err.textContent=fiSuspendedMsg(_fiName); err.style.display='block'; return;
     }
