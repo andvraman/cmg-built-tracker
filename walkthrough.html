@@ -588,9 +588,21 @@ function build(){
   var db = {
     cmg_registry:[], meetings:[], external_loan:[], loan_application:[],
     fi_institutions:[], fi_notifications:[], fi_status_log:[],
-    lga_officers:[], tamisemi_officers:[], admin_officers:[],
+    lga_officers:[], tamisemi_officers:[], admin_officers:[], audit_log:[],
+    system_parameter:[
+      /* the rule constants, as the beta seeds them (G12) */
+      { key:"members_min", effective_from:"2026-07-11", value:5, label:"Minimum members", unit:"members", description:"Registration warns when a group has fewer members than this.", set_by:null, set_at:"2026-07-11T08:00:00.000Z" },
+      { key:"members_max", effective_from:"2026-07-11", value:25, label:"Maximum members", unit:"members", description:"Registration warns when a group has more members than this.", set_by:null, set_at:"2026-07-11T08:00:00.000Z" },
+      { key:"quorum_default_pct", effective_from:"2026-07-11", value:80, label:"Default quorum", unit:"%", description:"Used when a group does not state its own quorum.", set_by:null, set_at:"2026-07-11T08:00:00.000Z" },
+      { key:"share_value_min", effective_from:"2026-07-11", value:1000, label:"Lowest value of one share", unit:"TZS", description:"A group chooses its share value once; it must lie in this range.", set_by:null, set_at:"2026-07-11T08:00:00.000Z" },
+      { key:"share_value_max", effective_from:"2026-07-11", value:10000, label:"Highest value of one share", unit:"TZS", description:"See share_value_min.", set_by:null, set_at:"2026-07-11T08:00:00.000Z" },
+      { key:"share_value_step", effective_from:"2026-07-11", value:1000, label:"Share value step", unit:"TZS", description:"The share value must be a multiple of this.", set_by:null, set_at:"2026-07-11T08:00:00.000Z" },
+      { key:"max_shares_per_meeting_cap", effective_from:"2026-07-11", value:10, label:"Cap on shares per member per meeting", unit:"shares", description:"The highest per-member, per-meeting maximum a group may set for itself.", set_by:null, set_at:"2026-07-11T08:00:00.000Z" },
+      { key:"on_track_tolerance_pct", effective_from:"2026-07-11", value:90, label:"On-track tolerance", unit:"%", description:"A loan is on track while repayments reach this share of what the elapsed part of the tenure expects.", set_by:null, set_at:"2026-07-11T08:00:00.000Z" },
+      { key:"delinquent_after_days", effective_from:"2026-07-11", value:120, label:"Delinquent after", unit:"days", description:"Days past the deadline with a balance outstanding after which Overdue becomes Delinquent.", set_by:null, set_at:"2026-07-11T08:00:00.000Z" }
+    ],
     _seq:{ meetings:1000, external_loan:500, loan_application:700,
-           fi_notifications:300, fi_status_log:200 }
+           fi_notifications:300, fi_status_log:200, audit_log:900 }
   };
 
   /* lenders */
@@ -699,6 +711,37 @@ function build(){
     }
     db.loan_application.push(app);
   });
+
+  /* audit log: the database writes one line per insert/update/delete on every
+     business table (G2). Derived here from the history the other fixtures
+     already imply, so the TAMISEMI and Administrator screens have something
+     honest to show. Newest last; the page orders by id descending. */
+  db.fi_status_log.forEach(function(l){
+    db.audit_log.push({ id:db._seq.audit_log++, at:l.at, actor_user:null,
+      actor_role:"TAMISEMI_OFFICER", actor_id:l.actor_officer_id||"TAM001",
+      table_name:"fi_institutions", row_id:l.fi, action:"UPDATE", changed:["authorised_at","login_email","status"],
+      before:{ name:l.fi, status:"PENDING", login_email:null, authorised_at:null },
+      after:{ name:l.fi, status:"AUTHORISED", login_email:"fi-"+fiSlug(l.fi)+"@pamoja.demo", authorised_at:l.at } });
+  });
+  db.cmg_registry.forEach(function(g){
+    var officer = g.region==="Arusha" ? "LGA001" : "LGA002";
+    var when = "2026-03-01T09:"+(10+(g.cmg_id.charCodeAt(g.cmg_id.length-1)%40))+":00.000Z";
+    db.audit_log.push({ id:db._seq.audit_log++, at:when, actor_user:null,
+      actor_role:"LGA_OFFICER", actor_id:officer, table_name:"cmg_registry", row_id:g.cmg_id, action:"INSERT",
+      changed:null, before:null,
+      after:{ cmg_id:g.cmg_id, name:g.name, district:g.district, ward:g.ward, members:g.members, registry_status:"PENDING_LGA_VERIFICATION" } });
+    if(g.registry_status!=="PENDING_LGA_VERIFICATION"){
+      var later = when.replace("2026-03-01","2026-03-02");
+      db.audit_log.push({ id:db._seq.audit_log++, at:later, actor_user:null,
+        actor_role:"LGA_OFFICER", actor_id:officer, table_name:"cmg_registry", row_id:g.cmg_id, action:"UPDATE",
+        changed: g.registry_status==="ACTIVE" ? ["registry_status","verified_at","verified_by_officer_id"] : ["registry_status","rejection_reason"],
+        before:{ registry_status:"PENDING_LGA_VERIFICATION", verified_at:null, verified_by_officer_id:null, rejection_reason:null },
+        after:{ registry_status:g.registry_status, verified_at:later, verified_by_officer_id:officer, rejection_reason:g.rejection_reason||null } });
+    }
+  });
+  db.audit_log.sort(function(a,b){ return a.at<b.at?-1:a.at>b.at?1:0; });
+  db.audit_log.forEach(function(e,i){ e.id=900+i; });
+  db._seq.audit_log=900+db.audit_log.length;
 
   return db;
 }
@@ -838,6 +881,64 @@ function visibleGroups(){
 }
 function visibleIds(){ return visibleGroups().map(function(g){ return g.cmg_id; }); }
 
+/* cmg_loan_status — the server's get_loan_status(), one row per visible group.
+   Reimplemented here the way the other server functions are, from the SQL:
+   a live application → applied; else a lender → assigned; else registered;
+   with a loan: repaid in full → completed; past the deadline with a balance →
+   overdue-dpd, or delinquent beyond 120 days; no disbursal date → approved;
+   no meetings yet → disbursed; otherwise on track if repayments cover 90% of
+   what the elapsed share of the tenure expects, else behind. */
+/* param(key): the system_parameter value in force on the frozen "today" (G12). */
+function param(key){
+  var today = new Date().toISOString().slice(0,10), best = null;
+  DB.system_parameter.forEach(function(r){
+    if(r.key===key && r.effective_from<=today && (!best || r.effective_from>best.effective_from)) best = r;
+  });
+  if(!best) throw new Error("System parameter "+key+" is not set");
+  return Number(best.value);
+}
+function loanStatusRows(){
+  var today = new Date(); today = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  var threshold = param("delinquent_after_days"), tolerance = param("on_track_tolerance_pct")/100;
+  function day(s){ return s ? Date.UTC(+s.slice(0,4), +s.slice(5,7)-1, +s.slice(8,10)) : null; }
+  var LABEL = { registered:"Registered – no FI", assigned:"FI assigned", applied:"Applied", approved:"Approved",
+    disbursed:"Disbursed", "active-ok":"Active – On Track", "active-behind":"Active – Behind",
+    completed:"Completed", "overdue-dpd":"Overdue", delinquent:"Delinquent" };
+  return visibleGroups().map(function(g){
+    var loan = DB.external_loan.filter(function(l){ return l.cmg_id===g.cmg_id; })
+                               .sort(function(a,b){ return b.id-a.id; })[0] || null;
+    var ms = DB.meetings.filter(function(m){ return m.cmg_id===g.cmg_id && !m.voided; });
+    var totrep = ms.reduce(function(s,m){ return s+(Number(m.repaid)||0); }, 0);
+    var totaldue = loan ? (Number(loan.totaldue)||0) : 0;
+    var out = totaldue - totrep;
+    var pct = totaldue>0 ? Math.min(100, Math.round(totrep/totaldue*100)) : 0;
+    var status, dpd = null;
+    if(!loan || !(Number(loan.loan)>0)){
+      var live = DB.loan_application.some(function(a){
+        return a.cmg_id===g.cmg_id && ["PENDING","APPROVED","ACCEPTED"].indexOf(a.status)>=0; });
+      status = live ? "applied" : (g.fi ? "assigned" : "registered");
+    } else if(pct>=100){ status = "completed"; }
+    else if(loan.deadline && today>day(loan.deadline) && out>0){
+      dpd = Math.round((today-day(loan.deadline))/86400000);
+      status = dpd>threshold ? "delinquent" : "overdue-dpd";
+    }
+    else if(!loan.loandate){ status = "approved"; }
+    else if(ms.length===0){ status = "disbursed"; }
+    else {
+      var onTrack;
+      if(loan.loandate && loan.deadline && totaldue>0){
+        var total = Math.max(1, (day(loan.deadline)-day(loan.loandate))/86400000);
+        var elapsed = Math.max(0, (today-day(loan.loandate))/86400000);
+        onTrack = totrep >= totaldue*Math.min(1, elapsed/total)*tolerance;
+      } else { onTrack = totrep>0; }
+      status = onTrack ? "active-ok" : "active-behind";
+    }
+    return { cmg_id:g.cmg_id, status:status, label:LABEL[status], dpd:dpd,
+             loan:loan?loan.loan:null, totaldue:loan?loan.totaldue:null,
+             total_repaid:totrep, outstanding:out, pct:pct, meetings_count:ms.length };
+  });
+}
+
 /* ═════ 5. the query builder ═════
    Thenable and chainable, matching the slice of PostgREST the app actually
    uses: select / insert / update, eq / in / is, order, limit, single,
@@ -875,6 +976,7 @@ Query.prototype.rows = function(){
   var src = DB[this.t] || [];
   /* row-level security, applied before any filter the caller added */
   if(this.t==="cmg_registry"){ src = visibleGroups(); }
+  else if(this.t==="cmg_loan_status"){ src = loanStatusRows(); }
   else if(this.t==="meetings" || this.t==="external_loan" || this.t==="loan_application"){
     var ok = visibleIds();
     src = src.filter(function(r){ return ok.indexOf(r.cmg_id)>=0; });
@@ -882,6 +984,10 @@ Query.prototype.rows = function(){
   else if(this.t==="fi_notifications"){
     var id = identity();
     src = src.filter(function(r){ return !id || id.role!=="fi" || r.fi===id.fi; });
+  }
+  else if(this.t==="audit_log"){                 /* TAMISEMI and Administrator only */
+    var who = identity();
+    if(!who || (who.role!=="tamisemi" && who.role!=="admin")) src = [];
   }
   return src.filter(function(r){
     return self.filters.every(function(f){ return f(r); });
@@ -1000,6 +1106,23 @@ var RPC = {
     return ok({ cmg_id:id, warnings:warnings });
   },
 
+  /* set_share_config — chairperson, once, after verification; bounds are the
+     system parameters, as in the server function */
+  set_share_config: function(p){
+    var id = identity();
+    if(!id || id.role!=="chair" || id.cmg_id!==p.p_cmg_id) return err("Only this group's own chairperson may set its share settings.");
+    var g = group(p.p_cmg_id);
+    if(!g) return err("Group not found.");
+    if(g.registry_status!=="ACTIVE") return err("The group must be verified (ACTIVE) before setting share settings.");
+    if(g.share_value!=null || g.max_shares_per_meeting!=null) return err("Share settings are already set for this group and cannot be changed.");
+    var lo=param("share_value_min"), hi=param("share_value_max"), step=param("share_value_step"), cap=param("max_shares_per_meeting_cap");
+    var v=Number(p.p_share_value), m=Number(p.p_max_shares_per_meeting);
+    if(!(v>=lo && v<=hi && v%step===0)) return err("Value of 1 share must be a multiple of "+step+" between "+lo+" and "+hi+".");
+    if(!(m>=1 && m<=cap)) return err("Maximum shares per meeting per member must be between 1 and "+cap+".");
+    g.share_value=v; g.max_shares_per_meeting=m;
+    return ok(null);
+  },
+
   resubmit_cmg: function(p){
     var g = group(p.p_cmg_id);
     if(!g) return err("CMG not found.");
@@ -1041,6 +1164,10 @@ var RPC = {
   verify_or_reject_cmg: function(p){
     var g = group(p.p_cmg_id);
     if(!g) return err("CMG not found.");
+    /* maker/checker (G3a): the officer who registered the group cannot verify it */
+    var who = identity();
+    if(g.created_by_role==="LGA_OFFICER" && who && who.officer && g.created_by_identifier===who.officer.officer_id)
+      return err("The officer who registered "+g.cmg_id+" cannot verify it; a second officer of the district must.");
     if(p.p_decision==="APPROVE"){ g.registry_status="ACTIVE"; g.rejection_reason=null; }
     else { g.registry_status="REJECTED"; g.rejection_reason=p.p_reason||null; }
     return ok({ cmg_id:g.cmg_id, registry_status:g.registry_status });
@@ -1215,6 +1342,24 @@ var RPC = {
     DB[m[0]].push(rec);
     return ok({ officer_id:rec.officer_id, role:p.p_role, name:rec.name });
   }
+};
+
+/* admin_set_parameter — Administrator only; today or a future date; history kept. */
+RPC.admin_set_parameter = function(p){
+  var id = identity();
+  if(!id || id.role!=="admin") return err("Only an Administrator may change system parameters");
+  var today = new Date().toISOString().slice(0,10);
+  var from = p.p_effective_from || today;
+  var rows = DB.system_parameter.filter(function(r){ return r.key===p.p_key; });
+  if(!rows.length) return err("Unknown parameter: "+p.p_key);
+  if(p.p_value===null || p.p_value===undefined || Number(p.p_value)<0) return err("A value of zero or more is required");
+  if(from<today) return err("A parameter cannot be changed retrospectively");
+  var tmpl = rows.sort(function(a,b){ return a.effective_from<b.effective_from?1:-1; })[0];
+  var hit = find(DB.system_parameter, function(r){ return r.key===p.p_key && r.effective_from===from; });
+  if(hit){ hit.value=Number(p.p_value); hit.set_by=id.officer_id||"ADM001"; hit.set_at=new Date().toISOString(); }
+  else DB.system_parameter.push({ key:p.p_key, effective_from:from, value:Number(p.p_value), label:tmpl.label, unit:tmpl.unit,
+                                  description:tmpl.description, set_by:id.officer_id||"ADM001", set_at:new Date().toISOString() });
+  return ok({ key:p.p_key, value:Number(p.p_value), effective_from:from, in_force_today:param(p.p_key) });
 };
 
 /* ═════ 8. the client ═════ */
@@ -1639,6 +1784,10 @@ window.SB_STUB = {
         <div class="field"><label>Quorum threshold</label><input type="text" id="su-quorum" readonly=""></div>
       </div>
     </div>
+    <div class="card" id="share-settings-card">
+      <div class="card-title">Share settings</div>
+      <div id="share-settings-body"></div>
+    </div>
     <button class="btn btn-primary btn-full" id="save-setup-btn">← Back to dashboard</button>
     <p id="su-err" style="color:var(--red);font-size:13px;margin-top:.5rem;display:none"></p>
   </div>
@@ -1665,6 +1814,7 @@ window.SB_STUB = {
     <div id="ct-dash"><div id="c-dash-content"></div></div>
     <div id="ct-log" style="display:none">
       <div id="c-loan-alert"></div>
+      <div id="c-share-alert"></div>
 
       <!-- ── REVIEW SCREEN ── -->
       <div id="log-review" style="display:none">
@@ -1750,18 +1900,29 @@ window.SB_STUB = {
           </div>
         </div>
 
-        <!-- 4 · savings + member repayments -->
+        <!-- 4 · savings (shares, once the group has set share_value) + member repayments -->
         <div class="wz-screen" data-screen="money" style="display:none">
           <div class="card">
-            <div class="wz-q">
-              <h2 class="wz-ask"><label for="l-savings" data-i18n="mt.savings.ask">How much was saved at this meeting?</label></h2>
-              <div class="wz-help" data-i18n="mt.savings.help">Total shares bought by members (TZS). Enter 0 if none.</div>
-              <div class="field"><input type="number" inputmode="numeric" class="wz-num" id="l-savings" min="0" placeholder="0"></div>
+            <!-- Shown instead of the fields below when the group has not yet set its
+                 share settings (Group profile) — see wzRefreshMoney(). A meeting being
+                 amended keeps whichever mode it was created in, so this never blocks an
+                 amend of a record that predates share tracking (moneyIsLegacy()). -->
+            <div id="wz-money-blocked" style="display:none">
+              <div class="alert alert-warn"><span id="wz-money-blocked-text"></span></div>
+              <button type="button" class="btn" id="wz-money-blocked-go" style="margin-top:.5rem">Go to Group profile &#8594;</button>
             </div>
-            <div class="wz-q">
-              <h2 class="wz-ask"><label for="l-memrepay" data-i18n="mt.memrepay.ask">How much did members repay into the group?</label></h2>
-              <div class="wz-help" data-i18n="mt.memrepay.help">Total loan repayments collected from members (TZS). Enter 0 if none.</div>
-              <div class="field"><input type="number" inputmode="numeric" class="wz-num" id="l-memrepay" min="0" placeholder="0"></div>
+            <div id="wz-money-fields">
+              <div class="wz-q">
+                <h2 class="wz-ask"><label for="l-savings" id="wz-savings-ask">How much was saved at this meeting?</label></h2>
+                <div class="wz-help" id="wz-savings-help">Total shares bought by members (TZS). Enter 0 if none.</div>
+                <div class="field"><input type="number" inputmode="numeric" class="wz-num" id="l-savings" min="0" placeholder="0"></div>
+                <div id="l-shareshint"></div>
+              </div>
+              <div class="wz-q">
+                <h2 class="wz-ask"><label for="l-memrepay" data-i18n="mt.memrepay.ask">How much did members repay into the group?</label></h2>
+                <div class="wz-help" data-i18n="mt.memrepay.help">Total loan repayments collected from members (TZS). Enter 0 if none.</div>
+                <div class="field"><input type="number" inputmode="numeric" class="wz-num" id="l-memrepay" min="0" placeholder="0"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -1962,9 +2123,11 @@ window.SB_STUB = {
     <div class="tabs" id="tam-tabs">
       <button class="tab" id="tab-tam-overview">National overview</button>
       <button class="tab active" id="tab-tam-fi">Lender authorisation</button>
+      <button class="tab" id="tab-tam-audit">Audit log</button>
     </div>
     <div id="tamt-overview" style="display: none;"><div id="tam-content"></div></div>
     <div id="tamt-fi" style="display: block;"><div id="tam-fi-panel"></div></div>
+    <div id="tamt-audit" style="display: none;"><div id="tam-audit-panel"></div></div>
   </div>
 
   <!-- ── ADMIN SCREEN ── -->
@@ -1977,6 +2140,8 @@ window.SB_STUB = {
     </div>
     <div id="adm-officers"></div>
     <div id="adm-suspended"></div>
+    <div id="adm-params"></div>
+    <div id="adm-audit"></div>
   </div>
 
   <!-- ── FI AGGREGATED SCREEN ── -->
@@ -2029,6 +2194,26 @@ let FI_ALL   = [];   // [{name, status, login_email}]
 let FI_LIST  = [];   // AUTHORISED only — what an LGA officer may assign
 const FI_EMAIL = {}; // name → login email, for any institution that has one
 
+// ── SYSTEM PARAMETERS ──
+// The rule constants live in system_parameter (G12): member range, quorum
+// default, share-value bounds, on-track tolerance, delinquency threshold. The
+// database enforces them; the page reads them for defaults, option lists and
+// the same arithmetic it shows on screen. param(key, fallback) answers the
+// value in force today; the fallback only matters before the first load.
+var PARAMS={};
+async function loadParameters(){
+  var r=await SB.from('system_parameter').select('key,value,effective_from,label,unit,description,set_by,set_at');
+  if(r.error){ console.error('loadParameters', r.error); return; }
+  var today=new Date().toISOString().slice(0,10), next={}, all={};
+  (r.data||[]).forEach(function(row){
+    (all[row.key]=all[row.key]||[]).push(row);
+    if(row.effective_from<=today && (!next[row.key] || row.effective_from>next[row.key].effective_from)) next[row.key]=row;
+  });
+  PARAMS=next; PARAMS._all=all;
+  ['reg-quorum','lreg-quorum'].forEach(function(id){ var el=document.getElementById(id); if(el && next.quorum_default_pct) el.value=Number(next.quorum_default_pct.value); });
+}
+function param(key, fallback){ var p=PARAMS[key]; return p?Number(p.value):fallback; }
+
 async function loadFiInstitutions(){
   const { data, error } = await SB.from('fi_institutions')
     .select('name,status,login_email,authorised_at,suspended_at').order('name');
@@ -2072,8 +2257,9 @@ async function sbSignIn(email){
 
 // Load all rows visible to the signed-in user (RLS-scoped) into APP.groups
 async function loadData(){
-  // Keep authorisation state fresh alongside the data it gates.
+  // Keep authorisation state and the rule parameters fresh alongside the data they gate.
   await loadFiInstitutions();
+  await loadParameters();
   const { data: cmgs, error } = await SB.from('cmg_registry').select('*');
   if(error){ console.error('loadData cmg_registry', error); APP.groups=[]; return; }
   const ids = (cmgs||[]).map(function(c){ return c.cmg_id; });
@@ -2088,12 +2274,22 @@ async function loadData(){
   const laq = await SB.from('loan_application').select('*');
   if(laq.error) console.error('loadData loan_application', laq.error);
   APP.loanApps = laq.data || [];
+  // Loan status is computed in one place — the database (get_loan_status, served
+  // for every visible group by the cmg_loan_status view). The page never derives it.
+  const sq = await SB.from('cmg_loan_status').select('cmg_id,status,dpd');
+  if(sq.error) console.error('loadData cmg_loan_status', sq.error);
+  const statusOf = {};
+  (sq.data||[]).forEach(function(s){ statusOf[s.cmg_id]=s; });
   APP.groups = (cmgs||[]).map(function(c){
+    const st = statusOf[c.cmg_id] || {};
     const loan = loans.filter(function(l){ return l.cmg_id===c.cmg_id; }).sort(function(a,b){ return b.id-a.id; })[0] || {};  // latest loan
     const ms = meetings.filter(function(m){ return m.cmg_id===c.cmg_id; })
       .sort(function(a,b){ return (a.date||'')<(b.date||'')?-1:((a.date||'')>(b.date||'')?1:(a.id-b.id)); })
       .map(function(m){ return {
         id:'m'+m.id, _mid:m.id, date:m.date, present:m.present,
+        // null (not 0) on any meeting recorded before share tracking existed, or before
+        // the group had set share_value — distinguishes "no shares" from "unknown".
+        shares:(m.shares===null||m.shares===undefined)?null:Number(m.shares),
         savings:Number(m.savings)||0, memrepay:Number(m.memrepay)||0,
         disbursed:Number(m.disbursed)||0, repaid:Number(m.repaid)||0,
         notes:m.notes||'', remitChoice:m.remit_choice, remitType:m.remit_type,
@@ -2106,6 +2302,12 @@ async function loadData(){
       members:c.members, quorum:c.quorum, freq:c.freq, fi:c.fi, branch:c.branch||'',
       loan:Number(loan.loan||0), loandate:loan.loandate||'', totaldue:Number(loan.totaldue||0), deadline:loan.deadline||'', writtenOff:!!loan.written_off_at,
       registryStatus:c.registry_status, rejectionReason:c.rejection_reason, isDemo:c.is_demo,
+      createdByRole:c.created_by_role, createdBy:c.created_by_identifier,
+      // Decided once by the chairperson, never changed — null means not yet set (see set_share_config).
+      shareValue:(c.share_value===null||c.share_value===undefined)?null:Number(c.share_value),
+      maxSharesPerMeeting:(c.max_shares_per_meeting===null||c.max_shares_per_meeting===undefined)?null:Number(c.max_shares_per_meeting),
+      // From the server; 'unknown' only if the status read failed.
+      status:st.status||'unknown', dpd:(st.dpd===null||st.dpd===undefined)?null:Number(st.dpd),
       meetings:ms
     };
   });
@@ -2114,7 +2316,7 @@ async function loadData(){
 // ── CHAIRPERSON WRITE HELPERS (Supabase) ──
 async function sbInsertMeeting(cmgId, rec){
   return await SB.from('meetings').insert({
-    cmg_id: cmgId, date: rec.date, present: rec.present, savings: rec.savings,
+    cmg_id: cmgId, date: rec.date, present: rec.present, shares: rec.shares, savings: rec.savings,
     memrepay: rec.memrepay, disbursed: rec.disbursed, repaid: rec.repaid,
     notes: rec.notes||null, remit_choice: rec.remitChoice, remit_type: rec.remitType,
     amendments: rec.amendments||[]
@@ -2122,7 +2324,7 @@ async function sbInsertMeeting(cmgId, rec){
 }
 async function sbUpdateMeeting(mid, rec){
   return await SB.from('meetings').update({
-    date: rec.date, present: rec.present, savings: rec.savings,
+    date: rec.date, present: rec.present, shares: rec.shares, savings: rec.savings,
     memrepay: rec.memrepay, disbursed: rec.disbursed, repaid: rec.repaid,
     notes: rec.notes||null, remit_choice: rec.remitChoice, remit_type: rec.remitType,
     amendments: rec.amendments
@@ -2539,7 +2741,7 @@ function showRegister(){
   document.getElementById('reg-err').style.display='none';
   document.getElementById('login-register').style.display='block';
   ['reg-name','reg-members','reg-chair','reg-chairphone','reg-treasurer','reg-treasurerphone','reg-village'].forEach(function(id){ document.getElementById(id).value=''; });
-  document.getElementById('reg-quorum').value='80';
+  document.getElementById('reg-quorum').value=String(param('quorum_default_pct',80));
   document.getElementById('reg-freq').value='';
   var rr=document.getElementById('reg-region');
   rr.innerHTML=regSelectOpt();
@@ -2629,7 +2831,7 @@ async function regSubmit(){
     p_chair_name:chair, p_chair_phone:chairphone, p_treasurer_name:treasurer,
     p_name:name, p_treasurer_phone:_rtp||null,
     p_region:region, p_district:district, p_ward:ward, p_village:villageVal('reg')||null,
-    p_members:members, p_quorum:parseInt(regVal('reg-quorum'))||80,
+    p_members:members, p_quorum:parseInt(regVal('reg-quorum'))||param('quorum_default_pct',80),
     p_freq:regVal('reg-freq')||null
   });
   btn.disabled=false; btn.textContent=t('reg.register');
@@ -2769,6 +2971,7 @@ function buildSession(){
       village:document.getElementById('auto-village').value};
   } else if(selectedRole==='lga'){
     SESSION={role:'lga',
+      officerId:_lgaOfficer?_lgaOfficer.id:'',
       officerName:_lgaOfficer?_lgaOfficer.name:'',
       region:_lgaOfficer?_lgaOfficer.region:'',
       district:_lgaOfficer?_lgaOfficer.district:'',
@@ -2816,7 +3019,8 @@ var DYNAMIC_PANELS=[
   'obs-title','obs-sub','obs-pending','obs-summary','obs-status-bar','obs-loans','obs-tbody',
   'obs-detail-content','obs-reg-result','obs-bulk-result',
   // TAMISEMI / Administrator / chairperson
-  'tam-content','adm-officers','c-dash-content','c-loan-content','c-loan-alert','c-resubmit','review-card',
+  'tam-content','adm-officers','c-dash-content','c-loan-content','c-loan-alert','c-share-alert','c-resubmit','review-card',
+  'share-settings-body',
   'topbar-label'
 ];
 // [id, display] pairs putting each screen's sub-views back to their markup defaults
@@ -2863,9 +3067,81 @@ function prefillSetup(g){
   document.getElementById('su-chair').value=g.chair||'';
   document.getElementById('su-fi').value=g.fi||'—';
   document.getElementById('su-members').value=(g.members||'—');
-  document.getElementById('su-quorum').value=(g.quorum||80)+'%';
+  document.getElementById('su-quorum').value=(g.quorum||param('quorum_default_pct',80))+'%';
+  renderShareSettings(g);
 }
 document.getElementById('edit-setup-btn').addEventListener('click', function(){ var g=getG(); if(g) prefillSetup(g); showAppScreen('screen-setup'); });
+
+function shareConfigSet(g){ return !!(g && g.shareValue!=null && g.maxSharesPerMeeting!=null); }
+
+// Decided once, at the CMG's own request, any time after it is ACTIVE — not forced
+// at registration. The bounds are system parameters (share_value_min / _max /
+// _step and max_shares_per_meeting_cap); set_share_config enforces the same ones.
+function shareValueOptions(){
+  var lo=param('share_value_min',1000), hi=param('share_value_max',10000), step=param('share_value_step',1000)||1000, o=[];
+  for(var v=lo; v<=hi; v+=step) o.push(v);
+  return o;
+}
+function maxSharesOptions(){
+  var cap=param('max_shares_per_meeting_cap',10), o=[];
+  for(var v=1; v<=cap; v++) o.push(v);
+  return o;
+}
+
+// Group profile's "Share settings" card: the one-time setup form, or the locked
+// read-only display once set_share_config has succeeded (it cannot be changed
+// afterwards — enforced server-side, not just by hiding the form here).
+function renderShareSettings(g){
+  var box=document.getElementById('share-settings-body'); if(!box||!g) return;
+  if(shareConfigSet(g)){
+    box.innerHTML=
+      '<div class="row2">'+
+        '<div class="field"><label>Value of 1 share</label><input type="text" readonly value="'+fmt(g.shareValue)+'"></div>'+
+        '<div class="field"><label>Maximum shares per meeting, per member</label><input type="text" readonly value="'+g.maxSharesPerMeeting+'"></div>'+
+      '</div>'+
+      '<p style="font-size:12px;color:var(--muted);margin:.5rem 0 0">&#128274; Locked — set once and cannot be changed.</p>';
+    return;
+  }
+  var valOpts=shareValueOptions().map(function(v){ return '<option value="'+v+'">'+fmt(v)+'</option>'; }).join('');
+  var maxOpts=maxSharesOptions().map(function(v){ return '<option value="'+v+'">'+v+'</option>'; }).join('');
+  box.innerHTML=
+    '<p style="font-size:13px;color:var(--muted);margin:0 0 .75rem">Set these once, when the group is ready to start logging shares at meetings. They cannot be changed afterwards.</p>'+
+    '<div class="row2">'+
+      '<div class="field"><label>Value of 1 share (TZS)</label><select id="ss-value"><option value="">— Select —</option>'+valOpts+'</select></div>'+
+      '<div class="field"><label>Maximum shares per meeting, per member</label><select id="ss-max"><option value="">— Select —</option>'+maxOpts+'</select></div>'+
+    '</div>'+
+    '<button type="button" class="btn" id="ss-save-btn">Save share settings</button>'+
+    '<p id="ss-err" style="color:var(--red);font-size:13px;margin-top:.5rem;display:none"></p>'+
+    '<div id="ss-confirm" style="display:none;margin-top:.75rem;border-top:1px solid var(--border);padding-top:.75rem">'+
+      '<div class="alert alert-warn">&#9888; Once saved, these values are <strong>locked and cannot be changed</strong>.<br>Value of 1 share: <strong id="ss-confirm-value"></strong>. Maximum shares per meeting, per member: <strong id="ss-confirm-max"></strong>.</div>'+
+      '<div style="display:flex;gap:8px;margin-top:.5rem">'+
+        '<button type="button" class="btn" id="ss-confirm-cancel">Cancel</button>'+
+        '<button type="button" class="btn btn-primary" id="ss-confirm-save">Yes, save — this cannot be undone</button>'+
+      '</div>'+
+    '</div>';
+
+  document.getElementById('ss-save-btn').addEventListener('click', function(){
+    var err=document.getElementById('ss-err'); err.style.display='none';
+    var v=document.getElementById('ss-value').value, m=document.getElementById('ss-max').value;
+    if(!v||!m){ err.textContent='Please choose both values.'; err.style.display='block'; return; }
+    document.getElementById('ss-confirm-value').textContent=fmt(parseInt(v));
+    document.getElementById('ss-confirm-max').textContent=m;
+    document.getElementById('ss-confirm').style.display='block';
+  });
+  document.getElementById('ss-confirm-cancel').addEventListener('click', function(){
+    document.getElementById('ss-confirm').style.display='none';
+  });
+  document.getElementById('ss-confirm-save').addEventListener('click', async function(){
+    var err=document.getElementById('ss-err'); err.style.display='none';
+    var v=parseInt(document.getElementById('ss-value').value);
+    var m=parseInt(document.getElementById('ss-max').value);
+    this.disabled=true;
+    var r=await SB.rpc('set_share_config',{ p_cmg_id:(g.cmgNumber||g.id), p_share_value:v, p_max_shares_per_meeting:m });
+    if(r.error){ err.textContent='Could not save: '+(r.error.message||''); err.style.display='block'; this.disabled=false; return; }
+    await loadData();
+    renderShareSettings(getG());
+  });
+}
 document.getElementById('save-setup-btn').addEventListener('click', function(){ showChairMain(getG()); });
 
 function showChairMain(g){
@@ -2941,7 +3217,7 @@ function showResubmit(g){
   document.getElementById('rs-treasurerphone').value=g.treasurerPhone||'';
   fillVillages('rs', g.region, g.district, g.ward, g.village);
   document.getElementById('rs-members').value=g.members||'';
-  document.getElementById('rs-quorum').value=g.quorum||80;
+  document.getElementById('rs-quorum').value=g.quorum||param('quorum_default_pct',80);
   document.getElementById('rs-freq').value=g.freq||'Monthly';
   document.getElementById('rs-cancel').addEventListener('click', function(){ box.style.display='none'; });
   document.getElementById('rs-submit').addEventListener('click', doResubmit);
@@ -2965,7 +3241,7 @@ async function doResubmit(){
     p_cmg_id:SESSION.cmgNumber, p_name:name, p_chair_name:chair, p_chair_phone:phone,
     p_treasurer_name:treas, p_treasurer_phone:tp||null,
     p_region:region, p_district:district, p_ward:ward, p_village:villageVal('rs')||null,
-    p_members:members, p_quorum:parseInt(v('rs-quorum'))||80, p_freq:v('rs-freq')||null
+    p_members:members, p_quorum:parseInt(v('rs-quorum'))||param('quorum_default_pct',80), p_freq:v('rs-freq')||null
   });
   btn.disabled=false; btn.textContent='Resubmit application';
   if(resp.error){
@@ -3076,7 +3352,7 @@ function renderChairLoan(){
   updateLoanTabDot(getG());
 }
 function renderAcceptDeclineSection(g, app){
-  var thresh=Math.ceil((g.members||0)*(g.quorum||80)/100);
+  var thresh=Math.ceil((g.members||0)*(g.quorum||param('quorum_default_pct',80))/100);
   var quorate=(g.meetings||[]).filter(function(m){ return !m.voided && m.present>=thresh; })
     .sort(function(a,b){ return (a.date<b.date)?1:((a.date>b.date)?-1:0); });
   if(!quorate.length){
@@ -3274,7 +3550,7 @@ function gStats(g){
   var totMem=ms.reduce(function(s,m){ return s+(m.memrepay||0); },0);
   var totDis=ms.reduce(function(s,m){ return s+(m.disbursed||0); },0);
   var out=(g.totaldue||0)-totRep, pct=pctOf(totRep,g.totaldue);
-  var thresh=Math.ceil((g.members||0)*(g.quorum||80)/100);
+  var thresh=Math.ceil((g.members||0)*(g.quorum||param('quorum_default_pct',80))/100);
   var qOk=ms.filter(function(m){ return m.present>=thresh; }).length;
   var qPct=ms.length>0?Math.round(qOk/ms.length*100):null;
   return{totRep:totRep,totSav:totSav,totMem:totMem,totDis:totDis,out:out,pct:pct,thresh:thresh,qOk:qOk,qPct:qPct,count:ms.length};
@@ -3301,7 +3577,7 @@ function renderChairDash(){
     '<div class="stat"><div class="stat-label">Meetings held</div><div class="stat-val">'+st.count+'</div></div>'+
     '<div class="stat"><div class="stat-label">Quorum met</div><div class="stat-val good">'+st.qOk+'</div></div>'+
     '<div class="stat"><div class="stat-label">Below quorum</div><div class="stat-val warn">'+(st.count-st.qOk)+'</div></div>'+
-    '</div><div style="font-size:12px;color:var(--muted)">Quorum: '+(g.quorum||80)+'% of '+g.members+' members = '+st.thresh+' present</div></div>'+
+    '</div><div style="font-size:12px;color:var(--muted)">Quorum: '+(g.quorum||param('quorum_default_pct',80))+'% of '+g.members+' members = '+st.thresh+' present</div></div>'+
     '</div>';
 }
 
@@ -3315,6 +3591,7 @@ var wzDatePick=false;     // "Another day" chosen, so show the calendar even if 
 function enterLogTab(){
   var g=getG();
   renderLoanAlert(g);
+  renderShareAlert(g);
   var ms=g?g.meetings||[]:[];
   // If there is at least one meeting, default to showing the most recent in review
   if(ms.length>0){
@@ -3334,6 +3611,18 @@ function renderLoanAlert(g){
     var b=document.getElementById('c-loan-alert-go'); if(b) b.addEventListener('click', function(){ switchTab('loan'); });
   } else { box.innerHTML=''; }
 }
+// Prompt on the meeting screen until the group has set its share value once. Visible
+// as soon as they open Log meeting — before they hit the actual block on the money
+// screen — so the fix is discoverable rather than something they stumble into mid-wizard.
+function renderShareAlert(g){
+  var box=document.getElementById('c-share-alert'); if(!box||!g) return;
+  if(shareConfigSet(g)){ box.innerHTML=''; return; }
+  box.innerHTML='<div class="alert alert-warn" style="margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'+
+    '<div>&#9888; <strong>This group has not set its share value yet.</strong> A chairperson must set it once, from Group profile, before shares can be logged at a meeting.</div>'+
+    '<button class="btn btn-sm btn-primary" id="c-share-alert-go" style="white-space:nowrap">Go to Group profile &#8594;</button></div>';
+  var b=document.getElementById('c-share-alert-go');
+  if(b) b.addEventListener('click', function(){ var gg=getG(); if(gg) prefillSetup(gg); showAppScreen('screen-setup'); });
+}
 // Red dot on the Loan tab while a decision is pending.
 function updateLoanTabDot(g){
   var t=document.getElementById('tab-loan'); if(!t||!g) return;
@@ -3345,7 +3634,7 @@ function updateLoanTabDot(g){
 // ── REVIEW SCREEN ──
 function showReview(m){
   var g=getG();
-  var thresh=Math.ceil((g.members||0)*(g.quorum||80)/100);
+  var thresh=Math.ceil((g.members||0)*(g.quorum||param('quorum_default_pct',80))/100);
   var hasQ=m.present>=thresh;
   var dStr=new Date(m.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
   var remitLabel=m.remitChoice==='no'?'No remittance made':
@@ -3445,7 +3734,16 @@ function confirmedMembers(){
   if(logChanged==='yes'){ var n=parseInt(wzVal('l-members')); if(n>0) return n; }
   return stored;
 }
-function quorumThresh(){ var g=getG(); return Math.ceil(confirmedMembers()*((g&&g.quorum)||80)/100); }
+function quorumThresh(){ var g=getG(); return Math.ceil(confirmedMembers()*((g&&g.quorum)||param('quorum_default_pct',80))/100); }
+
+// A meeting keeps whichever mode it was created in: amending one never demands
+// share data a legacy record — from before share tracking existed, or from before
+// this group had set its share value — never had. Only relevant on the money screen.
+function moneyIsLegacy(){
+  if(!logAmendId) return false;   // a fresh meeting is never legacy
+  var g=getG(); var m=g&&(g.meetings||[]).find(function(x){ return x.id===logAmendId; });
+  return !!(m && (m.shares===undefined||m.shares===null));
+}
 
 // Which screens apply on this run, in order. Recomputed on every step because
 // earlier answers add or remove later screens.
@@ -3465,7 +3763,14 @@ var WZ_CHECK={
   date:function(){ if(!wzVal('l-date')) return 'date'; if(!logChanged) return 'changed'; return ''; },
   members:function(){ var n=parseInt(wzVal('l-members')); return (n>=5&&n<=30)?'':'members'; },
   present:function(){ var n=parseInt(wzVal('l-present')); return (n>=1&&n<=confirmedMembers())?'':'present'; },
-  money:function(){ var s=wzVal('l-savings'), r=wzVal('l-memrepay'); return (s!==''&&r!==''&&parseFloat(s)>=0&&parseFloat(r)>=0)?'':'money'; },
+  money:function(){
+    var r=wzVal('l-memrepay'); if(r===''||parseFloat(r)<0) return 'money';
+    if(moneyIsLegacy()){ var s=wzVal('l-savings'); return (s!==''&&parseFloat(s)>=0)?'':'money'; }
+    var g=getG(); if(!shareConfigSet(g)) return 'money';   // blocked screen — see wzRefreshMoney
+    var present=parseInt(wzVal('l-present'))||0, n=parseInt(wzVal('l-savings'));
+    var min=present*1, max=present*(g.maxSharesPerMeeting||0);
+    return (wzVal('l-savings')!==''&&!isNaN(n)&&n>=min&&n<=max)?'':'money';
+  },
   disbursed:function(){ var g=getG(); var d=wzVal('l-disbursed'); if(d===''||parseFloat(d)<0) return 'disbursed'; if(g&&g.loan>0&&!logRemitChoice) return 'remit'; return ''; },
   remittype:function(){ return logFullPartial?'':'remittype'; },
   remitamount:function(){ return (parseFloat(wzVal('l-repaid'))||0)>0?'':'remitamount'; },
@@ -3497,6 +3802,7 @@ function wzShow(n){
   if(key==='date') wzRefreshDate();
   if(key==='members') wzRefreshMembers();
   if(key==='present') wzRefreshPresent();
+  if(key==='money') wzRefreshMoney();
   if(key==='disbursed') wzRefreshRemitQ();
   if(key==='remittype') wzRefreshRemitType();
   if(key==='remitamount') wzRefreshRemitAmount();
@@ -3560,8 +3866,39 @@ function wzRefreshPresent(){
 }
 document.getElementById('l-present').addEventListener('input', function(){ wzRefreshPresent(); wzRefreshNext(); });
 
-// ── screen 4: savings + member repayments ──
-['l-savings','l-memrepay','l-disbursed'].forEach(function(id){ document.getElementById(id).addEventListener('input', wzRefreshNext); });
+// ── screen 4: savings (shares, once configured) + member repayments ──
+// wzRefreshMoney(): decides whether this screen is blocked (no share settings and
+// not a legacy amend), and — once unblocked — switches the one l-savings field
+// between "enter shares" (validated against attendance, with the TZS total shown
+// live) and the old "enter TZS directly" (amending a record from before share
+// tracking). The field id, and everything downstream that reads it, is unchanged.
+function wzRefreshMoney(){
+  var g=getG(), legacy=moneyIsLegacy(), blocked=!legacy&&!shareConfigSet(g);
+  document.getElementById('wz-money-blocked').style.display=blocked?'block':'none';
+  document.getElementById('wz-money-fields').style.display=blocked?'none':'block';
+  if(blocked){ document.getElementById('wz-money-blocked-text').textContent=t('mt.shares.blocked'); return; }
+
+  var askEl=document.getElementById('wz-savings-ask'), helpEl=document.getElementById('wz-savings-help'), hintEl=document.getElementById('l-shareshint');
+  if(legacy){
+    askEl.textContent=t('mt.savings.ask'); helpEl.textContent=t('mt.savings.help');
+    document.getElementById('l-savings').removeAttribute('max');
+    hintEl.className=''; hintEl.textContent='';
+    return;
+  }
+
+  askEl.textContent=t('mt.shares.ask'); helpEl.textContent=t('mt.shares.help');
+  var present=parseInt(wzVal('l-present'))||0;
+  var min=present*1, max=present*(g.maxSharesPerMeeting||0);
+  document.getElementById('l-savings').min=min; document.getElementById('l-savings').max=max;
+  var v=wzVal('l-savings'), n=parseInt(v);
+  if(v===''||isNaN(n)){ hintEl.className=''; hintEl.textContent=tf('mt.shares.range',{min:min,max:max}); return; }
+  if(n<min||n>max){ hintEl.className='q-hint fail'; hintEl.textContent=tf('mt.shares.outofrange',{min:min,max:max}); return; }
+  hintEl.className='q-hint ok';
+  hintEl.textContent=tf('mt.shares.total',{n:n,value:fmt(g.shareValue),tzs:fmt(n*g.shareValue)});
+}
+document.getElementById('l-savings').addEventListener('input', function(){ wzRefreshMoney(); wzRefreshNext(); });
+document.getElementById('wz-money-blocked-go').addEventListener('click', function(){ var g=getG(); if(g) prefillSetup(g); showAppScreen('screen-setup'); });
+['l-memrepay','l-disbursed'].forEach(function(id){ document.getElementById(id).addEventListener('input', wzRefreshNext); });
 
 // ── screen 5: disbursed + did the group repay an instalment (only with a loan) ──
 function wzRefreshRemitQ(){
@@ -3607,7 +3944,9 @@ function wzRenderCheck(){
   ];
   if(logChanged==='yes') rows.push(['members',t('mt.members.ask'),m]);
   rows.push(['present',t('mt.present.ask'),pres]);
-  rows.push(['money',t('mt.row.savings'),fmt(wzVal('l-savings'))]);
+  var savingsN=parseInt(wzVal('l-savings'))||0;
+  var savingsRowVal=moneyIsLegacy()?fmt(wzVal('l-savings')):tf('mt.row.shares.val',{n:savingsN,tzs:fmt(savingsN*(g.shareValue||0))});
+  rows.push(['money',t('mt.row.savings'),savingsRowVal]);
   rows.push(['money',t('mt.row.memrepay'),fmt(wzVal('l-memrepay'))]);
   rows.push(['disbursed',t('mt.row.disbursed'),fmt(wzVal('l-disbursed'))]);
   if(loan){
@@ -3663,7 +4002,10 @@ function showWizardAmend(m){
   document.getElementById('l-present').value=m.present||'';
   document.getElementById('l-members').value='';
   document.getElementById('l-notes').value=m.notes||'';
-  document.getElementById('l-savings').value=m.savings||0;
+  // Legacy record (no share count behind its savings figure): prefill the TZS
+  // amount, unchanged. Otherwise prefill the original share count, not the TZS
+  // total it produced — the field now means shares (see wzRefreshMoney()).
+  document.getElementById('l-savings').value=(m.shares===undefined||m.shares===null)?(m.savings||0):m.shares;
   document.getElementById('l-memrepay').value=m.memrepay||0;
   document.getElementById('l-disbursed').value=m.disbursed||0;
   document.getElementById('l-repaid').value=logFullPartial==='partial'?(m.repaid||''):'';
@@ -3698,10 +4040,17 @@ async function saveMeeting(){
   err.style.display='none';
   var now=new Date().toLocaleString('en-GB');
   var btn=document.getElementById('wz-next'); btn.disabled=true;
+  // Legacy mode (amending a record from before share tracking): l-savings holds a
+  // TZS amount directly, as it always did. Otherwise it holds a share count — the
+  // TZS figure everything downstream expects is derived from it here, once, at save
+  // time, so gStats/CSV/exports/loan totals never need to know shares exist.
+  var moneyLegacy=moneyIsLegacy();
+  var sharesN=moneyLegacy?null:(parseInt(document.getElementById('l-savings').value)||0);
   var rec={
     date:document.getElementById('l-date').value,
     present:parseInt(document.getElementById('l-present').value)||0,
-    savings:parseFloat(document.getElementById('l-savings').value)||0,
+    shares:sharesN,
+    savings:moneyLegacy?(parseFloat(document.getElementById('l-savings').value)||0):(sharesN*(g.shareValue||0)),
     memrepay:parseFloat(document.getElementById('l-memrepay').value)||0,
     disbursed:parseFloat(document.getElementById('l-disbursed').value)||0,
     repaid:repaidAmt,
@@ -3717,6 +4066,7 @@ async function saveMeeting(){
     var changes=[];
     if(m.date!==rec.date) changes.push('date: '+m.date+' → '+rec.date);
     if(m.present!==rec.present) changes.push('present: '+m.present+' → '+rec.present);
+    if(!moneyLegacy && m.shares!==rec.shares) changes.push('shares: '+(m.shares==null?'—':m.shares)+' → '+rec.shares);
     if(m.savings!==rec.savings) changes.push('savings: '+fmt(m.savings)+' → '+fmt(rec.savings));
     if(m.memrepay!==rec.memrepay) changes.push('repayments: '+fmt(m.memrepay)+' → '+fmt(rec.memrepay));
     if(m.disbursed!==rec.disbursed) changes.push('disbursed: '+fmt(m.disbursed)+' → '+fmt(rec.disbursed));
@@ -3751,7 +4101,7 @@ async function saveMeeting(){
 
 function renderChairHist(){
   var g=getG(); var ms=(g?(g.meetings||[]):[]).slice().sort(function(a,b){ return (a.date<b.date)?1:((a.date>b.date)?-1:0); });  // newest first
-  var thresh=g?Math.ceil((g.members||0)*(g.quorum||80)/100):0;
+  var thresh=g?Math.ceil((g.members||0)*(g.quorum||param('quorum_default_pct',80))/100):0;
   // Annul is allowed ONLY on the most recent meeting on file, and ONLY if it was below quorum.
   var lastMid=null, lastKey='';
   ms.filter(function(m){ return !m.voided; }).forEach(function(m){
@@ -3815,82 +4165,11 @@ function renderChairHist(){
 }
 
 // ── LOAN STATUS ──
-// Derives a status label from group data fields.
-// Applied:    loan amount set but no disbursement date and no meetings
-// Processing: disbursement date set but no repayments yet and very few meetings
-// Disbursed:  loan disbursed (loandate set), meetings started but 0% repaid to lender
-// Active:     repayment has begun, outstanding balance remains, not delinquent
-// Completed:  outstanding balance ≤ 0 (fully repaid)
-// Delinquent: deadline is past and still has outstanding balance
-// ── LOAN STATUS ──
-// Pipeline:
-//   Applied → Approved → Disbursed → Active-Ok / Active-Behind
-//                                          ↓ (at end of tenure)
-//                                   Completed / Overdue-DPD / Delinquent
-//
-// Applied:         No loan amount set yet — application stage
-// Approved:        Loan amount and FI set; no disbursement date yet
-// Disbursed:       Disbursement date set; no meetings recorded yet
-// Active – On Track: Meetings running; repayments on schedule (within 10% tolerance)
-// Active – Behind:   Meetings running; repayments behind expected schedule
-// Completed:       Fully repaid (pct ≥ 100%), regardless of whether deadline passed
-// Overdue (DPD):   Deadline passed, balance outstanding, DPD ≤ threshold → still recoverable
-// Delinquent:      Deadline passed, balance outstanding, DPD > threshold → write-off territory
-//
-// "On track" = totRep ≥ 90% of (totaldue × elapsed fraction of loan tenure)
-// DPD        = calendar days since deadline
-// Threshold  = DELINQUENT_THRESHOLD_DAYS (default 120, configurable)
-
-var DELINQUENT_THRESHOLD_DAYS = 120;
-
-// Returns an object: { status, dpd }
-// dpd is set (integer ≥ 0) only for 'overdue-dpd' and 'delinquent'; null otherwise.
-function loanStatusFull(g){
-  var st=gStats(g);
-  var hasLoan=!!(g.loan&&g.loan>0);
-
-  // Pre-loan: three distinct states, in order.
-  //   'applied'    - a live loan_application record exists (PENDING/APPROVED/ACCEPTED)
-  //   'assigned'   - no application yet, but a partner FI has been assigned
-  //   'registered' - verified and on the registry, no partner FI assigned yet
-  if(!hasLoan){
-    var app=currentLoanApp(g.id);
-    var liveApp=app&&['PENDING','APPROVED','ACCEPTED'].indexOf(app.status)>=0;
-    if(liveApp) return {status:'applied', dpd:null};
-    return {status: g.fi?'assigned':'registered', dpd:null};
-  }
-  if(st.pct>=100) return {status:'completed', dpd:null};
-
-  if(g.deadline){
-    var dl=new Date(g.deadline); var now=new Date();
-    now.setHours(0,0,0,0); dl.setHours(0,0,0,0);
-    if(now>dl&&st.out>0){
-      var dpd=Math.round((now-dl)/86400000);
-      if(dpd>DELINQUENT_THRESHOLD_DAYS) return {status:'delinquent', dpd:dpd};
-      return {status:'overdue-dpd', dpd:dpd};
-    }
-  }
-
-  if(!g.loandate) return {status:'approved', dpd:null};
-  if(st.count===0) return {status:'disbursed', dpd:null};
-
-  // Active: on track vs behind
-  var onTrack=false;
-  if(g.loandate&&g.deadline&&g.totaldue){
-    var start=new Date(g.loandate); var end=new Date(g.deadline);
-    var nowD=new Date(); nowD.setHours(0,0,0,0);
-    var totalDays=Math.max(1,(end-start)/86400000);
-    var elapsedDays=Math.max(0,(nowD-start)/86400000);
-    var elapsedFraction=Math.min(1,elapsedDays/totalDays);
-    var expectedRepaid=g.totaldue*elapsedFraction;
-    onTrack=(st.totRep>=expectedRepaid*0.9);
-  } else {
-    onTrack=(st.totRep>0);
-  }
-  return {status:onTrack?'active-ok':'active-behind', dpd:null};
-}
-
-// Convenience wrapper — returns just the status key string
+// Status is computed by the database (get_loan_status) and read with the group
+// (see loadData): registered → assigned → applied → approved → disbursed →
+// active-ok / active-behind → completed; overdue-dpd / delinquent once the
+// deadline has passed with a balance outstanding. The page only labels it.
+function loanStatusFull(g){ return { status:(g&&g.status)||'unknown', dpd:(g&&g.dpd!==undefined)?g.dpd:null }; }
 function loanStatus(g){ return loanStatusFull(g).status; }
 
 var STATUS_CFG={
@@ -3903,7 +4182,8 @@ var STATUS_CFG={
   'active-behind':{label:'Active \u2013 Behind',  bg:'#fff7ed',color:'#c2410c',border:'#fed7aa'},
   completed:     {label:'Completed',            bg:'#f0fdf4',color:'#166534',border:'#bbf7d0'},
   'overdue-dpd': {label:'Overdue',              bg:'#fef9c3',color:'#854d0e',border:'#fde047'},
-  delinquent:    {label:'Delinquent',           bg:'#fee2e2',color:'#b91c1c',border:'#fecaca'}
+  delinquent:    {label:'Delinquent',           bg:'#fee2e2',color:'#b91c1c',border:'#fecaca'},
+  unknown:       {label:'Status unavailable',   bg:'#f3f4f6',color:'#6b7280',border:'#e5e7eb'}
 };
 var STATUS_ORDER=['registered','assigned','applied','approved','disbursed','active-ok','active-behind','completed','overdue-dpd','delinquent'];
 // Statuses shown in CMG-level table columns and row badges (pre-loan pipeline statuses appear only in the top summary)
@@ -4348,8 +4628,10 @@ function renderPendingQueue(pending, rejected){
     html+='<div class="card" style="border:1px solid #fde047;background:var(--amber-light);margin-bottom:1rem">'+
       '<div class="card-title" style="color:var(--amber)">&#9203; Pending verification ('+pending.length+')</div>'+
       pending.map(function(g){
-        var flags=[];
-        if(g.members!=null && (g.members<5||g.members>25)) flags.push('members '+g.members+' outside 5&ndash;25');
+        var flags=[], mMin=param('members_min',5), mMax=param('members_max',25);
+        if(g.members!=null && (g.members<mMin||g.members>mMax)) flags.push('members '+g.members+' outside '+mMin+'&ndash;'+mMax);
+        // Maker/checker: the login that registered a group cannot verify it (enforced by verify_or_reject_cmg).
+        var ownReg=g.createdByRole==='LGA_OFFICER' && g.createdBy && SESSION && g.createdBy===SESSION.officerId;
         var locOk=H[g.region]&&H[g.region][g.district]&&H[g.region][g.district][g.ward]!==undefined;
         if(!locOk) flags.push('location not in reference list');
         var flagHtml=flags.length?'<div style="font-size:12px;color:var(--amber);margin-top:.35rem">&#9888; '+flags.join(' &middot; ')+'</div>':'';
@@ -4359,10 +4641,12 @@ function renderPendingQueue(pending, rejected){
               '<div style="font-size:12px;color:var(--muted);margin-top:.2rem">'+(escHtml(g.ward)||'&mdash;')+(g.village?' / '+escHtml(g.village):'')+' &middot; '+g.members+' members &middot; quorum '+g.quorum+'%</div>'+
               '<div style="font-size:12px;color:var(--muted)">Chair: '+escHtml(g.chair)+' ('+(escHtml(g.phone)||'&mdash;')+') &middot; Treasurer: '+(escHtml(g.treasurer)||'&mdash;')+'</div>'+
               flagHtml+'</div>'+
-            '<div style="display:flex;gap:6px;flex-shrink:0">'+
-              '<button class="btn btn-sm btn-primary" data-approve="'+g.cmgNumber+'">Approve</button>'+
-              '<button class="btn btn-sm btn-danger" data-reject="'+g.cmgNumber+'">Reject</button>'+
-            '</div>'+
+            (ownReg
+              ? '<div style="flex-shrink:0;max-width:220px;font-size:12px;color:var(--muted)">Registered by you &mdash; a second officer of the district must verify it.</div>'
+              : '<div style="display:flex;gap:6px;flex-shrink:0">'+
+                  '<button class="btn btn-sm btn-primary" data-approve="'+g.cmgNumber+'">Approve</button>'+
+                  '<button class="btn btn-sm btn-danger" data-reject="'+g.cmgNumber+'">Reject</button>'+
+                '</div>')+
           '</div>'+
           '<div id="rejform-'+g.cmgNumber+'" style="display:none;margin-top:.6rem;border-top:1px solid var(--border);padding-top:.6rem">'+
             '<label style="font-size:12px;color:var(--muted)">Reason for rejection (required &mdash; shown to the applicant)</label>'+
@@ -4471,7 +4755,7 @@ function obsDetail(gid){
     '<div><div style="font-size:17px;font-weight:700;color:var(--green-dark)">'+escHtml(g.name)+'</div>'+
     '<div style="font-size:12px;color:var(--muted);margin-top:3px">'+(g.cmgNumber||g.id)+' &middot; '+(escHtml(g.ward)||'&mdash;')+(g.village?' / '+escHtml(g.village):'')+' &middot; '+escHtml(g.district||'')+'</div>'+
     fiSection+'</div>'+
-    '<div style="text-align:right;font-size:12px;color:var(--muted)">'+g.members+' members &middot; '+escHtml(g.freq||'Monthly')+'<br>Quorum: '+(g.quorum||80)+'% ('+st.thresh+')<br>Chair: '+escHtml(g.chair)+'</div></div>'+
+    '<div style="text-align:right;font-size:12px;color:var(--muted)">'+g.members+' members &middot; '+escHtml(g.freq||'Monthly')+'<br>Quorum: '+(g.quorum||param('quorum_default_pct',80))+'% ('+st.thresh+')<br>Chair: '+escHtml(g.chair)+'</div></div>'+
     '<hr style="border:none;border-top:1px solid var(--border);margin:1rem 0">'+
     '<div class="stat-grid">'+
     '<div class="stat"><div class="stat-label">Loan amount</div><div class="stat-val">'+fmt(g.loan)+'</div></div>'+
@@ -4532,7 +4816,7 @@ function showLgaReg(){
   ['lreg-name','lreg-chair','lreg-chairphone','lreg-treasurer','lreg-treasurerphone','lreg-village','lreg-members'].forEach(function(id){ document.getElementById(id).value=''; });
   fillVillages('lreg', SESSION.region, SESSION.district, '');
   w.onchange=function(){ fillVillages('lreg', SESSION.region, SESSION.district, this.value); };
-  document.getElementById('lreg-quorum').value=80;
+  document.getElementById('lreg-quorum').value=param('quorum_default_pct',80);
 }
 function showLgaRegResult(d){
   document.getElementById('obs-reg-form').style.display='none';
@@ -4653,7 +4937,7 @@ async function submitBulk(){
     if(problems.length){ clientErrors.push({label:(name||'CSV line '+rownum), error:problems.join('; ')}); return; }
     validRows.push({ name:name, chair_name:chair, chair_phone:phone, treasurer_name:treas, treasurer_phone:row.treasurer_phone||null,
       region:SESSION.region, district:SESSION.district, ward:ward.trim(), village:(row.village||'').trim()||null,
-      members:String(members), quorum:row.quorum||'80', freq:row.freq||'Monthly' });
+      members:String(members), quorum:row.quorum||String(param('quorum_default_pct',80)), freq:row.freq||'Monthly' });
   });
   var btn=document.getElementById('obs-bulk-submit'); btn.disabled=true; btn.textContent='Registering…';
   var server={succeeded:0, failed:0, results:[], errors:[]};
@@ -4728,7 +5012,7 @@ document.getElementById('lreg-submit').addEventListener('click', async function(
     p_chair_name:chair, p_chair_phone:phone, p_treasurer_name:treas,
     p_name:name, p_treasurer_phone:v('lreg-treasurerphone')||null,
     p_region:SESSION.region, p_district:SESSION.district, p_ward:ward, p_village:villageVal('lreg')||null,
-    p_members:members, p_quorum:parseInt(v('lreg-quorum'))||80, p_freq:v('lreg-freq')||null,
+    p_members:members, p_quorum:parseInt(v('lreg-quorum'))||param('quorum_default_pct',80), p_freq:v('lreg-freq')||null,
     p_created_by_role:'LGA_OFFICER', p_created_via:'SINGLE_ENTRY'
   });
   btn.disabled=false; btn.textContent='Register CMG';
@@ -4973,9 +5257,9 @@ function renderTamisemi(groups){
 // ── CSV ──
 document.getElementById('csv-btn').addEventListener('click', function(){
   var g=getG(); if(!g){ alert('No group data.'); return; }
-  var ms=g.meetings||[], thresh=Math.ceil((g.members||0)*(g.quorum||80)/100);
+  var ms=g.meetings||[], thresh=Math.ceil((g.members||0)*(g.quorum||param('quorum_default_pct',80))/100);
   var rows=[['PAMOJA CMG External Loan Tracker'],['CMG Number',g.cmgNumber||g.id],['Group name',g.name],
-    ['Ward',g.ward],['Village',g.village||''],['FI',g.fi],['Members',g.members],['Quorum %',g.quorum||80],
+    ['Ward',g.ward],['Village',g.village||''],['FI',g.fi],['Members',g.members],['Quorum %',g.quorum||param('quorum_default_pct',80)],
     ['Loan (TZS)',g.loan],['Total due (TZS)',g.totaldue],['Deadline',g.deadline||''],['Chairperson',g.chair],[],
     ['Date','Present','Threshold','Quorum','Savings (TZS)','Member repayments (TZS)','Disbursed (TZS)','Remitted to lender (TZS)','Notes']];
   ms.forEach(function(m){ rows.push([m.date,m.present,thresh,m.present>=thresh?'Y':'N',m.savings||0,m.memrepay||0,m.disbursed||0,m.repaid||0,m.notes||'']); });
@@ -5011,15 +5295,17 @@ function fiStatusChip(s){
 // Lender authorisation lives on its own tab — it's a governance action, kept out
 // of the way of the national reporting view.
 function switchTamTab(tab){
-  ['overview','fi'].forEach(function(t){
+  ['overview','fi','audit'].forEach(function(t){
     document.getElementById('tamt-'+t).style.display = t===tab?'block':'none';
   });
   document.querySelectorAll('#screen-tamisemi .tab').forEach(function(b){ b.classList.remove('active'); });
   document.getElementById('tab-tam-'+tab).classList.add('active');
   if(tab==='fi') renderFiAuthPanel();
+  if(tab==='audit') renderAuditLog(document.getElementById('tam-audit-panel'));
 }
 document.getElementById('tab-tam-overview').addEventListener('click', function(){ switchTamTab('overview'); });
 document.getElementById('tab-tam-fi').addEventListener('click', function(){ switchTamTab('fi'); });
+document.getElementById('tab-tam-audit').addEventListener('click', function(){ switchTamTab('audit'); });
 
 async function renderFiAuthPanel(){
   await loadFiInstitutions();
@@ -5196,6 +5482,8 @@ async function enterAdmin(){
   await loadData();
   renderAdminOfficers();
   renderAdminSuspended();
+  renderAdminParameters();
+  renderAuditLog(document.getElementById('adm-audit'));
   showAppScreen('screen-admin');
 }
 
@@ -5313,6 +5601,140 @@ function renderAdminSuspended(){
   });
 }
 
+// ── SYSTEM PARAMETERS (Administrator) ──
+// The values the rules run on, with the date each took effect. A change takes
+// effect today or on a future date; history stays in the table and the audit log.
+var PARAM_ORDER=['members_min','members_max','quorum_default_pct','share_value_min','share_value_max','share_value_step',
+                 'max_shares_per_meeting_cap','on_track_tolerance_pct','delinquent_after_days'];
+function renderAdminParameters(){
+  var el=document.getElementById('adm-params'); if(!el) return;
+  var today=new Date().toISOString().slice(0,10);
+  var keys=PARAM_ORDER.filter(function(k){ return PARAMS[k]; }).concat(Object.keys(PARAMS).filter(function(k){ return k!=='_all' && PARAM_ORDER.indexOf(k)<0; }));
+  var html='<div class="card"><div class="card-title">System parameters</div>'+
+    '<div style="font-size:13px;color:var(--muted);margin-bottom:.75rem">The limits and defaults the rules run on. '+
+    'Set a new value from today or a later date; earlier values stay on record.</div>'+
+    '<p id="param-err" style="color:var(--red);font-size:13px;margin-bottom:.5rem;display:none"></p>'+
+    '<div id="param-ok" class="alert-ok" style="display:none;margin-bottom:.5rem"></div>'+
+    '<table class="tbl"><thead><tr><th>Parameter</th><th class="num">In force</th><th>Since</th><th>New value</th><th>From</th><th></th></tr></thead><tbody>';
+  keys.forEach(function(k){
+    var p=PARAMS[k];
+    var pending=(PARAMS._all[k]||[]).filter(function(r){ return r.effective_from>today; }).sort(function(a,b){ return a.effective_from<b.effective_from?-1:1; })[0];
+    html+='<tr><td><div style="font-weight:600">'+escHtml(p.label)+'</div><div style="font-size:12px;color:var(--muted)">'+escHtml(p.description||'')+'</div>'+
+      (pending?'<div style="font-size:12px;color:var(--green-dark);margin-top:2px">Scheduled: '+escHtml(String(Number(pending.value)))+(p.unit?' '+escHtml(p.unit):'')+' from '+fmtDate(pending.effective_from)+'</div>':'')+'</td>'+
+      '<td class="num" style="font-weight:700;white-space:nowrap">'+escHtml(String(Number(p.value)))+(p.unit?' <span style="font-weight:400;color:var(--muted)">'+escHtml(p.unit)+'</span>':'')+'</td>'+
+      '<td style="white-space:nowrap">'+fmtDate(p.effective_from)+(p.set_by?'<div style="font-size:11px;color:var(--muted)">'+escHtml(p.set_by)+'</div>':'')+'</td>'+
+      '<td><input type="number" min="0" step="any" data-param-value="'+escHtml(k)+'" style="width:6.5em"></td>'+
+      '<td><input type="date" min="'+today+'" value="'+today+'" data-param-from="'+escHtml(k)+'"></td>'+
+      '<td><button class="btn btn-sm" data-param-set="'+escHtml(k)+'">Set</button></td></tr>';
+  });
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
+  el.querySelectorAll('[data-param-set]').forEach(function(btn){
+    btn.addEventListener('click', async function(){
+      var k=this.getAttribute('data-param-set');
+      var err=document.getElementById('param-err'), ok=document.getElementById('param-ok');
+      err.style.display='none'; ok.style.display='none';
+      var v=el.querySelector('[data-param-value="'+k+'"]').value, from=el.querySelector('[data-param-from="'+k+'"]').value;
+      if(v==='' || isNaN(Number(v))){ err.textContent='Enter the new value for '+PARAMS[k].label+'.'; err.style.display='block'; return; }
+      this.disabled=true;
+      var r=await SB.rpc('admin_set_parameter',{ p_key:k, p_value:Number(v), p_effective_from:from||null });
+      this.disabled=false;
+      if(r.error){ err.textContent=r.error.message||'Unable to change the parameter.'; err.style.display='block'; return; }
+      await loadParameters();
+      renderAdminParameters();
+      var ok2=document.getElementById('param-ok');
+      ok2.textContent='\u2713 '+PARAMS[k].label+' set to '+Number(v)+(PARAMS[k].unit?' '+PARAMS[k].unit:'')+(from>today?' from '+fmtDate(from):'')+'.';
+      ok2.style.display='block';
+    });
+  });
+}
+
+// ── AUDIT LOG (TAMISEMI and Administrator) ──
+// One append-only table written by trigger on every business table (G2). The
+// page only reads it; RLS returns nothing to any other role. Rendered the same
+// way on both screens: newest first, filter by table, expand a line to see
+// what changed, export what is on screen as CSV.
+var AUDIT_TABLE_LABEL={cmg_registry:'Group', meetings:'Meeting', external_loan:'Loan', loan_application:'Application',
+  fi_institutions:'Lender', fi_status_log:'Lender status', fi_notifications:'Lender notice', batches:'Bulk upload',
+  app_identity:'Login', lga_officers:'LGA officer', tamisemi_officers:'TAMISEMI officer', admin_officers:'Administrator'};
+var AUDIT_ROLE_LABEL={CHAIRPERSON:'Chairperson', LGA_OFFICER:'LGA officer', FI_LENDER:'Lender', TAMISEMI_OFFICER:'TAMISEMI', ADMIN:'Administrator'};
+function auditVal(v){
+  if(v===null||v===undefined) return '<span style="color:var(--muted)">empty</span>';
+  var s=typeof v==='object'?JSON.stringify(v):String(v);
+  if(s.length>60) s=s.slice(0,57)+'…';
+  return escHtml(s);
+}
+function auditWhen(s){
+  var d=new Date(s); if(isNaN(d)) return escHtml(s||'');
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})+' '+
+         d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+function auditWho(e){
+  if(!e.actor_role && !e.actor_id) return '<span style="color:var(--muted)">system</span>';
+  return escHtml(e.actor_id||'')+(e.actor_role?(' <span style="color:var(--muted)">· '+escHtml(AUDIT_ROLE_LABEL[e.actor_role]||e.actor_role)+'</span>'):'');
+}
+function auditSummary(e){
+  if(e.action==='INSERT') return 'New '+(AUDIT_TABLE_LABEL[e.table_name]||e.table_name).toLowerCase()+' row';
+  if(e.action==='DELETE') return 'Row removed';
+  var cols=(e.changed||[]);
+  return cols.length+' field'+(cols.length!==1?'s':'')+': '+escHtml(cols.slice(0,4).join(', '))+(cols.length>4?', …':'');
+}
+function auditDetail(e){
+  var b=e.before||{}, a=e.after||{};
+  var cols=e.action==='UPDATE'?(e.changed||[]):Object.keys(e.action==='INSERT'?a:b).sort();
+  if(!cols.length) return '<div style="color:var(--muted);font-size:12px">No field detail recorded.</div>';
+  return '<table class="tbl" style="margin:.25rem 0 .5rem"><thead><tr><th>Field</th><th>Before</th><th>After</th></tr></thead><tbody>'+
+    cols.map(function(c){ return '<tr><td style="font-weight:600">'+escHtml(c)+'</td><td>'+auditVal(b[c])+'</td><td>'+auditVal(a[c])+'</td></tr>'; }).join('')+
+    '</tbody></table>';
+}
+async function renderAuditLog(el){
+  if(!el) return;
+  el.innerHTML='<div class="card"><div class="card-title">Audit log</div><div style="font-size:13px;color:var(--muted)">Loading…</div></div>';
+  var r=await SB.from('audit_log').select('*').order('id',{ascending:false}).limit(300);
+  if(r.error){
+    el.innerHTML='<div class="card"><div class="card-title">Audit log</div><p style="color:var(--red);font-size:13px">'+escHtml(r.error.message||'Unable to load the audit log.')+'</p></div>';
+    return;
+  }
+  var all=r.data||[];
+  var tables={}; all.forEach(function(e){ tables[e.table_name]=(tables[e.table_name]||0)+1; });
+  var opts='<option value="">All tables ('+all.length+')</option>'+Object.keys(tables).sort().map(function(tn){
+    return '<option value="'+escHtml(tn)+'">'+escHtml(AUDIT_TABLE_LABEL[tn]||tn)+' ('+tables[tn]+')</option>'; }).join('');
+  el.innerHTML='<div class="card"><div class="card-title">Audit log</div>'+
+    '<div style="font-size:13px;color:var(--muted);margin-bottom:.75rem">Every insert, update and delete on every business table, recorded by the database as it happens. '+
+    'Lines cannot be edited or removed. Showing the most recent '+all.length+'.</div>'+
+    '<div style="display:flex;gap:8px;align-items:center;margin-bottom:.5rem;flex-wrap:wrap">'+
+      '<select id="audit-filter" style="flex:1;min-width:160px">'+opts+'</select>'+
+      '<button class="btn btn-sm" id="audit-csv">Export CSV</button></div>'+
+    '<div id="audit-rows"></div></div>';
+  var rowsEl=el.querySelector('#audit-rows'), filterEl=el.querySelector('#audit-filter');
+  function shown(){ var f=filterEl.value; return f?all.filter(function(e){ return e.table_name===f; }):all; }
+  function draw(){
+    var list=shown();
+    if(!list.length){ rowsEl.innerHTML='<div class="empty-state">Nothing recorded yet.</div>'; return; }
+    rowsEl.innerHTML='<table class="tbl"><thead><tr><th>When</th><th>Who</th><th>Action</th><th>Table</th><th>Row</th><th>Change</th></tr></thead><tbody>'+
+      list.map(function(e,i){
+        return '<tr class="clickable" data-audit="'+i+'"><td style="white-space:nowrap">'+auditWhen(e.at)+'</td><td>'+auditWho(e)+'</td>'+
+          '<td>'+escHtml(e.action.charAt(0)+e.action.slice(1).toLowerCase())+'</td><td>'+escHtml(AUDIT_TABLE_LABEL[e.table_name]||e.table_name)+'</td>'+
+          '<td><span class="fi-pill">'+escHtml(e.row_id)+'</span></td><td>'+auditSummary(e)+'</td></tr>'+
+          '<tr data-audit-detail="'+i+'" style="display:none"><td colspan="6" style="background:var(--gray50)">'+auditDetail(e)+'</td></tr>';
+      }).join('')+'</tbody></table>';
+    rowsEl.querySelectorAll('[data-audit]').forEach(function(tr){
+      tr.addEventListener('click', function(){
+        var d=rowsEl.querySelector('[data-audit-detail="'+this.getAttribute('data-audit')+'"]');
+        if(d) d.style.display=d.style.display==='none'?'':'none';
+      });
+    });
+  }
+  filterEl.addEventListener('change', draw);
+  el.querySelector('#audit-csv').addEventListener('click', function(){
+    var rows=[['When','Actor','Role','Action','Table','Row','Changed fields','Before','After']];
+    shown().forEach(function(e){ rows.push([e.at, e.actor_id||'', e.actor_role||'system', e.action, e.table_name, e.row_id,
+      (e.changed||[]).join(' '), e.before?JSON.stringify(e.before):'', e.after?JSON.stringify(e.after):'']); });
+    dlCSV(rows,'pamoja_audit_log_'+new Date().toISOString().slice(0,10)+'.csv');
+  });
+  draw();
+}
+
 function showAppScreen(id){
   document.querySelectorAll('#app-shell .screen').forEach(function(s){ s.classList.remove('active'); });
   document.getElementById(id).classList.add('active');
@@ -5322,6 +5744,7 @@ window.addEventListener('DOMContentLoaded', function(){
   // Data loads after authentication (see login flow) — no local seeding.
   // fi_institutions is readable pre-auth, so the login picker can be built now.
   loadFiInstitutions().then(populateFiLoginSelect);
+  loadParameters();
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('app-shell').style.display='none';
   setStep(1);
@@ -5410,6 +5833,14 @@ window.addEventListener('DOMContentLoaded', function(){
     'mt.quorum.fail':'✗ Below quorum — {n} of {m} present, {t} needed. The meeting can still be recorded, but the group cannot take a loan decision at it.',
     'mt.savings.ask':'How much was saved at this meeting?',
     'mt.savings.help':'Total shares bought by members (TZS). Enter 0 if none.',
+    // Replaces mt.savings.* above once the group has set its share value (Group
+    // profile) — the two legacy keys stay for amending a record from before that.
+    'mt.shares.ask':'How many shares did members buy at this meeting?',
+    'mt.shares.help':'Total shares bought by members. Enter 0 if none.',
+    'mt.shares.range':'Between {min} and {max} shares.',
+    'mt.shares.outofrange':'Must be between {min} and {max} shares for this meeting.',
+    'mt.shares.total':'{n} shares × {value} = {tzs}',
+    'mt.shares.blocked':'This group has not set its share value yet. A chairperson must set it once, from Group profile, before shares can be logged.',
     'mt.memrepay.ask':'How much did members repay into the group?',
     'mt.memrepay.help':'Total loan repayments collected from members (TZS). Enter 0 if none.',
     'mt.disbursed.ask':'How much did the group lend out to members?',
@@ -5429,6 +5860,7 @@ window.addEventListener('DOMContentLoaded', function(){
     'mt.check.ok':'✓ This meeting met quorum — {n} of {m} present. A loan decision could be taken at it.',
     'mt.check.fail':'⚠ This meeting was below quorum — {n} of {m} present, {t} needed. It will be recorded, but a loan decision cannot be taken at it.',
     'mt.row.changed':'Has anyone joined or left?', 'mt.row.savings':'Saved at this meeting',
+    'mt.row.shares.val':'{n} shares ({tzs})',
     'mt.row.memrepay':'Repaid by members into the group', 'mt.row.disbursed':'Lent out to members',
     'mt.row.remit':'Repaid a loan instalment?', 'mt.row.paid':'Paid to the lender',
     'mt.row.paid.full':'The full instalment ({amt})', 'mt.row.paid.part':'{amt} (part)', 'mt.row.notes':'Notes',
@@ -5508,6 +5940,15 @@ window.addEventListener('DOMContentLoaded', function(){
     'mt.quorum.fail':'✗ Idadi haijatimia — {n} kati ya {m} wamehudhuria, wanaohitajika {t}. Mkutano bado unaweza kurekodiwa, lakini kikundi hakiwezi kufanya maamuzi kuhusu mkopo katika mkutano huu.',
     'mt.savings.ask':'Jumla ya hisa zilizonunuliwa na wanakikundi ni kiasi gani?',   /* reviewed */
     'mt.savings.help':'Jumla ya hisa zilizonunuliwa (TZS). Andika 0 ikiwa hakuna.',
+    /* mt.shares.* below are a NEW, unreviewed machine-translated first pass (added with
+       share tracking) — not yet checked by the native-speaker reviewer, same caution
+       as any other financial term per I18N_SWAHILI.md. Review before relying on it. */
+    'mt.shares.ask':'Wanachama walinunua hisa ngapi katika mkutano huu?',              /* unreviewed */
+    'mt.shares.help':'Jumla ya hisa zilizonunuliwa na wanakikundi. Andika 0 ikiwa hakuna.',   /* unreviewed */
+    'mt.shares.range':'Kati ya hisa {min} na {max}.',                                  /* unreviewed */
+    'mt.shares.outofrange':'Lazima iwe kati ya hisa {min} na {max} kwa mkutano huu.',   /* unreviewed */
+    'mt.shares.total':'Hisa {n} × {value} = {tzs}',                                    /* unreviewed */
+    'mt.shares.blocked':'Kikundi hiki bado hakijaweka thamani ya hisa. Mwenyekiti anapaswa kuiweka mara moja, kwenye wasifu wa kikundi, kabla hisa hazijaweza kurekodiwa.',   /* unreviewed */
     'mt.memrepay.ask':'Jumla ya marejesho ya mikopo ni kiasi gani?',             /* reviewed */
     'mt.memrepay.help':'Jumla ya marejesho ya mikopo kutoka kwa wanachama (TZS). Andika 0 ikiwa hakuna.',
     'mt.disbursed.ask':'Jumla ya mikopo iliyotolewa ni kiasi gani?',             /* reviewed */
@@ -5526,6 +5967,7 @@ window.addEventListener('DOMContentLoaded', function(){
     'mt.check.ok':'✓ Mkutano huu umetimiza idadi inayohitajika — {n} kati ya {m} wamehudhuria. Maamuzi kuhusu mkopo yanaweza kufanyika.',
     'mt.check.fail':'⚠ Mkutano huu haujatimiza idadi inayohitajika — {n} kati ya {m} wamehudhuria, wanaohitajika {t}. Utarekodiwa, lakini maamuzi kuhusu mkopo hayawezi kufanyika.',
     'mt.row.changed':'Kuna aliyejiunga au kuondoka?', 'mt.row.savings':'Hisa zilizonunuliwa',
+    'mt.row.shares.val':'Hisa {n} ({tzs})',   /* unreviewed */
     'mt.row.memrepay':'Marejesho ya wanachama', 'mt.row.disbursed':'Mikopo iliyotolewa',
     'mt.row.remit':'Awamu ya mkopo ililipwa?', 'mt.row.paid':'Kililipwa benki',
     'mt.row.paid.full':'Awamu kamili ({amt})', 'mt.row.paid.part':'{amt} (sehemu)', 'mt.row.notes':'Maelezo',
@@ -5888,8 +6330,10 @@ async function meetingDrive(m, upTo){
   click("wz-next");                                   /* → present */
   setVal("l-present", m.present);
   if(upTo==="present") return;
-  click("wz-next");                                   /* → savings + repayments */
-  setVal("l-savings", m.savings); setVal("l-memrepay", m.memrepay);
+  click("wz-next");                                   /* → shares + repayments */
+  /* the wizard asks for shares bought once share settings exist; savings follows as shares × value */
+  var sv=(getG()&&getG().shareValue)||0;
+  setVal("l-savings", sv ? Math.round(m.savings/sv) : m.savings); setVal("l-memrepay", m.memrepay);
   click("wz-next");                                   /* → disbursed (+ instalment question with a loan) */
   setVal("l-disbursed", 0);
   var hasLoan=!!(getG() && getG().loan>0);
@@ -5974,8 +6418,25 @@ async function doAssign(){
 
 /* the four meetings before the loan — three seeded, the fourth driven through
    the wizard because the tour stops on it */
-async function doRecord(){
+/* Share settings, decided once by the chairperson from Group profile, through
+   the app's own form. The meeting wizard logs shares bought rather than a
+   shilling figure once they exist, so this precedes the first wizard meeting.
+   5,000 per share divides every figure the meetings quote, so the amounts on
+   screen are exactly the ones in M. */
+var SHARES={ value:5000, max:10 };
+async function doShares(){
   await doAssign();
+  var g=rawG(); if(g && g.share_value) return;
+  await asChair("dash");
+  prefillSetup(getG()); showAppScreen("screen-setup"); renderShareSettings(getG());
+  setVal("ss-value", SHARES.value); setVal("ss-max", SHARES.max);
+  click("ss-save-btn"); await tick();
+  click("ss-confirm-save");
+  await until(function(){ var x=rawG(); return !!(x && x.share_value); });
+  await loadData();
+}
+async function doRecord(){
+  await doShares();
   await seedMeeting(M.m1); await seedMeeting(M.m2); await seedMeeting(M.m3);
   await wizardMeeting(M.m4);
 }
