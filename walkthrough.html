@@ -488,6 +488,8 @@ body.tour-on #tour-slide.on{ display:flex }
 .t-flow.two{ grid-template-columns:1.15fr 1fr; align-items:start }
 .t-flow.two .t-tree{ min-width:0 }
 .t-bar i{ min-width:24px }
+.t-cycle{ position:relative; row-gap:6px }
+.t-cycle svg.t-arrows{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible }
 
 </style>
 <!-- supabase-js v2.115.0, bundled at build time (G15) — no runtime CDN
@@ -7829,7 +7831,7 @@ function slideDesksTitle(){
 function slideDesks(){
   return '<div class="t-slide">'+
     '<h1>Four desks</h1>'+
-    '<div class="sub">What sets each apart.</div>'+
+    '<div class="sub">What each stakeholder does.</div>'+
     '<div class="t-desks">'+
       '<div class="t-desk cmg"><b>Chairperson</b>'+
         '<p>Keeps the group\u2019s record from the first meeting.</p></div>'+
@@ -7860,13 +7862,55 @@ function slideCycle(){
     ["Track",             "Confirmed and reported, side by side", "District pipeline and exceptions", "Portfolio and arrears", "The country, live"]
   ];
   var cls=["cmg","gov","fi","gov"];
+  var order={ "Disburse": {3:1, 1:2} };       /* column → reading order within that row */
   var h='<div class="t-slide cycle"><h1>The loan cycle</h1><div class="sub">Who comes in when.</div><div class="t-cycle">'+
     '<div></div><div class="h cmg">Chairperson</div><div class="h gov">LGA officer</div><div class="h fi">FI lender</div><div class="h gov">TAMISEMI</div>';
-  rows.forEach(function(r){
+  rows.forEach(function(r,ri){
+    var last = ri===rows.length-1;              /* Track: four boxes in parallel, so the chain ends at the first */
     h+='<div class="st">'+r[0]+'</div>';
-    for(var i=1;i<5;i++) h+='<div class="c'+(r[i]?' on '+cls[i-1]:'')+'">'+r[i]+'</div>';
+    for(var i=1;i<5;i++){
+      var od=(order[r[0]]&&order[r[0]][i])?' data-order="'+order[r[0]][i]+'"':'';
+      h+='<div class="c'+(r[i]?' on '+cls[i-1]+(last?' par':''):'')+'"'+od+'>'+r[i]+'</div>';
+    }
   });
   return h+'</div></div>';
+}
+/* A dotted arrow from each box to the next, so the eye follows the zigzag
+   between columns without having to work out the order. Drawn after the
+   slide is laid out; redrawn on resize. */
+function drawCycleArrows(sl){
+  var grid=sl.querySelector('.t-cycle'); if(!grid) return;
+  var old=grid.querySelector('svg.t-arrows'); if(old) old.remove();
+  var boxes=Array.prototype.slice.call(grid.querySelectorAll('.c.on'));
+  /* DOM order is left to right within a row; a data-order attribute overrides it */
+  boxes.sort(function(a,b){
+    var ra=Math.round(a.offsetTop/10), rb=Math.round(b.offsetTop/10);
+    if(ra!==rb) return ra-rb;
+    var oa=+(a.getAttribute('data-order')||0), ob=+(b.getAttribute('data-order')||0);
+    if(oa&&ob) return oa-ob;
+    return a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+  });
+  var chain=[], seenPar=false;
+  boxes.forEach(function(b){ if(b.classList.contains('par')){ if(!seenPar){ chain.push(b); seenPar=true; } } else chain.push(b); });
+  var g=grid.getBoundingClientRect();
+  var NS='http://www.w3.org/2000/svg', svg=document.createElementNS(NS,'svg');
+  svg.setAttribute('class','t-arrows');
+  svg.setAttribute('viewBox','0 0 '+g.width+' '+g.height);
+  var defs=document.createElementNS(NS,'defs');
+  defs.innerHTML='<marker id="t-arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">'+
+    '<path d="M0,1 L9,5 L0,9 Z" fill="#6f5416"/></marker>';
+  svg.appendChild(defs);
+  for(var i=0;i<chain.length-1;i++){
+    var a=chain[i].getBoundingClientRect(), b=chain[i+1].getBoundingClientRect();
+    var x1=a.left-g.left+a.width/2, y1=a.bottom-g.top, x2=b.left-g.left+b.width/2, y2=b.top-g.top;
+    var path=document.createElementNS(NS,'path');
+    path.setAttribute('d','M'+x1+','+y1+' L'+x2+','+y2);
+    path.setAttribute('stroke','#6f5416'); path.setAttribute('stroke-width','1.6');
+    path.setAttribute('stroke-dasharray','3 4'); path.setAttribute('fill','none');
+    path.setAttribute('marker-end','url(#t-arrowhead)');
+    svg.appendChild(path);
+  }
+  grid.appendChild(svg);
 }
 function slideRecordAndMoney(){
   return '<div class="t-slide">'+
@@ -7902,7 +7946,7 @@ function slideBook(){
 function slideCouncil(){
   return '<div class="t-slide">'+
     '<h1>The council\u2019s desk</h1>'+
-    '<div class="sub">A registration arrives complete.</div>'+
+    '<div class="sub">Registration data must be complete for processing.</div>'+
     '<div class="t-flow">'+
       '<div class="t-box cmg"><b>Registration</b><ul>'+
         '<li>Group name and place</li><li>Members and quorum threshold</li>'+
@@ -7917,7 +7961,7 @@ function slideCouncil(){
 function slideLender(){
   return '<div class="t-slide">'+
     '<h1>The lender\u2019s desk</h1>'+
-    '<div class="sub">The application is the group\u2019s record.</div>'+
+    '<div class="sub">The group data is sent with the completed loan application.</div>'+
     '<div class="t-flow">'+
       '<div class="t-box cmg"><b>Application</b><ul>'+
         '<li>Members and years active</li><li>Savings</li><li>Every meeting logged</li></ul></div>'+
@@ -8265,22 +8309,22 @@ var STEPS = [
   slide:function(){ return slideBook(); }, spot:null, hold:50000 },
 
 { ch:"p0", title:"Four desks",
-  text:"What sets each desk apart, in a line or two.",
+  text:"What each stakeholder does, in a line or two.",
   act:async function(){ showLogin(); },
   slide:function(){ return slideDesks(); }, spot:null, hold:45000 },
 
 { ch:"p0", title:"The loan cycle",
   text:"Who comes in when. Read it top to bottom: the record passes from desk to desk, and each desk adds its part.",
   act:async function(){ showLogin(); },
-  slide:function(){ return slideCycle(); }, spot:null, hold:55000 },
+  slide:function(){ return slideCycle(); }, slideDraw:drawCycleArrows, spot:null, hold:55000 },
 
 { ch:"p0", title:"The council's desk",
-  text:"A registration arrives complete: name, place, members, quorum threshold, and the office-bearers with their identity numbers. The officer verifies it and attaches an authorised lender. A group registered by one officer is verified by another.",
+  text:"Registration data must be complete for processing: name, place, members, quorum threshold, and the office-bearers with their identity numbers. The officer verifies it and attaches an authorised lender. A group registered by one officer is verified by another.",
   act:async function(){ showLogin(); },
   slide:function(){ return slideCouncil(); }, spot:null, hold:45000 },
 
 { ch:"p0", title:"The lender's desk",
-  text:"The application is the group's record: members, years active, savings, and every meeting logged. The lender makes the appraisal and decision on that record, approving in full or in part and setting the terms. Every figure downstream is computed from the approved amount.",
+  text:"The group data is sent with the completed loan application: members, years active, savings, and every meeting logged. The lender makes the appraisal and decision on that record, approving in full or in part and setting the terms. Every figure downstream is computed from the approved amount.",
   act:async function(){ showLogin(); },
   slide:function(){ return slideLender(); }, spot:null, hold:45000 },
 
@@ -8702,7 +8746,10 @@ async function goTo(n,opts){
      narration, the replay, the timing — is the same. */
   var sl=q("#tour-slide");
   if(sl){
-    if(s.slide){ sl.innerHTML=s.slide(); sl.classList.add("on"); }
+    if(s.slide){
+      sl.innerHTML=s.slide(); sl.classList.add("on");
+      if(s.slideDraw){ var draw=function(){ if(T.i===n) s.slideDraw(sl); }; requestAnimationFrame(draw); setTimeout(draw,150); }
+    }
     else { sl.classList.remove("on"); sl.innerHTML=""; }
   }
 
@@ -8822,6 +8869,7 @@ function ping(){
   p.classList.remove("go"); void p.offsetWidth; p.classList.add("go");
 }
 window.addEventListener("resize", place);
+window.addEventListener("resize", function(){ var s=STEPS[T.i]; var sl=q("#tour-slide"); if(s && s.slideDraw && sl && sl.classList.contains("on")) s.slideDraw(sl); });
 window.addEventListener("scroll", place, true);
 
 /* ═════ entering and leaving ═════ */
