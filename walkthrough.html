@@ -1955,86 +1955,86 @@ window.SB_STUB = {
 
     <div id="login-step2" style="display: block;">
       <div id="chair-identity" style="display: none;">
-        <div style="font-weight:700;font-size:15px;margin-bottom:.25rem">Identify your group</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Enter your CMG ID number to look up your group.</div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:.25rem" data-i18n="login.chair.heading">Identify your group</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem" data-i18n="login.chair.sub">Enter your CMG ID number to look up your group.</div>
         <div class="field" style="display:flex;gap:8px;align-items:flex-end">
           <div style="flex:1">
-            <label>CMG ID Number</label>
-            <input type="text" id="inp-cmgid" placeholder="e.g. C1001" style="text-transform:uppercase">
+            <label data-i18n="login.chair.idlabel">CMG ID Number</label>
+            <input type="text" id="inp-cmgid" data-i18n-ph="login.chair.idph" placeholder="e.g. C1001" style="text-transform:uppercase">
           </div>
-          <button class="btn btn-primary" id="btn-lookup" style="margin-bottom:1rem;white-space:nowrap">Look up</button>
+          <button class="btn btn-primary" id="btn-lookup" style="margin-bottom:1rem;white-space:nowrap" data-i18n="login.lookup">Look up</button>
         </div>
         <div id="cmg-lookup-result" style="display:none">
-          <div class="alert-ok" id="cmg-found-banner" style="margin-bottom:1rem;display:none">✓ CMG found</div>
+          <div class="alert-ok" id="cmg-found-banner" style="margin-bottom:1rem;display:none" data-i18n="login.chair.found">✓ CMG found</div>
           <div class="row2">
-            <div class="field"><label>CMG Name</label><input type="text" id="auto-name" readonly=""></div>
-            <div class="field"><label>Chairperson</label><input type="text" id="auto-chair" readonly=""></div>
+            <div class="field"><label data-i18n="login.f.name">CMG Name</label><input type="text" id="auto-name" readonly=""></div>
+            <div class="field"><label data-i18n="login.f.chair">Chairperson</label><input type="text" id="auto-chair" readonly=""></div>
           </div>
           <div class="row2">
-            <div class="field"><label>Region</label><input type="text" id="auto-region" readonly=""></div>
-            <div class="field"><label>District Council</label><input type="text" id="auto-district" readonly=""></div>
+            <div class="field"><label data-i18n="login.f.region">Region</label><input type="text" id="auto-region" readonly=""></div>
+            <div class="field"><label data-i18n="login.f.district">District Council</label><input type="text" id="auto-district" readonly=""></div>
           </div>
           <div class="row2">
-            <div class="field"><label>Ward</label><input type="text" id="auto-ward" readonly=""></div>
-            <div class="field"><label>Village</label><input type="text" id="auto-village" readonly=""></div>
+            <div class="field"><label data-i18n="login.f.ward">Ward</label><input type="text" id="auto-ward" readonly=""></div>
+            <div class="field"><label data-i18n="login.f.village">Village</label><input type="text" id="auto-village" readonly=""></div>
           </div>
         </div>
-        <div style="margin-top:.75rem;font-size:13px;text-align:center;padding-top:.75rem;border-top:1px solid var(--border)">New group without a CMG ID? <a href="#" id="open-register" style="color:var(--green);font-weight:700;text-decoration:none">Register a new CMG →</a></div>
+        <div style="margin-top:.75rem;font-size:13px;text-align:center;padding-top:.75rem;border-top:1px solid var(--border)"><span data-i18n="login.chair.new">New group without a CMG ID?</span> <a href="#" id="open-register" style="color:var(--green);font-weight:700;text-decoration:none" data-i18n="login.chair.register">Register a new CMG →</a></div>
       </div>
       <div id="lga-identity" style="display:none">
-        <div style="font-weight:700;font-size:15px;margin-bottom:.25rem">LGA Officer — Login</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Enter your officer ID to verify your identity.</div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:.25rem" data-i18n="login.lga.heading">LGA Officer — Login</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem" data-i18n="login.officer.sub">Enter your officer ID to verify your identity.</div>
         <div class="field" style="display:flex;gap:8px;align-items:flex-end">
-          <div style="flex:1"><label>Officer ID</label><input type="text" id="inp-lgaid" placeholder="e.g. LGA001" style="text-transform:uppercase"></div>
-          <button class="btn btn-primary" id="btn-lga-lookup" style="margin-bottom:1rem;white-space:nowrap">Verify</button>
+          <div style="flex:1"><label data-i18n="login.officer.idlabel">Officer ID</label><input type="text" id="inp-lgaid" data-i18n-ph="login.ph.lga" placeholder="e.g. LGA001" style="text-transform:uppercase"></div>
+          <button class="btn btn-primary" id="btn-lga-lookup" style="margin-bottom:1rem;white-space:nowrap" data-i18n="login.verify">Verify</button>
         </div>
         <div id="lga-lookup-result" style="display:none">
-          <div class="alert-ok" style="margin-bottom:1rem">✓ Officer verified</div>
+          <div class="alert-ok" style="margin-bottom:1rem" data-i18n="login.officer.verified">✓ Officer verified</div>
           <div class="row2">
-            <div class="field"><label>Name</label><input type="text" id="lga-auto-name" readonly=""></div>
-            <div class="field"><label>District Council</label><input type="text" id="lga-auto-district" readonly=""></div>
+            <div class="field"><label data-i18n="login.f.officername">Name</label><input type="text" id="lga-auto-name" readonly=""></div>
+            <div class="field"><label data-i18n="login.f.district">District Council</label><input type="text" id="lga-auto-district" readonly=""></div>
           </div>
         </div>
       </div>
       <div id="tamisemi-identity" style="display: none;">
-        <div style="font-weight:700;font-size:15px;margin-bottom:.25rem">TAMISEMI Officer — Login</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Enter your officer ID to verify your identity.</div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:.25rem" data-i18n="login.tam.heading">TAMISEMI Officer — Login</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem" data-i18n="login.officer.sub">Enter your officer ID to verify your identity.</div>
         <div class="field" style="display:flex;gap:8px;align-items:flex-end">
-          <div style="flex:1"><label>Officer ID</label><input type="text" id="inp-tamid" placeholder="e.g. TAM001" style="text-transform:uppercase"></div>
-          <button class="btn btn-primary" id="btn-tam-lookup" style="margin-bottom:1rem;white-space:nowrap">Verify</button>
+          <div style="flex:1"><label data-i18n="login.officer.idlabel">Officer ID</label><input type="text" id="inp-tamid" data-i18n-ph="login.ph.tam" placeholder="e.g. TAM001" style="text-transform:uppercase"></div>
+          <button class="btn btn-primary" id="btn-tam-lookup" style="margin-bottom:1rem;white-space:nowrap" data-i18n="login.verify">Verify</button>
         </div>
         <div id="tam-lookup-result" style="display: block;">
-          <div class="alert-ok" style="margin-bottom:1rem">✓ Officer verified</div>
-          <div class="field"><label>Name</label><input type="text" id="tam-auto-name" readonly=""></div>
+          <div class="alert-ok" style="margin-bottom:1rem" data-i18n="login.officer.verified">✓ Officer verified</div>
+          <div class="field"><label data-i18n="login.f.officername">Name</label><input type="text" id="tam-auto-name" readonly=""></div>
         </div>
       </div>
       <div id="fi-identity" style="display: none;">
-        <div style="font-weight:700;font-size:15px;margin-bottom:.75rem">FI Lender</div>
-        <div class="field"><label>Institution</label>
+        <div style="font-weight:700;font-size:15px;margin-bottom:.75rem" data-i18n="login.fi.heading">FI Lender</div>
+        <div class="field"><label data-i18n="login.fi.institution">Institution</label>
           <!-- Populated at init from fi_institutions: authorised institutions plus
                suspended ones, so a suspended lender can be told why they are locked out. -->
-          <select id="fi-institution"><option value="">— Select —</option><option value="AccessBank Tanzania">AccessBank Tanzania</option><option value="CRDB Bank">CRDB Bank</option><option value="FINCA Tanzania">FINCA Tanzania</option><option value="NBC Bank">NBC Bank</option><option value="NMB Bank">NMB Bank</option><option value="VisionFund Tanzania">VisionFund Tanzania</option></select>
+          <select id="fi-institution"><option value="" data-i18n="login.fi.select">— Select —</option><option value="AccessBank Tanzania">AccessBank Tanzania</option><option value="CRDB Bank">CRDB Bank</option><option value="FINCA Tanzania">FINCA Tanzania</option><option value="NBC Bank">NBC Bank</option><option value="NMB Bank">NMB Bank</option><option value="VisionFund Tanzania">VisionFund Tanzania</option></select>
         </div>
         <div id="fi-suspended-notice" class="alert alert-warn" style="display:none;margin-bottom:1rem"></div>
       </div>
 
       <div id="admin-identity" style="display: block;">
-        <div style="font-weight:700;font-size:15px;margin-bottom:.25rem">Administrator — Login</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Enter your administrator ID to verify your identity.</div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:.25rem" data-i18n="login.adm.heading">Administrator — Login</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem" data-i18n="login.adm.sub">Enter your administrator ID to verify your identity.</div>
         <div class="field" style="display:flex;gap:8px;align-items:flex-end">
-          <div style="flex:1"><label>Administrator ID</label><input type="text" id="inp-admid" placeholder="e.g. ADM001" style="text-transform:uppercase"></div>
-          <button class="btn btn-primary" id="btn-adm-lookup" style="margin-bottom:1rem;white-space:nowrap">Verify</button>
+          <div style="flex:1"><label data-i18n="login.adm.idlabel">Administrator ID</label><input type="text" id="inp-admid" data-i18n-ph="login.ph.adm" placeholder="e.g. ADM001" style="text-transform:uppercase"></div>
+          <button class="btn btn-primary" id="btn-adm-lookup" style="margin-bottom:1rem;white-space:nowrap" data-i18n="login.verify">Verify</button>
         </div>
         <div id="adm-lookup-result" style="display: block;">
-          <div class="alert-ok" style="margin-bottom:1rem">✓ Administrator verified</div>
-          <div class="field"><label>Name</label><input type="text" id="adm-auto-name" readonly=""></div>
+          <div class="alert-ok" style="margin-bottom:1rem" data-i18n="login.adm.verified">✓ Administrator verified</div>
+          <div class="field"><label data-i18n="login.f.officername">Name</label><input type="text" id="adm-auto-name" readonly=""></div>
         </div>
       </div>
 
       <p id="s2-err" style="color:var(--red);font-size:13px;margin-bottom:.5rem;display:none"></p>
       <div style="display:flex;gap:8px">
-        <button class="btn" id="step2-back">← Back</button>
-        <button class="btn btn-primary btn-full" id="step2-continue">Continue →</button>
+        <button class="btn" id="step2-back" data-i18n="btn.back">← Back</button>
+        <button class="btn btn-primary btn-full" id="step2-continue" data-i18n="btn.continue">Continue →</button>
       </div>
     </div>
 
@@ -2042,45 +2042,45 @@ window.SB_STUB = {
       <!-- LGA scope -->
       <div id="lga-scope" style="display:none">
         <div style="font-weight:700;font-size:15px;margin-bottom:.25rem" id="lga-scope-title"></div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Choose which wards to view.</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem" data-i18n="login.scope.lga">Choose which wards to view.</div>
         <div class="field">
-          <label>Ward</label>
+          <label data-i18n="login.f.ward">Ward</label>
           <select id="lga-ward-sel">
-            <option value="">— All wards in district —</option>
+            <option value="" data-i18n="login.scope.allwards">— All wards in district —</option>
           </select>
         </div>
       </div>
       <!-- FI scope -->
       <div id="fi-scope" style="display: block;">
         <div style="font-weight:700;font-size:15px;margin-bottom:.25rem" id="fi-scope-title">CRDB Bank — Select scope</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Choose the region and district to view. Select "All" to see data across all your groups.</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem" data-i18n="login.scope.fi">Choose the region and district to view. Select "All" to see data across all your groups.</div>
         <div class="field">
-          <label>Region</label>
-          <select id="fi-region"><option value="">— All regions —</option><option value="Arusha">Arusha</option><option value="Singida">Singida</option></select>
+          <label data-i18n="login.f.region">Region</label>
+          <select id="fi-region"><option value="" data-i18n="login.scope.allregions">— All regions —</option><option value="Arusha">Arusha</option><option value="Singida">Singida</option></select>
         </div>
         <div class="field">
-          <label>District Council</label>
-          <select id="fi-district" disabled="" style="opacity: 0.5;"><option value="">— All districts —</option></select>
+          <label data-i18n="login.f.district">District Council</label>
+          <select id="fi-district" disabled="" style="opacity: 0.5;"><option value="" data-i18n="login.scope.alldistricts">— All districts —</option></select>
         </div>
       </div>
       <!-- TAMISEMI scope -->
       <div id="tamisemi-scope" style="display: block;">
-        <div style="font-weight:700;font-size:15px;margin-bottom:.25rem">Select scope</div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem">Choose the region and district to view. Select "All" to see data across all areas.</div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:.25rem" data-i18n="login.scope.heading">Select scope</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:1rem" data-i18n="login.scope.tam">Choose the region and district to view. Select "All" to see data across all areas.</div>
         <div class="field">
-          <label>Region</label>
-          <select id="tamisemi-region"><option value="">— All regions —</option><option value="Arusha">Arusha</option><option value="Singida">Singida</option></select>
+          <label data-i18n="login.f.region">Region</label>
+          <select id="tamisemi-region"><option value="" data-i18n="login.scope.allregions">— All regions —</option><option value="Arusha">Arusha</option><option value="Singida">Singida</option></select>
         </div>
         <div class="field">
-          <label>District Council</label>
-          <select id="tamisemi-district" disabled="" style="opacity: 0.5;"><option value="">— All districts —</option></select>
+          <label data-i18n="login.f.district">District Council</label>
+          <select id="tamisemi-district" disabled="" style="opacity: 0.5;"><option value="" data-i18n="login.scope.alldistricts">— All districts —</option></select>
         </div>
       </div>
       <p id="s3-err" style="color:var(--red);font-size:13px;margin-bottom:.5rem;display:none"></p>
       <div style="display:flex;gap:8px">
-        <button class="btn" id="step3-back">← Back</button>
-        <button class="btn btn-primary btn-full" id="step3-continue">Enter</button>
-        <button class="btn btn-danger" id="step3-logout">Log out</button>
+        <button class="btn" id="step3-back" data-i18n="btn.back">← Back</button>
+        <button class="btn btn-primary btn-full" id="step3-continue" data-i18n="login.enter">Enter</button>
+        <button class="btn btn-danger" id="step3-logout" data-i18n="btn.logout">Log out</button>
       </div>
     </div>
 
@@ -3168,13 +3168,13 @@ async function doLgaLookup(){
   var err=document.getElementById('s2-err'); err.style.display='none';
   _lgaOfficer=null;
   document.getElementById('lga-lookup-result').style.display='none';
-  if(!raw){ err.textContent='Please enter a valid Officer ID.'; err.style.display='block'; return; }
+  if(!raw){ err.textContent=t('login.err.officerid'); err.style.display='block'; return; }
   var res=await sbSignIn(raw.toLowerCase()+'@pamoja.demo');
-  if(!res.ok){ err.textContent='Please enter a valid Officer ID.'; err.style.display='block'; return; }
+  if(!res.ok){ err.textContent=t('login.err.officerid'); err.style.display='block'; return; }
   await loadData();
   var q=await SB.from('lga_officers').select('*').eq('officer_id', raw).maybeSingle();
   var o=q.data;
-  if(!o){ err.textContent='Please enter a valid Officer ID.'; err.style.display='block'; return; }
+  if(!o){ err.textContent=t('login.err.officerid'); err.style.display='block'; return; }
   _lgaOfficer={ id:o.officer_id, name:o.name, district:o.district, region:o.region };
   document.getElementById('lga-auto-name').value=o.name;
   document.getElementById('lga-auto-district').value=o.district;
@@ -3189,13 +3189,13 @@ async function doTamLookup(){
   var err=document.getElementById('s2-err'); err.style.display='none';
   _tamOfficer=null;
   document.getElementById('tam-lookup-result').style.display='none';
-  if(!raw){ err.textContent='Please enter a valid Officer ID.'; err.style.display='block'; return; }
+  if(!raw){ err.textContent=t('login.err.officerid'); err.style.display='block'; return; }
   var res=await sbSignIn(raw.toLowerCase()+'@pamoja.demo');
-  if(!res.ok){ err.textContent='Please enter a valid Officer ID.'; err.style.display='block'; return; }
+  if(!res.ok){ err.textContent=t('login.err.officerid'); err.style.display='block'; return; }
   await loadData();
   var q=await SB.from('tamisemi_officers').select('*').eq('officer_id', raw).maybeSingle();
   var o=q.data;
-  if(!o){ err.textContent='Please enter a valid Officer ID.'; err.style.display='block'; return; }
+  if(!o){ err.textContent=t('login.err.officerid'); err.style.display='block'; return; }
   _tamOfficer={ id:o.officer_id, name:o.name };
   document.getElementById('tam-auto-name').value=o.name;
   document.getElementById('tam-lookup-result').style.display='block';
@@ -3209,12 +3209,12 @@ async function doAdmLookup(){
   var err=document.getElementById('s2-err'); err.style.display='none';
   _admOfficer=null;
   document.getElementById('adm-lookup-result').style.display='none';
-  if(!raw){ err.textContent='Please enter a valid Administrator ID.'; err.style.display='block'; return; }
+  if(!raw){ err.textContent=t('login.err.adminid'); err.style.display='block'; return; }
   var res=await sbSignIn(raw.toLowerCase()+'@pamoja.demo');
-  if(!res.ok){ err.textContent='Please enter a valid Administrator ID.'; err.style.display='block'; return; }
+  if(!res.ok){ err.textContent=t('login.err.adminid'); err.style.display='block'; return; }
   var q=await SB.from('admin_officers').select('*').eq('officer_id', raw).maybeSingle();
   var o=q.data;
-  if(!o){ err.textContent='Please enter a valid Administrator ID.'; err.style.display='block'; return; }
+  if(!o){ err.textContent=t('login.err.adminid'); err.style.display='block'; return; }
   await loadData();
   _admOfficer={ id:o.officer_id, name:o.name };
   document.getElementById('adm-auto-name').value=o.name;
@@ -3240,18 +3240,18 @@ async function doCmgLookup(){
   _lookedUpCmgId=null; setChairContinue(false);
   if(!raw){
     resultBox.style.display='none'; banner.style.display='none';
-    err.textContent='Please enter a valid CMG ID.'; err.style.display='block'; return;
+    err.textContent=t('login.err.cmgid'); err.style.display='block'; return;
   }
   var res=await sbSignIn(raw.toLowerCase()+'@pamoja.demo');
   if(!res.ok){
     resultBox.style.display='none'; banner.style.display='none';
-    err.textContent='CMG ID not found or not registered.'; err.style.display='block'; return;
+    err.textContent=t('login.err.cmgnotfound'); err.style.display='block'; return;
   }
   await loadData();
   var g=(db().groups||[]).find(function(x){ return (x.cmgNumber||x.id)===raw; });
   if(!g){
     resultBox.style.display='none'; banner.style.display='none';
-    err.textContent='CMG ID not found.'; err.style.display='block'; return;
+    err.textContent=t('login.err.cmgnotfound'); err.style.display='block'; return;
   }
   // Found — populate display fields
   _lookedUpCmgId=raw;
@@ -3547,13 +3547,13 @@ document.getElementById('step2-back').addEventListener('click', function(){ setS
 document.getElementById('step2-continue').addEventListener('click', async function(){
   var err=document.getElementById('s2-err'); err.style.display='none';
   if(selectedRole==='chair'){
-    if(!_lookedUpCmgId){ err.textContent='Please enter a valid CMG ID.'; err.style.display='block'; return; }
+    if(!_lookedUpCmgId){ err.textContent=t('login.err.cmgid'); err.style.display='block'; return; }
     buildSession();
   } else if(selectedRole==='admin'){
-    if(!_admOfficer){ err.textContent='Please enter a valid Administrator ID.'; err.style.display='block'; return; }
+    if(!_admOfficer){ err.textContent=t('login.err.adminid'); err.style.display='block'; return; }
     buildSession();
   } else if(selectedRole==='lga'){
-    if(!_lgaOfficer){ err.textContent='Please enter a valid Officer ID.'; err.style.display='block'; return; }
+    if(!_lgaOfficer){ err.textContent=t('login.err.officerid'); err.style.display='block'; return; }
     // Go to step 3: scope selection
     document.getElementById('lga-scope').style.display='block';
     document.getElementById('tamisemi-scope').style.display='none';
@@ -3563,7 +3563,7 @@ document.getElementById('step2-continue').addEventListener('click', async functi
     document.getElementById('s3-err').style.display='none';
     setStep(3);
   } else if(selectedRole==='tamisemi'){
-    if(!_tamOfficer){ err.textContent='Please enter a valid Officer ID.'; err.style.display='block'; return; }
+    if(!_tamOfficer){ err.textContent=t('login.err.officerid'); err.style.display='block'; return; }
     // Go to step 3: scope selection
     document.getElementById('tamisemi-scope').style.display='block';
     document.getElementById('lga-scope').style.display='none';
@@ -3588,7 +3588,7 @@ document.getElementById('step2-continue').addEventListener('click', async functi
     document.getElementById('s3-err').style.display='none';
     setStep(3);
   } else if(selectedRole==='fi'){
-    if(!document.getElementById('fi-institution').value){ err.textContent='Please select your institution.'; err.style.display='block'; return; }
+    if(!document.getElementById('fi-institution').value){ err.textContent=t('login.err.fi'); err.style.display='block'; return; }
     var _fiName=document.getElementById('fi-institution').value;
     // Re-read authorisation state at click time: a suspension may have landed
     // while this login screen was open. This runs BEFORE any session exists, so
@@ -3599,16 +3599,16 @@ document.getElementById('step2-continue').addEventListener('click', async functi
     if(fiStatusOf(_fiName)==='SUSPENDED'){
       err.textContent=fiSuspendedMsg(_fiName); err.style.display='block'; return;
     }
-    if(!FI_EMAIL[_fiName]){ err.textContent='No FI login is provisioned for '+_fiName+' in this beta.'; err.style.display='block'; return; }
+    if(!FI_EMAIL[_fiName]){ err.textContent=tf('login.err.fiprov',{fi:_fiName}); err.style.display='block'; return; }
     var _fiRes=await sbSignIn(FI_EMAIL[_fiName]);
-    if(!_fiRes.ok){ err.textContent='Unable to sign in for '+_fiName+'.'; err.style.display='block'; return; }
+    if(!_fiRes.ok){ err.textContent=tf('login.err.fisignin',{fi:_fiName}); err.style.display='block'; return; }
     await loadData();
     // Go to step 3: scope
     document.getElementById('fi-scope').style.display='block';
     document.getElementById('lga-scope').style.display='none';
     document.getElementById('tamisemi-scope').style.display='none';
     var fiName=document.getElementById('fi-institution').value;
-    document.getElementById('fi-scope-title').textContent=fiName+' — Select scope';
+    document.getElementById('fi-scope-title').textContent=fiName+' — '+t('login.scope.heading');
     // Populate fi-region with only regions that have groups for this FI
     var fiGroups=(db().groups||[]).filter(function(g){ return g.fi===fiName; });
     var fiRegions=[]; fiGroups.forEach(function(g){ if(g.region&&fiRegions.indexOf(g.region)===-1) fiRegions.push(g.region); }); fiRegions.sort();
@@ -7102,7 +7102,33 @@ window.addEventListener('DOMContentLoaded', function(){
       'role.tamisemi.desc':'National overview — aggregated CMG loan data by region and district',
       'role.admin.title':'Administrator',
       'role.admin.desc':'Create officer logins · oversight of suspended lenders',
-      'btn.continue':'Continue →'
+      'btn.continue':'Continue →', 'btn.back':'← Back', 'btn.logout':'Log out',
+      'login.chair.heading':'Identify your group',
+      'login.chair.sub':'Enter your CMG ID number to look up your group.',
+      'login.chair.idlabel':'CMG ID Number', 'login.chair.idph':'e.g. C1001',
+      'login.lookup':'Look up', 'login.chair.found':'✓ CMG found',
+      'login.f.name':'CMG Name', 'login.f.chair':'Chairperson', 'login.f.region':'Region',
+      'login.f.district':'District Council', 'login.f.ward':'Ward', 'login.f.village':'Village',
+      'login.f.officername':'Name',
+      'login.chair.new':'New group without a CMG ID?', 'login.chair.register':'Register a new CMG →',
+      'login.lga.heading':'LGA Officer — Login', 'login.tam.heading':'TAMISEMI Officer — Login',
+      'login.adm.heading':'Administrator — Login', 'login.fi.heading':'FI Lender',
+      'login.officer.sub':'Enter your officer ID to verify your identity.',
+      'login.adm.sub':'Enter your administrator ID to verify your identity.',
+      'login.officer.idlabel':'Officer ID', 'login.adm.idlabel':'Administrator ID',
+      'login.ph.lga':'e.g. LGA001', 'login.ph.tam':'e.g. TAM001', 'login.ph.adm':'e.g. ADM001',
+      'login.verify':'Verify', 'login.officer.verified':'✓ Officer verified', 'login.adm.verified':'✓ Administrator verified',
+      'login.fi.institution':'Institution', 'login.fi.select':'— Select —',
+      'login.scope.heading':'Select scope', 'login.scope.lga':'Choose which wards to view.',
+      'login.scope.fi':'Choose the region and district to view. Select "All" to see data across all your groups.',
+      'login.scope.tam':'Choose the region and district to view. Select "All" to see data across all areas.',
+      'login.scope.allwards':'— All wards in district —', 'login.scope.allregions':'— All regions —',
+      'login.scope.alldistricts':'— All districts —', 'login.enter':'Enter',
+      'login.err.cmgid':'Please enter a valid CMG ID.', 'login.err.cmgnotfound':'CMG ID not found or not registered.',
+      'login.err.officerid':'Please enter a valid Officer ID.', 'login.err.adminid':'Please enter a valid Administrator ID.',
+      'login.err.fi':'Please select your institution.',
+      'login.err.fiprov':'No FI login is provisioned for {fi} in this beta.',
+      'login.err.fisignin':'Unable to sign in for {fi}.'
     },
     sw: {
       'brand.subtitle':'Kifuatiliaji cha mikopo ya nje · Tanzania',
@@ -7121,7 +7147,36 @@ window.addEventListener('DOMContentLoaded', function(){
       'role.tamisemi.desc':'Muhtasari wa kitaifa — takwimu za mikopo ya vikundi kwa mkoa na wilaya',
       'role.admin.title':'Msimamizi',
       'role.admin.desc':'Tengeneza akaunti za maafisa · usimamizi wa wakopeshaji waliosimamishwa',
-      'btn.continue':'Endelea →'
+      'btn.continue':'Endelea →', 'btn.back':'← Rudi', 'btn.logout':'Toka',
+      /* The login screen below the role step. Chairperson lines follow the
+         reviewed register; the officer, lender and administrator lines are a
+         working draft that G10 puts in front of the translator. */
+      'login.chair.heading':'Tambulisha kikundi chako',
+      'login.chair.sub':'Andika namba ya CMG ID ili kutafuta kikundi chako.',
+      'login.chair.idlabel':'Namba ya CMG ID', 'login.chair.idph':'mfano C1001',
+      'login.lookup':'Tafuta', 'login.chair.found':'✓ CMG imepatikana',
+      'login.f.name':'Jina la CMG', 'login.f.chair':'Mwenyekiti', 'login.f.region':'Mkoa',
+      'login.f.district':'Halmashauri ya Wilaya', 'login.f.ward':'Kata', 'login.f.village':'Kijiji',
+      'login.f.officername':'Jina',
+      'login.chair.new':'Kikundi kipya bila CMG ID?', 'login.chair.register':'Sajili CMG mpya →',
+      'login.lga.heading':'Afisa wa Halmashauri — Ingia', 'login.tam.heading':'Afisa wa TAMISEMI — Ingia',
+      'login.adm.heading':'Msimamizi — Ingia', 'login.fi.heading':'Mkopeshaji (FI)',
+      'login.officer.sub':'Andika namba yako ya afisa ili kuthibitisha utambulisho wako.',
+      'login.adm.sub':'Andika namba yako ya msimamizi ili kuthibitisha utambulisho wako.',
+      'login.officer.idlabel':'Namba ya Afisa', 'login.adm.idlabel':'Namba ya Msimamizi',
+      'login.ph.lga':'mfano LGA001', 'login.ph.tam':'mfano TAM001', 'login.ph.adm':'mfano ADM001',
+      'login.verify':'Thibitisha', 'login.officer.verified':'✓ Afisa amethibitishwa', 'login.adm.verified':'✓ Msimamizi amethibitishwa',
+      'login.fi.institution':'Taasisi', 'login.fi.select':'— Chagua —',
+      'login.scope.heading':'Chagua wigo', 'login.scope.lga':'Chagua kata za kuona.',
+      'login.scope.fi':'Chagua mkoa na wilaya ya kuona. Chagua "Zote" kuona vikundi vyako vyote.',
+      'login.scope.tam':'Chagua mkoa na wilaya ya kuona. Chagua "Zote" kuona maeneo yote.',
+      'login.scope.allwards':'— Kata zote za wilaya —', 'login.scope.allregions':'— Mikoa yote —',
+      'login.scope.alldistricts':'— Wilaya zote —', 'login.enter':'Ingia',
+      'login.err.cmgid':'Tafadhali andika CMG ID sahihi.', 'login.err.cmgnotfound':'CMG ID haijapatikana au haijasajiliwa.',
+      'login.err.officerid':'Tafadhali andika namba sahihi ya afisa.', 'login.err.adminid':'Tafadhali andika namba sahihi ya msimamizi.',
+      'login.err.fi':'Tafadhali chagua taasisi yako.',
+      'login.err.fiprov':'Hakuna akaunti ya {fi} iliyoandaliwa katika toleo hili la majaribio.',
+      'login.err.fisignin':'Imeshindikana kuingia kwa {fi}.'
     }
   };
 
