@@ -3162,6 +3162,16 @@ var _lgaOfficer = null;
 var _tamOfficer = null;
 var _admOfficer = null;
 
+// The auth call fails for two very different reasons: the ID does not exist
+// (Supabase answers "Invalid login credentials", because no such login was ever
+// minted) or the sign-in itself could not happen — a rate limit after many
+// logins, no network. They shared one sentence; the second now carries its
+// real reason, and the first names the ID it could not find.
+function loginFailText(res, notFound){
+  var m=(res&&res.error&&res.error.message)||'';
+  return /invalid login credentials/i.test(m) ? notFound : tf('login.err.signin',{msg:m||t('login.err.unknown')});
+}
+
 // LGA officer lookup
 async function doLgaLookup(){
   var raw=document.getElementById('inp-lgaid').value.trim().toUpperCase();
@@ -3170,11 +3180,11 @@ async function doLgaLookup(){
   document.getElementById('lga-lookup-result').style.display='none';
   if(!raw){ err.textContent=t('login.err.officerid'); err.style.display='block'; return; }
   var res=await sbSignIn(raw.toLowerCase()+'@pamoja.demo');
-  if(!res.ok){ err.textContent=t('login.err.officerid'); err.style.display='block'; return; }
+  if(!res.ok){ err.textContent=loginFailText(res, tf('login.err.officernotfound',{id:raw})); err.style.display='block'; return; }
   await loadData();
   var q=await SB.from('lga_officers').select('*').eq('officer_id', raw).maybeSingle();
   var o=q.data;
-  if(!o){ err.textContent=t('login.err.officerid'); err.style.display='block'; return; }
+  if(!o){ err.textContent=tf('login.err.officernotfound',{id:raw}); err.style.display='block'; return; }
   _lgaOfficer={ id:o.officer_id, name:o.name, district:o.district, region:o.region };
   document.getElementById('lga-auto-name').value=o.name;
   document.getElementById('lga-auto-district').value=o.district;
@@ -3191,11 +3201,11 @@ async function doTamLookup(){
   document.getElementById('tam-lookup-result').style.display='none';
   if(!raw){ err.textContent=t('login.err.officerid'); err.style.display='block'; return; }
   var res=await sbSignIn(raw.toLowerCase()+'@pamoja.demo');
-  if(!res.ok){ err.textContent=t('login.err.officerid'); err.style.display='block'; return; }
+  if(!res.ok){ err.textContent=loginFailText(res, tf('login.err.officernotfound',{id:raw})); err.style.display='block'; return; }
   await loadData();
   var q=await SB.from('tamisemi_officers').select('*').eq('officer_id', raw).maybeSingle();
   var o=q.data;
-  if(!o){ err.textContent=t('login.err.officerid'); err.style.display='block'; return; }
+  if(!o){ err.textContent=tf('login.err.officernotfound',{id:raw}); err.style.display='block'; return; }
   _tamOfficer={ id:o.officer_id, name:o.name };
   document.getElementById('tam-auto-name').value=o.name;
   document.getElementById('tam-lookup-result').style.display='block';
@@ -3211,10 +3221,10 @@ async function doAdmLookup(){
   document.getElementById('adm-lookup-result').style.display='none';
   if(!raw){ err.textContent=t('login.err.adminid'); err.style.display='block'; return; }
   var res=await sbSignIn(raw.toLowerCase()+'@pamoja.demo');
-  if(!res.ok){ err.textContent=t('login.err.adminid'); err.style.display='block'; return; }
+  if(!res.ok){ err.textContent=loginFailText(res, tf('login.err.adminnotfound',{id:raw})); err.style.display='block'; return; }
   var q=await SB.from('admin_officers').select('*').eq('officer_id', raw).maybeSingle();
   var o=q.data;
-  if(!o){ err.textContent=t('login.err.adminid'); err.style.display='block'; return; }
+  if(!o){ err.textContent=tf('login.err.adminnotfound',{id:raw}); err.style.display='block'; return; }
   await loadData();
   _admOfficer={ id:o.officer_id, name:o.name };
   document.getElementById('adm-auto-name').value=o.name;
@@ -3245,7 +3255,7 @@ async function doCmgLookup(){
   var res=await sbSignIn(raw.toLowerCase()+'@pamoja.demo');
   if(!res.ok){
     resultBox.style.display='none'; banner.style.display='none';
-    err.textContent=t('login.err.cmgnotfound'); err.style.display='block'; return;
+    err.textContent=loginFailText(res, t('login.err.cmgnotfound')); err.style.display='block'; return;
   }
   await loadData();
   var g=(db().groups||[]).find(function(x){ return (x.cmgNumber||x.id)===raw; });
@@ -3547,13 +3557,13 @@ document.getElementById('step2-back').addEventListener('click', function(){ setS
 document.getElementById('step2-continue').addEventListener('click', async function(){
   var err=document.getElementById('s2-err'); err.style.display='none';
   if(selectedRole==='chair'){
-    if(!_lookedUpCmgId){ err.textContent=t('login.err.cmgid'); err.style.display='block'; return; }
+    if(!_lookedUpCmgId){ err.textContent=t('login.err.lookupfirst'); err.style.display='block'; return; }
     buildSession();
   } else if(selectedRole==='admin'){
-    if(!_admOfficer){ err.textContent=t('login.err.adminid'); err.style.display='block'; return; }
+    if(!_admOfficer){ err.textContent=t('login.err.verifyfirst'); err.style.display='block'; return; }
     buildSession();
   } else if(selectedRole==='lga'){
-    if(!_lgaOfficer){ err.textContent=t('login.err.officerid'); err.style.display='block'; return; }
+    if(!_lgaOfficer){ err.textContent=t('login.err.verifyfirst'); err.style.display='block'; return; }
     // Go to step 3: scope selection
     document.getElementById('lga-scope').style.display='block';
     document.getElementById('tamisemi-scope').style.display='none';
@@ -3563,7 +3573,7 @@ document.getElementById('step2-continue').addEventListener('click', async functi
     document.getElementById('s3-err').style.display='none';
     setStep(3);
   } else if(selectedRole==='tamisemi'){
-    if(!_tamOfficer){ err.textContent=t('login.err.officerid'); err.style.display='block'; return; }
+    if(!_tamOfficer){ err.textContent=t('login.err.verifyfirst'); err.style.display='block'; return; }
     // Go to step 3: scope selection
     document.getElementById('tamisemi-scope').style.display='block';
     document.getElementById('lga-scope').style.display='none';
@@ -7128,7 +7138,10 @@ window.addEventListener('DOMContentLoaded', function(){
       'login.err.officerid':'Please enter a valid Officer ID.', 'login.err.adminid':'Please enter a valid Administrator ID.',
       'login.err.fi':'Please select your institution.',
       'login.err.fiprov':'No FI login is provisioned for {fi} in this beta.',
-      'login.err.fisignin':'Unable to sign in for {fi}.'
+      'login.err.fisignin':'Unable to sign in for {fi}.',
+      'login.err.officernotfound':'No officer with ID {id}.', 'login.err.adminnotfound':'No administrator with ID {id}.',
+      'login.err.verifyfirst':'Click Verify first.', 'login.err.lookupfirst':'Click Look up first.',
+      'login.err.signin':'Could not sign in: {msg}', 'login.err.unknown':'no reason was given'
     },
     sw: {
       'brand.subtitle':'Kifuatiliaji cha mikopo ya nje · Tanzania',
@@ -7176,7 +7189,10 @@ window.addEventListener('DOMContentLoaded', function(){
       'login.err.officerid':'Tafadhali andika namba sahihi ya afisa.', 'login.err.adminid':'Tafadhali andika namba sahihi ya msimamizi.',
       'login.err.fi':'Tafadhali chagua taasisi yako.',
       'login.err.fiprov':'Hakuna akaunti ya {fi} iliyoandaliwa katika toleo hili la majaribio.',
-      'login.err.fisignin':'Imeshindikana kuingia kwa {fi}.'
+      'login.err.fisignin':'Imeshindikana kuingia kwa {fi}.',
+      'login.err.officernotfound':'Hakuna afisa mwenye namba {id}.', 'login.err.adminnotfound':'Hakuna msimamizi mwenye namba {id}.',
+      'login.err.verifyfirst':'Bonyeza Thibitisha kwanza.', 'login.err.lookupfirst':'Bonyeza Tafuta kwanza.',
+      'login.err.signin':'Imeshindikana kuingia: {msg}', 'login.err.unknown':'hakuna sababu iliyotolewa'
     }
   };
 
