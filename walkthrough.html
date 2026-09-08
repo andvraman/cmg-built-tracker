@@ -464,6 +464,30 @@ body.tour-on #tour-slide.on{ display:flex }
   .t-desks{ grid-template-columns:1fr 1fr }
   .t-cycle{ grid-template-columns:110px repeat(4,1fr); font-size:11px }
 }
+/* diagram parts: tiles, a two-box flow with an arrow, a stacked pair, and a tree of bars */
+.t-tiles{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px }
+.t-tile{ background:#1a6b3c; color:#fff; border-radius:12px; padding:14px 14px 12px; min-height:120px }
+.t-tile b{ display:block; font-size:14px; margin-bottom:8px }
+.t-tile span{ display:block; font-size:12.5px; line-height:1.45; color:rgba(255,255,255,.92); padding:3px 0; border-top:1px solid rgba(255,255,255,.18) }
+.t-tile.more{ background:var(--t-cream-btn); color:var(--t-g-deep); border:1px dashed var(--t-cream-line);
+  display:flex; align-items:center; justify-content:center; font-size:34px }
+.t-flow{ display:grid; grid-template-columns:1fr auto 1fr; gap:18px; align-items:stretch }
+.t-arrow{ align-self:center; font-size:40px; color:var(--t-g-deep); padding:0 4px }
+.t-stack{ display:grid; gap:12px }
+.t-box.cmg,.t-box.gov,.t-box.fi{ color:#fff; border-color:transparent }
+.t-box.cmg{ background:#1a6b3c } .t-box.gov{ background:#1e4ea8 } .t-box.fi{ background:#8a5f14 }
+.t-box.cmg b,.t-box.gov b,.t-box.fi b{ color:#fff }
+.t-box.cmg li,.t-box.gov li,.t-box.fi li,.t-box.cmg p,.t-box.gov p,.t-box.fi p{ color:rgba(255,255,255,.93) }
+.t-box p{ font-size:14px; line-height:1.55; margin:0 }
+.t-tree{ display:grid; gap:8px; align-content:start }
+.t-bar{ display:grid; grid-template-columns:90px 1fr; align-items:center; gap:10px; font-size:13.5px; font-weight:600; color:var(--t-g-deep) }
+.t-bar i{ display:block; height:22px; background:#1e4ea8; border-radius:6px }
+.t-tree-note{ font-size:13px; color:#4a4436; line-height:1.5; margin-top:8px }
+@media (max-width:1099px){ .t-tiles{ grid-template-columns:1fr 1fr } .t-flow{ grid-template-columns:1fr } .t-arrow{ transform:rotate(90deg); justify-self:center } }
+/* two-column flow for the country slide: the tree of bars, then the register */
+.t-flow.two{ grid-template-columns:1.15fr 1fr; align-items:start }
+.t-flow.two .t-tree{ min-width:0 }
+.t-bar i{ min-width:24px }
 
 </style>
 <!-- supabase-js v2.115.0, bundled at build time (G15) — no runtime CDN
@@ -7808,32 +7832,31 @@ function slideDesks(){
     '<div class="sub">What sets each apart.</div>'+
     '<div class="t-desks">'+
       '<div class="t-desk cmg"><b>Chairperson</b>'+
-        '<p>Keeps the group\u2019s record from the first meeting.</p>'+
-        '<p>That record becomes the loan application.</p></div>'+
+        '<p>Keeps the group\u2019s record from the first meeting.</p></div>'+
       '<div class="t-desk gov"><b>LGA officer</b>'+
         '<p>Verifies the group into existence and attaches its lender.</p>'+
         '<p>One officer registers; a different officer verifies.</p></div>'+
       '<div class="t-desk fi"><b>FI lender</b>'+
-        '<p>Decides on the group\u2019s history.</p>'+
-        '<p>Confirms each repayment against the bank statement; the balance follows the confirmation.</p></div>'+
+        '<p>Makes the loan appraisal and decision.</p>'+
+        '<p>Confirms each repayment against the bank statement; only confirmed repayments count.</p></div>'+
       '<div class="t-desk gov"><b>TAMISEMI</b>'+
-        '<p>Owns the register of who may lend.</p>'+
-        '<p>Sees the country as it stands today, down to the village.</p></div>'+
+        '<p>Owns the register of FIs and decides who may lend.</p>'+
+        '<p>Sees current loan status for CMGs across the country.</p></div>'+
     '</div></div>';
 }
 function slideCycle(){
   var rows=[
-    ["Authorise lenders", "", "", "", "Keeps the register of who may lend"],
-    ["Register",          "Registers the group; a CMG number at once", "", "", ""],
+    ["Authorise lenders", "", "", "", "Owns the register of FIs; decides who may lend"],
+    ["Register",          "Registers the group; instant CMG number issued", "", "", ""],
     ["Verify",            "", "Verifies the group, with the registration pack in hand", "", ""],
     ["Assign lender",     "", "Attaches an authorised lender", "", ""],
     ["Meetings",          "Logs each meeting: attendance, quorum, shares, repayments", "", "", ""],
-    ["Apply",             "Applies; the record goes with it", "", "", ""],
+    ["Apply",             "Applies; group data records go with application", "", "", ""],
     ["Decide",            "", "", "Approves in full or in part; sets the terms", ""],
     ["Accept",            "Accepts, in a meeting that met quorum", "", "", ""],
     ["Disburse",          "Confirms the money arrived", "", "Records it with the bank reference", ""],
     ["Repay",             "Reports each remittance with the slip number", "", "", ""],
-    ["Confirm",           "", "", "Confirms it against the statement; the balance follows", ""],
+    ["Confirm",           "", "", "Confirms it against the statement; the loan balance is updated", ""],
     ["Track",             "Confirmed and reported, side by side", "District pipeline and exceptions", "Portfolio and arrears", "The country, live"]
   ];
   var cls=["cmg","gov","fi","gov"];
@@ -7864,6 +7887,71 @@ function slideRecordAndMoney(){
     '<div class="t-bridge">Each stakeholder checks the bank\u2019s record and updates this one. '+
       'A figure marked <b>confirmed</b> here was matched to a bank record by a named officer.</div>'+
     '</div>';
+}
+
+function slideBook(){
+  var lines=['Attendance, and whether quorum was met','Shares bought','Member repayments collected','Loans made to members'];
+  var tile=function(n){ return '<div class="t-tile"><b>Meeting '+n+'</b>'+lines.map(function(l){ return '<span>'+l+'</span>'; }).join('')+'</div>'; };
+  return '<div class="t-slide">'+
+    '<h1>The group\u2019s own book</h1>'+
+    '<div class="sub">Kept from the first meeting, with no loan in sight. Per meeting, in aggregate.</div>'+
+    '<div class="t-tiles">'+tile(1)+tile(2)+tile(3)+'<div class="t-tile more">\u2026</div></div>'+
+    '<div class="t-bridge">Quorum is checked as each meeting is logged. This is the history a lender will later read.</div>'+
+    '</div>';
+}
+function slideCouncil(){
+  return '<div class="t-slide">'+
+    '<h1>The council\u2019s desk</h1>'+
+    '<div class="sub">A registration arrives complete.</div>'+
+    '<div class="t-flow">'+
+      '<div class="t-box cmg"><b>Registration</b><ul>'+
+        '<li>Group name and place</li><li>Members and quorum threshold</li>'+
+        '<li>Chairperson and treasurer, with NIDA numbers</li></ul></div>'+
+      '<div class="t-arrow">\u2192</div>'+
+      '<div class="t-stack">'+
+        '<div class="t-box gov"><b>Verified</b><p>By a different officer from the one who registered it, with the registration pack in hand.</p></div>'+
+        '<div class="t-box gov"><b>Lender attached</b><p>From the register of authorised FIs.</p></div>'+
+      '</div>'+
+    '</div></div>';
+}
+function slideLender(){
+  return '<div class="t-slide">'+
+    '<h1>The lender\u2019s desk</h1>'+
+    '<div class="sub">The application is the group\u2019s record.</div>'+
+    '<div class="t-flow">'+
+      '<div class="t-box cmg"><b>Application</b><ul>'+
+        '<li>Members and years active</li><li>Savings</li><li>Every meeting logged</li></ul></div>'+
+      '<div class="t-arrow">\u2192</div>'+
+      '<div class="t-box fi"><b>Appraisal and decision</b><ul>'+
+        '<li>Approve in full or in part</li><li>Set the rate, the tenure and the total</li></ul></div>'+
+    '</div>'+
+    '<div class="t-bridge">Every figure downstream is computed from the approved amount.</div>'+
+    '</div>';
+}
+function slideConfirm(){
+  return '<div class="t-slide">'+
+    '<h1>Reported, then confirmed</h1>'+
+    '<div class="sub">Two states for every repayment.</div>'+
+    '<div class="t-flow">'+
+      '<div class="t-box cmg"><b>Reported by the group</b><ul>'+
+        '<li>The amount paid in</li><li>The deposit slip number</li></ul></div>'+
+      '<div class="t-arrow">\u2192</div>'+
+      '<div class="t-box fi"><b>Confirmed by the lender</b><ul>'+
+        '<li>The bank\u2019s amount</li><li>The bank\u2019s value date</li><li>The statement line</li></ul></div>'+
+    '</div>'+
+    '<div class="t-bridge">The loan balance counts confirmed repayments. A reported one stays visible beside it until it is confirmed.</div>'+
+    '</div>';
+}
+function slideCountry(){
+  var lv=[['National','100%'],['Region','82%'],['District','64%'],['Ward','46%'],['Group','28%']];
+  return '<div class="t-slide">'+
+    '<h1>The country, today</h1>'+
+    '<div class="sub">Current loan status for CMGs across the country.</div>'+
+    '<div class="t-flow two">'+
+      '<div class="t-tree">'+lv.map(function(l){ return '<div class="t-bar"><span>'+l[0]+'</span><i style="width:'+l[1]+'"></i></div>'; }).join('')+
+        '<div class="t-tree-note">The same totals at every level: the group records, added up.</div></div>'+
+      '<div class="t-box gov"><b>Register of FIs</b><p>TAMISEMI decides who may lend. A group is assigned a lender from this register.</p></div>'+
+    '</div></div>';
 }
 
 /* ═════ building the world ═════
@@ -8160,8 +8248,9 @@ var STEPS = [
 
 /* ═══ before we start ═══════════════════════════════════════════════════ */
 /* ═══ THE STORY, IN BRIEF ═══════════════════════════════════════════════
-   Nine screens for a decision maker with eight minutes: four diagrams and five
-   real screens of the application. Written to be spoken over — the presenter
+   Nine screens for a decision maker with eight minutes, all diagrams: the
+   real application is disorienting before the story has been told, and it
+   follows in the walkthrough proper. Written to be spoken over — the presenter
    steps through with the arrows. Every line states what is; none says what
    is being avoided. */
 
@@ -8172,8 +8261,8 @@ var STEPS = [
 
 { ch:"p0", title:"The group's own book, from day one",
   text:"A group uses this from the day it registers, with no loan in sight. Each meeting it records who came, whether quorum was met, the shares bought, what members repaid and what the group lent out — per meeting, in aggregate. Quorum is checked as the meeting is logged. This is the group's own book, and it is the history a lender will later read.",
-  act:async function(){ await doRecord(); await asChair("dash"); },
-  spot:function(){ return q("#c-dash-content"); }, hold:50000 },
+  act:async function(){ showLogin(); },
+  slide:function(){ return slideBook(); }, spot:null, hold:50000 },
 
 { ch:"p0", title:"Four desks",
   text:"What sets each desk apart, in a line or two.",
@@ -8187,13 +8276,13 @@ var STEPS = [
 
 { ch:"p0", title:"The council's desk",
   text:"A registration arrives complete: name, place, members, quorum threshold, and the office-bearers with their identity numbers. The officer verifies it and attaches an authorised lender. A group registered by one officer is verified by another.",
-  act:async function(){ await doRegister(); await asLga("summary"); },
-  spot:function(){ return cardWith(".card-title","Pending verification"); }, hold:45000 },
+  act:async function(){ showLogin(); },
+  slide:function(){ return slideCouncil(); }, spot:null, hold:45000 },
 
 { ch:"p0", title:"The lender's desk",
-  text:"The application is the group's record: members, years active, savings, and every meeting logged. The lender decides on that, approves in full or in part, and sets the terms. Every figure downstream is computed from the approved amount.",
-  act:async function(){ await doApply(); await asFi("loans"); },
-  spot:function(){ return q("#fi-loans .card") || q("#fi-loans"); }, hold:45000 },
+  text:"The application is the group's record: members, years active, savings, and every meeting logged. The lender makes the appraisal and decision on that record, approving in full or in part and setting the terms. Every figure downstream is computed from the approved amount.",
+  act:async function(){ showLogin(); },
+  slide:function(){ return slideLender(); }, spot:null, hold:45000 },
 
 { ch:"p0", title:"The record and the money",
   text:"This system keeps the record. The money moves through the banks, and the bank's own records are the source of truth for it. Each stakeholder checks the bank's record and updates this one: the group reports a deposit with its slip number, the lender confirms it against the statement, and the balance here follows that confirmation.",
@@ -8201,14 +8290,14 @@ var STEPS = [
   slide:function(){ return slideRecordAndMoney(); }, spot:null, hold:50000 },
 
 { ch:"p0", title:"Reported, then confirmed",
-  text:"The group reports a repayment with the deposit slip number. The lender confirms it against the bank statement, entering the bank's amount and value date. The confirmed figure moves the balance; the reported one stays visible beside it until it does.",
-  act:async function(){ await doRepay(); await asFi("remit"); },
-  spot:function(){ return q("#fi-remit .mtg-card") || q("#fit-remit"); }, hold:50000 },
+  text:"The group reports a repayment with the deposit slip number. The lender confirms it against the bank statement, entering the bank's amount and value date. The loan balance counts confirmed repayments; a reported one stays visible beside it until it is confirmed.",
+  act:async function(){ showLogin(); },
+  slide:function(){ return slideConfirm(); }, spot:null, hold:50000 },
 
 { ch:"p0", title:"The country, today",
-  text:"TAMISEMI sees the national position as it stands today: groups, members, savings, lending and arrears, from region down to the individual group. These totals are the group records themselves, added up. TAMISEMI also holds the register of institutions allowed to lend.",
-  act:async function(){ await doConfirmAll(); await asTam("overview"); },
-  spot:function(){ return q("#tam-content"); }, hold:45000 },
+  text:"TAMISEMI sees the current loan status for CMGs across the country, from region down to the individual group. These totals are the group records themselves, added up. TAMISEMI also owns the register of FIs and decides who may lend.",
+  act:async function(){ showLogin(); },
+  slide:function(){ return slideCountry(); }, spot:null, hold:45000 },
 
 /* ═══ how the walkthrough works ═══════════════════════════════════════ */
 
