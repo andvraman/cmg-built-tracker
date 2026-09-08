@@ -4091,7 +4091,7 @@ function renderAcceptDeclineSection(g, app){
     .sort(function(a,b){ return (a.date<b.date)?1:((a.date>b.date)?-1:0); });
   if(!quorate.length){
     return '<div class="card"><div class="card-title">Respond to this approved loan</div>'+
-      '<div class="alert alert-warn">&#9888; To accept or decline, the decision must be taken in a meeting that met quorum ('+thresh+' of '+g.members+' present). Log a qualifying meeting first, then return here.</div></div>';
+      '<div class="alert alert-warn">&#9888; To accept or decline, the decision must be taken in a meeting that met quorum ('+thresh+' of '+g.members+' present).</div></div>';
   }
   var opts=quorate.map(function(m){
     var d=new Date(m.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
@@ -7959,7 +7959,7 @@ var STEPS = [
 /* ═══ THE SAVINGS GROUP ═════════════════════════════════════════════════ */
 /* ── 01 register ── */
 { ch:"c1", title:"The group registers itself",
-  text:"No forms carried to the district office, no queue. The chairperson opens the page and enters the group. Region, district, ward and village come from the <em>official administrative list</em>, so the record is clean the moment it is created — not cleaned up months later.",
+  text:"The chairperson opens the page and enters the group. Region, district, ward and village come from the <em>official administrative list</em>, so the record is clean the moment it is created.",
   act:async function(){
     if(rawG()){ showLogin(); showRegister(); return; }
     regDrive("ward");
@@ -7967,17 +7967,17 @@ var STEPS = [
   spot:function(){ return q('#reg-form [data-screen="ward"]'); }, hold:9500 },
 
 { ch:"c1", title:"Who holds office, by name and by number",
-  text:"The chairperson and the treasurer are identified by their <em>NIDA numbers</em>, checked as they are typed. One person may hold office in one group at a time — so the same number cannot appear behind a second group, which is how a register of groups stops becoming a register of one person's groups.",
+  text:"The chairperson and the treasurer are identified by their <em>NIDA numbers</em>, checked as they are typed. One person may hold office in one group at a time.",
   act:async function(){ if(rawG()){ showLogin(); return; } regDrive("chair"); },
   spot:function(){ return q("#rw-chairnida-note") || q("#reg-chairnida"); }, ping:true, hold:10000 },
 
 { ch:"c1", title:"An identity, immediately",
-  text:"Submitting mints <em>"+D.id+"</em> — the number every later action hangs off. The group can log in with it from this moment, before any officer has looked at them.",
+  text:"Submitting mints <em>"+D.id+"</em> — the number every later action hangs off. The group can log in with it from this moment.",
   act:async function(){ await doRegister(); },
   spot:function(){ return q("#reg-result"); }, ping:true, hold:8500 },
 
 { ch:"c1", title:"Waiting, but not in the dark",
-  text:"The group signs in and sees exactly where it stands. A rejection would arrive here too, <em>with its reason attached</em>, and the chairperson could correct and resubmit without visiting anyone.",
+  text:"The group signs in and sees exactly where it stands. A rejection would arrive here too, <em>with its reason attached</em>, and the chairperson could correct and resubmit.",
   act:async function(){ await doRegister(); await asChair("dash"); },
   spot:function(){ return q("#c-status-banner"); } },
 
@@ -7989,7 +7989,7 @@ var STEPS = [
 
 /* ── 02 keep the record ── */
 { ch:"c2", title:"The group's own books",
-  text:"Attendance, savings, member repayments — kept by the group, for the group. This is not reporting upwards. It is the <em>credit history they are building</em>, and it is the only thing that will persuade a bank to lend.",
+  text:"Attendance, savings, member repayments — kept by the group, for the group. It is the <em>credit history they are building</em>.",
   act:async function(){
     await doAssign();
     await seedMeeting(M.m1); await seedMeeting(M.m2); await seedMeeting(M.m3);
@@ -7998,7 +7998,7 @@ var STEPS = [
   spot:function(){ return q("#c-dash-content"); }, hold:9500 },
 
 { ch:"c2", title:"Logging a meeting",
-  text:"One or two questions a screen, phone-sized. The date, then whether anyone has joined or left — the group's size is <em>confirmed before attendance is counted</em>, so the quorum rule is judged against today's group. The chairperson does this in the meeting, while everyone is still in the room, which is the only way the numbers stay true.",
+  text:"One or two questions a screen, phone-sized. The date, then whether anyone has joined or left — the group's size is <em>confirmed before attendance is counted</em>, so the quorum rule is judged against today's group. The chairperson does this in the meeting, while everyone is still in the room.",
   act:async function(){
     await doAssign();
     await seedMeeting(M.m1); await seedMeeting(M.m2); await seedMeeting(M.m3);
@@ -8008,7 +8008,7 @@ var STEPS = [
   spot:function(){ return q('#log-wizard [data-screen="date"]'); }, hold:9500 },
 
 { ch:"c2", title:"Quorum, checked as you type",
-  text:"Nine of twelve present. The threshold is ten. The system says so <em>immediately</em> — not at the end of the year when someone audits the minute book. Governance is checked at the point of entry, where it is still cheap to fix.",
+  text:"Nine of twelve present. The threshold is ten. The system says so <em>immediately</em>. Governance is checked at the point of entry.",
   act:async function(){
     await doAssign();
     await seedMeeting(M.m1); await seedMeeting(M.m2); await seedMeeting(M.m3);
@@ -8018,13 +8018,13 @@ var STEPS = [
   spot:function(){ return q("#l-qhint"); }, ping:true, hold:10000 },
 
 { ch:"c2", title:"Four meetings on the record",
-  text:"A pattern a lender can read: what was saved, who turned up, how often quorum was reached. Note that figure — <em>none of the four met quorum</em>. It costs the group nothing today. It matters a great deal two chapters from now.",
+  text:"A pattern a lender can read: what was saved, who turned up, how often quorum was reached. Note that figure — <em>none of the four met quorum</em>.",
   act:async function(){ await doRecord(); await asChair("hist"); },
   spot:function(){ return q("#c-hist-content"); }, hold:11000 },
 
 /* ── 03 apply ── */
 { ch:"c3", title:"Applying, from the same screen",
-  text:"No branch visit, no separate form, no intermediary. The group asks its assigned lender for <em>"+money(D.requested)+"</em> directly — and is told, as the figure is typed, that it is about "+(Math.round(D.requested/D.savingsDeclared*10)/10)+" times what the group has saved.",
+  text:"The group asks its assigned lender for <em>"+money(D.requested)+"</em> directly — and is told, as the figure is typed, that it is about "+(Math.round(D.requested/D.savingsDeclared*10)/10)+" times what the group has saved.",
   act:async function(){
     await doRecord();
     if(rawApp()){ await asChair("loan"); return; }
@@ -8043,7 +8043,7 @@ var STEPS = [
   ping:true, hold:9500 },
 
 { ch:"c3", title:"Submitted",
-  text:"The group can see its own application sitting with the lender. <em>Nothing is invisible to the people it concerns</em> — which is most of what borrowers complain about elsewhere.",
+  text:"The group can see its own application sitting with the lender. <em>Nothing is invisible to the people it concerns</em>.",
   act:async function(){ await doApply(); await asChair("loan"); },
   spot:function(){ return q("#c-loan-content"); } },
 
@@ -8054,14 +8054,14 @@ var STEPS = [
   spot:function(){ return q("#c-loan-content"); }, hold:11000 },
 
 { ch:"c4", title:"The system refuses",
-  text:"The group cannot accept. Not because a rule was forgotten, but because <em>the software will not let it</em>: this decision must be taken in a meeting that met quorum, and none of the four did. It says exactly what is missing and what would fix it. This is the difference between a policy in a manual and a policy that holds.",
+  text:"The group cannot accept: this decision must be taken in a meeting that met quorum, and none of the four did. It says exactly what is missing and what would fix it.",
   act:async function(){ await doDecide(); await asChair("loan"); },
   spot:function(){ return byTxt("#c-loan-content .alert-warn","quorum")
                        || cardWith(".card-title","Respond to this approved loan"); },
   ping:true, hold:14000 },
 
 { ch:"c4", title:"So the group meets properly",
-  text:"The rule does not block the loan — it <em>changes the group's behaviour</em>. A meeting is convened, and this time eleven of the twelve turn out for it. Same screen, same field, opposite answer.",
+  text:"The rule does not block the loan — it <em>changes the group's behaviour</em>. A meeting is convened, and this time eleven of the twelve turn out for it.",
   act:async function(){
     await doDecide();
     if(haveMeeting(M.m5.date)){ await asChair("log"); return; }
@@ -8070,13 +8070,13 @@ var STEPS = [
   spot:function(){ return q("#l-qhint"); }, ping:true, hold:10000 },
 
 { ch:"c4", title:"Accepted, and tied to the meeting that decided it",
-  text:"The acceptance carries the meeting, its date and its attendance with it. If anyone ever asks who agreed to this loan, <em>the answer is already in the record</em> — not in someone's memory.",
+  text:"The acceptance carries the meeting, its date and its attendance with it. If anyone ever asks who agreed to this loan, <em>the answer is already in the record</em>.",
   act:async function(){ await doAccept(); await asChair("loan"); },
   spot:function(){ return q("#c-loan-content"); }, hold:10500 },
 
 /* ── 05 repay ── */
 { ch:"c5", title:"Repayment happens in a meeting",
-  text:"Not as a separate act of administration — as part of the meeting the group was holding anyway. The instalment is offered as a <em>calculated figure</em>, so the amount cannot drift from the schedule.",
+  text:"Repayment is recorded as part of the meeting the group was holding anyway. The instalment is offered as a <em>calculated figure</em>, so the amount cannot drift from the schedule.",
   act:async function(){
     await doDisburse();
     if(haveMeeting(M.m6.date)){ await asChair("log"); return; }
@@ -8094,19 +8094,19 @@ var STEPS = [
   spot:function(){ return q('#log-wizard [data-screen="remitslip"]'); }, ping:true, hold:9500 },
 
 { ch:"c5", title:"One instalment confirmed, one still waiting",
-  text:"Two instalments of "+money(D.instalment)+" have been reported. The bank has matched the first against its statement, so <em>only that one counts</em> against the "+money(D.totalDue)+" owed. The second sits in plain sight as reported-but-unconfirmed — the gap nobody could see when a group's own word closed the loop.",
+  text:"Two instalments of "+money(D.instalment)+" have been reported. The bank has matched the first against its statement, so <em>only that one counts</em> against the "+money(D.totalDue)+" owed. The second sits in plain sight as reported-but-unconfirmed.",
   act:async function(){ await doRepay(); await asChair("dash"); },
   spot:function(){ return q("#c-dash-content"); }, hold:12500 },
 
 /* ═══ GOVERNMENT ════════════════════════════════════════════════════════ */
 /* ── 06 who may lend ── */
 { ch:"g1", title:"The gate on lending",
-  text:"Which institutions may lend to CMGs at all is held in <em>one register, owned by TAMISEMI</em>. Authorising one mints its lender login; nothing is hardcoded, and every district's dropdown updates with it. Six of the eighteen on the register are authorised today.",
+  text:"Which institutions may lend to CMGs at all is held in <em>one register, owned by TAMISEMI</em>. Authorising one mints its lender login; nothing is hardcoded, and every district's dropdown updates with it. Six are authorised today.",
   act:async function(){ await doRepay(); await asTam("fi"); },
   spot:function(){ return q("#tam-fi-panel"); }, hold:10500 },
 
 { ch:"g1", title:"Withdrawing it takes a reason",
-  text:"A lender cannot be suspended by clicking a button. A reason is required, and it is <em>recorded against the institution permanently</em> — visible to whoever looks next, including the lender's successor.",
+  text:"A lender cannot be suspended by clicking a button. A reason is required, and it is <em>recorded against the institution permanently</em>.",
   act:async function(){
     await doRepay();
     if(rawFi(SUSPEND).status!=="AUTHORISED"){ await asTam("fi"); await renderFiDetail(SUSPEND); await tick(); return; }
@@ -8118,35 +8118,35 @@ var STEPS = [
   spot:function(){ return q("#fi-suspend-form") || q("#tam-fi-panel"); }, ping:true, hold:10000 },
 
 { ch:"g1", title:"Access ends immediately",
-  text:"The lender can no longer sign in, and its groups <em>drop out of the council officer's list the moment the decision is taken</em> — not when someone remembers to revoke a password. Our own group is untouched: its lender is NMB, and it is still there.",
+  text:"The lender can no longer sign in, and its groups <em>drop out of the council officer's list the moment the decision is taken</em>. Our own group is untouched: its lender is NMB, and it is still there.",
   act:async function(){ await doSuspend(); await asLga("groups"); },
   spot:function(){ return q("#obs-list-view") || q("#obs-tbody"); }, ping:true, hold:11500 },
 
 /* ── 07 national oversight ── */
 { ch:"g2", title:"The country, on the same day",
-  text:"TAMISEMI sees the national position <em>as it stands right now</em> — not a quarterly return assembled from district spreadsheets three months after the fact. Groups, members, savings, lending and arrears, live.",
+  text:"TAMISEMI sees the national position <em>as it stands right now</em>. Groups, members, savings, lending and arrears, live.",
   act:async function(){ await doRepay(); await asTam("overview"); },
   spot:function(){ return q("#tam-content"); }, ping:true, hold:10500 },
 
 { ch:"g2", title:"National down to the village",
-  text:"Region, district, ward — the same figures opened up as far as the individual group. Nobody is compiling a separate national return: <em>these totals are the group records themselves, added up</em>. Correct one meeting in Kisongo and this page changes with it.",
+  text:"Region, district, ward — the same figures opened up as far as the individual group. <em>These totals are the group records themselves, added up</em>. Correct one meeting in Kisongo and this page changes with it.",
   act:async function(){ await doRepay(); await asTam("overview"); },
   spot:function(){ return byTxt("#tam-content .card","Arusha") || q("#tam-content"); },
   hold:10000 },
 
 { ch:"g2", title:"And by lender",
-  text:"The same portfolio cut the other way: what each authorised institution is carrying, and which groups it funds. This is the view that makes <em>a decision about a lender</em> — like the suspension you have just seen — something other than a guess.",
+  text:"The same portfolio cut the other way: what each authorised institution is carrying, and which groups it funds. This is the view that informs <em>a decision about a lender</em> — like the suspension you have just seen.",
   act:async function(){ await doRepay(); await asTam("fi"); await renderFiDetail(D.fi); await tick(); },
   spot:function(){ return q("#tam-fi-panel"); }, hold:10000 },
 
 /* ── 08 the council's desk ── */
 { ch:"g3", title:"The verification queue",
-  text:"Back to the moment the group first appeared. Every application awaiting verification in Arusha District Council, in one place. The officer is not chasing paper — the applications <em>arrive</em>, already complete and already validated against the ward list.",
+  text:"Back to the moment the group first appeared. Every application awaiting verification in Arusha District Council, in one place. The applications <em>arrive</em> already complete and already validated against the ward list.",
   act:async function(){ await doRegister(); await asLga("summary"); },
   spot:function(){ return cardWith(".card-title","Pending verification"); }, hold:10000 },
 
 { ch:"g3", title:"Enough to decide, on one card",
-  text:"Name, ward, village, member count, quorum threshold, chairperson and treasurer with phone numbers. The system also <em>flags what looks wrong</em> before the officer reads it. Nothing has to be opened, and nothing has to be requested, to make this decision.",
+  text:"Name, ward, village, member count, quorum threshold, chairperson and treasurer with phone numbers. The system also <em>flags what looks wrong</em> before the officer reads it.",
   act:async function(){ await doRegister(); await asLga("summary"); },
   spot:function(){ return ourRow("#obs-pending"); }, ping:true, hold:10500 },
 
@@ -8176,7 +8176,7 @@ var STEPS = [
   spot:function(){ return q("#rep-out .tbl") || q("#obs-reports"); }, ping:true, hold:12000 },
 
 { ch:"g3", title:"What is going wrong, on one list",
-  text:"The exception report is the part nobody volunteers: remittances the lender has not confirmed, disbursements the group has not acknowledged, registrations left sitting, groups that have stopped meeting, office-bearers with no identity number. <em>Each one ages</em>, and ageing is what makes it uncomfortable to ignore.",
+  text:"The exception report lists remittances the lender has not confirmed, disbursements the group has not acknowledged, registrations left sitting, groups that have stopped meeting, and office-bearers with no identity number. <em>Each one shows how long it has waited.</em>",
   act:async function(){
     await doConfirmAll();
     await asLga("reports");
@@ -8189,24 +8189,24 @@ var STEPS = [
   spot:function(){ return q("#rep-out .tbl") || q("#obs-reports"); }, ping:true, hold:12000 },
 
 { ch:"g3", title:"The district pipeline",
-  text:"Every group in the council and the state of every loan — assigned, applied, approved, disbursed, repaying. <em>LGA officers can supervise rather than compile data.</em> A different view of group data.",
+  text:"Every group in the council and the state of every loan — assigned, applied, approved, disbursed, repaying.",
   act:async function(){ await doRepay(); await asLga("loans"); },
   spot:function(){ return q("#obs-loans"); }, hold:10000 },
 
 /* ═══ THE LENDER ════════════════════════════════════════════════════════ */
 /* ── 09 decide ── */
 { ch:"f1", title:"On the lender's desk",
-  text:"The application, once the group submitted it and the chair synced their phone, with no re-keying. For a bank, the cost of lending small amounts is mostly the cost of <em>finding out who it is lending to</em>. That cost is reduced significantly here.",
+  text:"The application as the group submitted it, with <em>no re-keying</em>.",
   act:async function(){ await doApply(); await asFi(); },
   spot:function(){ return cardWith(".card-title","Loan applications"); }, hold:9500 },
 
 { ch:"f1", title:"Twelve members. Three years. Savings on the record",
-  text:"This is what a group with no bank account and no collateral looks like when its own record speaks for it. The lender is reading <em>the group's history, not its promises</em> — every figure traceable back to a meeting.",
+  text:"This is what a group with no bank account and no collateral looks like when its own record speaks for it. The lender is reading <em>the group's history</em> — every figure traceable back to a meeting.",
   act:async function(){ await doApply(); await asFi(); },
   spot:function(){ return ourRow("#fi-loans"); }, ping:true, hold:10500 },
 
 { ch:"f1", title:"Approved — but for less",
-  text:"The bank offers <em>"+money(D.approved)+" against the "+money(D.requested)+" requested</em>, sets "+D.rate+"% a month over "+D.tenure+" months, and the total repayable computes to "+money(D.totalDue)+". Partial approval is ordinary lending practice, and the system carries it through every downstream figure without anyone restating it.",
+  text:"The bank offers <em>"+money(D.approved)+" against the "+money(D.requested)+" requested</em>, sets "+D.rate+"% a month over "+D.tenure+" months, and the total repayable computes to "+money(D.totalDue)+". The system carries the approved figure through every downstream figure.",
   act:async function(){
     await doApply();
     var a=rawApp();
@@ -8222,7 +8222,7 @@ var STEPS = [
   }, ping:true, hold:12500 },
 
 { ch:"f1", title:"The decision is recorded",
-  text:"Approved, with terms, against the application — and the group is notified in the same movement. <em>No covering letter, no delay</em>, and no version of the terms that differs from the bank's.",
+  text:"Approved, with terms, against the application — and the group is notified in the same movement. The terms the group sees are <em>the terms the bank entered</em>.",
   act:async function(){ await doDecide(); await asFi(); },
   spot:function(){ return cardWith(".card-title","In progress") || q("#fi-loans"); }, hold:9000 },
 
@@ -8263,7 +8263,7 @@ var STEPS = [
   spot:function(){ return q("#fi-remit .mtg-card") || q("#fit-remit"); }, ping:true, hold:12000 },
 
 { ch:"f3", title:"Confirmed against the statement",
-  text:"Now the money is real to both books at once. The value date is the <em>bank's</em>, not today's, so the arrears clock cannot be reset by confirming late. And if this was matched to the wrong group, it is reversed with a written reason — never quietly edited away.",
+  text:"Now the money is real to both books at once. The value date is the <em>bank's</em>, not today's, so the arrears clock cannot be reset by confirming late. And if this was matched to the wrong group, it is reversed with a written reason, never edited away.",
   act:async function(){ await doConfirmAll(); await asFi("remit"); },
   spot:function(){ return q("#fi-remit .mtg-card") || q("#fit-remit"); }, hold:11500 },
 
@@ -8273,7 +8273,7 @@ var STEPS = [
   spot:function(){ return q("#fit-portfolio"); }, ping:true, hold:11000 },
 
 { ch:"f3", title:"On track, or not",
-  text:"Every loan sorted by how it is actually performing — on track, behind, overdue, delinquent — recomputed on every read rather than stamped at month end. A bank that can see this <em>early</em> can lend to groups it would otherwise refuse.",
+  text:"Every loan sorted by how it is actually performing — on track, behind, overdue, delinquent — recomputed on every read.",
   act:async function(){ await doConfirmAll(); await asFi("region"); },
   spot:function(){ return q("#fit-region") || q("#fi-status-bar"); }, hold:10500 },
 
@@ -8285,7 +8285,7 @@ var STEPS = [
   hold:9500 },
 
 { ch:"a1", title:"The record survives the institution",
-  text:"The groups the council can no longer see, still here in full — portfolio, repayments, outstanding balances. Suspending a lender <em>withdraws access without destroying anything</em>: the borrowers' history outlives the bank that funded it.",
+  text:"The groups the council can no longer see, still here in full — portfolio, repayments, outstanding balances. Suspending a lender <em>withdraws access without destroying anything</em>.",
   act:async function(){ await doSuspend(); await asAdmin(); },
   spot:function(){ return q("#adm-suspended"); }, ping:true, hold:14000 },
 
