@@ -2677,7 +2677,18 @@ const SB_KEY = 'not-a-key';                     /* blanked by build.py — unuse
 //
 // It counts fetches rather than wrapping each call site, so a query added later
 // is covered without anyone remembering to do anything.
-var BUSY={ n:0, showTimer:null, hideTimer:null, shownAt:0 };
+//
+// Two things a first version got wrong. The clock restarted whenever the count
+// touched zero, so a click that chains one request into the next — an RPC,
+// then the reload it triggers, then the reload's second wave — was timed as
+// three short bursts and never showed anything however long the whole took.
+// Bursts that follow within a short gap are now one episode, timed from the
+// first. And the pill was held on screen after the work finished, so that it
+// would not flash; that meant "Working…" over a screen already showing the
+// result, which is worse than a flash. It now goes the moment the work does.
+var BUSY={ n:0, showTimer:null, hideTimer:null, shownAt:0, episodeStart:0, lastEnd:0 };
+var BUSY_SHOW_AFTER=700;    // ms of continuous waiting before anything is said
+var BUSY_GAP=150;           // a new request within this many ms of the last one ending continues the same wait
 function busyVeil(){
   var el=document.getElementById('busy-veil');
   if(!el){
@@ -2697,23 +2708,38 @@ function busyStart(){
   var el=busyVeil();
   el.querySelector('.busy-pill').textContent=t('busy.working');
   el.classList.add('on');                      // blocks the second click at once
+  var now=Date.now();
+  if(now-BUSY.lastEnd<=BUSY_GAP && BUSY.episodeStart){
+    // Same wait continuing: the clock keeps running. If the threshold passed
+    // during the gap itself, say so now rather than never.
+    if(!BUSY.shownAt && now-BUSY.episodeStart>=BUSY_SHOW_AFTER){
+      BUSY.shownAt=now; el.classList.add('visible'); el.setAttribute('aria-hidden','false');
+    }
+    return;
+  }
+  BUSY.episodeStart=now;
+  clearTimeout(BUSY.showTimer);
+  var mine=now;                                // the wait this timer was armed for
   BUSY.showTimer=setTimeout(function(){        // ...but says nothing yet
+    if(BUSY.n===0 || BUSY.episodeStart!==mine) return;   // that wait is over; this is a later one
     BUSY.shownAt=Date.now();
     el.classList.add('visible');
     el.setAttribute('aria-hidden','false');
-  }, 350);
+  }, BUSY_SHOW_AFTER);
 }
 function busyClear(){
-  clearTimeout(BUSY.showTimer);
   var el=document.getElementById('busy-veil'); if(!el) return;
-  // If it became visible, hold it briefly so it reads as an answer, not a flash.
-  var shownFor=BUSY.shownAt?(Date.now()-BUSY.shownAt):0;
-  var wait=(el.classList.contains('visible') && shownFor<400) ? (400-shownFor) : 0;
+  BUSY.lastEnd=Date.now();
+  // The clicks are released at once. Everything else waits out the gap, so a
+  // request following straight on continues the same wait without the pill
+  // blinking at the join; if nothing follows, the episode is over and the
+  // pill goes — at most 150ms after the work did.
+  el.classList.remove('on');
   BUSY.hideTimer=setTimeout(function(){
-    el.classList.remove('on'); el.classList.remove('visible');
-    el.setAttribute('aria-hidden','true');
-    BUSY.shownAt=0;
-  }, wait);
+    if(BUSY.n!==0) return;
+    clearTimeout(BUSY.showTimer); BUSY.episodeStart=0;
+    el.classList.remove('visible'); el.setAttribute('aria-hidden','true'); BUSY.shownAt=0;
+  }, BUSY_GAP);
 }
 function busyEnd(){
   BUSY.n=Math.max(0, BUSY.n-1);
@@ -2723,6 +2749,11 @@ function busyEnd(){
   var _fetch=window.fetch;
   if(typeof _fetch!=='function') return;
   window.fetch=function(){
+    // supabase-js refreshes its session token in the background. That is not
+    // a wait anyone asked for: it must neither swallow a click nor raise the
+    // pill over a page nobody touched.
+    var u=String((arguments[0]&&arguments[0].url)||arguments[0]||'');
+    if(u.indexOf('grant_type=refresh_token')>=0) return _fetch.apply(this, arguments);
     busyStart();
     // Each request releases its own hold, and releases it regardless after
     // fifteen seconds. A veil that can only come down when the bookkeeping is
