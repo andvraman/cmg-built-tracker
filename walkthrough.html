@@ -2817,7 +2817,7 @@ function populateFiLoginSelect(){
   var sel=document.getElementById('fi-institution');
   if(!sel) return;
   var cur=sel.value;
-  sel.innerHTML='<option value="">&#8212; Select &#8212;</option>';
+  sel.innerHTML='<option value="">'+escHtml(t('login.fi.select'))+'</option>';
   FI_ALL.filter(function(f){ return f.status==='AUTHORISED'||f.status==='SUSPENDED'; })
         .forEach(function(f){
           var o=document.createElement('option'); o.value=o.textContent=f.name;
@@ -3105,7 +3105,7 @@ function populateLgaWards(){
   var wards=[];
   relevant.forEach(function(g){ if(g.ward&&wards.indexOf(g.ward)===-1) wards.push(g.ward); });
   wards.sort();
-  ws.innerHTML='<option value="">&#8212; All wards in district &#8212;</option>';
+  ws.innerHTML='<option value="">'+escHtml(t('login.scope.allwards'))+'</option>';
   wards.forEach(function(w){ var o=document.createElement('option'); o.value=o.textContent=w; ws.appendChild(o); });
 }
 
@@ -3558,7 +3558,7 @@ document.getElementById('step2-continue').addEventListener('click', async functi
     document.getElementById('lga-scope').style.display='block';
     document.getElementById('tamisemi-scope').style.display='none';
     document.getElementById('fi-scope').style.display='none';
-    document.getElementById('lga-scope-title').textContent=_lgaOfficer.district+' — Select scope';
+    document.getElementById('lga-scope-title').textContent=_lgaOfficer.district+' — '+t('login.scope.heading');
     populateLgaWards();
     document.getElementById('s3-err').style.display='none';
     setStep(3);
@@ -3570,18 +3570,18 @@ document.getElementById('step2-continue').addEventListener('click', async functi
     document.getElementById('fi-scope').style.display='none';
     // Populate region dropdown
     var tr=document.getElementById('tamisemi-region');
-    tr.innerHTML='<option value="">&#8212; All regions &#8212;</option>';
+    tr.innerHTML='<option value="">'+escHtml(t('login.scope.allregions'))+'</option>';
     Object.keys(H).sort().forEach(function(r){ var o=document.createElement('option'); o.value=o.textContent=r; tr.appendChild(o); });
     var td=document.getElementById('tamisemi-district');
-    td.innerHTML='<option value="">&#8212; All districts &#8212;</option>';
+    td.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>';
     td.disabled=true; td.style.opacity='0.5';
     tr.onchange=function(){
       if(!this.value){
-        td.innerHTML='<option value="">&#8212; All districts &#8212;</option>';
+        td.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>';
         td.disabled=true; td.style.opacity='0.5';
       } else {
         td.disabled=false; td.style.opacity='1';
-        td.innerHTML='<option value="">&#8212; All districts &#8212;</option>';
+        td.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>';
         if(H[this.value]) Object.keys(H[this.value]).sort().forEach(function(d){ var o=document.createElement('option'); o.value=o.textContent=d; td.appendChild(o); });
       }
     };
@@ -3613,18 +3613,18 @@ document.getElementById('step2-continue').addEventListener('click', async functi
     var fiGroups=(db().groups||[]).filter(function(g){ return g.fi===fiName; });
     var fiRegions=[]; fiGroups.forEach(function(g){ if(g.region&&fiRegions.indexOf(g.region)===-1) fiRegions.push(g.region); }); fiRegions.sort();
     var frEl=document.getElementById('fi-region');
-    frEl.innerHTML='<option value="">&#8212; All regions &#8212;</option>';
+    frEl.innerHTML='<option value="">'+escHtml(t('login.scope.allregions'))+'</option>';
     fiRegions.forEach(function(r){ var o=document.createElement('option'); o.value=o.textContent=r; frEl.appendChild(o); });
     var fdEl=document.getElementById('fi-district');
-    fdEl.innerHTML='<option value="">&#8212; All districts &#8212;</option>';
+    fdEl.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>';
     fdEl.disabled=true; fdEl.style.opacity='0.5';
     frEl.onchange=function(){
-      if(!this.value){ fdEl.innerHTML='<option value="">&#8212; All districts &#8212;</option>'; fdEl.disabled=true; fdEl.style.opacity='0.5'; }
+      if(!this.value){ fdEl.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>'; fdEl.disabled=true; fdEl.style.opacity='0.5'; }
       else {
         var r=this.value;
         var dists=[]; fiGroups.filter(function(g){ return g.region===r; }).forEach(function(g){ if(g.district&&dists.indexOf(g.district)===-1) dists.push(g.district); }); dists.sort();
         fdEl.disabled=false; fdEl.style.opacity='1';
-        fdEl.innerHTML='<option value="">&#8212; All districts &#8212;</option>';
+        fdEl.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>';
         dists.forEach(function(d){ var o=document.createElement('option'); o.value=o.textContent=d; fdEl.appendChild(o); });
       }
     };
@@ -6030,7 +6030,7 @@ function goBackToIdentity(){
     document.getElementById('lga-scope').style.display='block';
     document.getElementById('tamisemi-scope').style.display='none';
     document.getElementById('fi-scope').style.display='none';
-    document.getElementById('lga-scope-title').textContent=_lgaOfficer.district+' — Select scope';
+    document.getElementById('lga-scope-title').textContent=_lgaOfficer.district+' — '+t('login.scope.heading');
     populateLgaWards();
     setStep(3);
   } else if(selectedRole==='tamisemi'&&_tamOfficer){
@@ -6038,14 +6038,14 @@ function goBackToIdentity(){
     document.getElementById('lga-scope').style.display='none';
     document.getElementById('fi-scope').style.display='none';
     var tr=document.getElementById('tamisemi-region');
-    tr.innerHTML='<option value="">&#8212; All regions &#8212;</option>';
+    tr.innerHTML='<option value="">'+escHtml(t('login.scope.allregions'))+'</option>';
     Object.keys(H).sort().forEach(function(r){ var o=document.createElement('option'); o.value=o.textContent=r; tr.appendChild(o); });
     var td=document.getElementById('tamisemi-district');
-    td.innerHTML='<option value="">&#8212; All districts &#8212;</option>';
+    td.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>';
     td.disabled=true; td.style.opacity='0.5';
     tr.onchange=function(){
-      if(!this.value){ td.innerHTML='<option value="">&#8212; All districts &#8212;</option>'; td.disabled=true; td.style.opacity='0.5'; }
-      else { td.disabled=false; td.style.opacity='1'; td.innerHTML='<option value="">&#8212; All districts &#8212;</option>'; if(H[this.value]) Object.keys(H[this.value]).sort().forEach(function(d){ var o=document.createElement('option'); o.value=o.textContent=d; td.appendChild(o); }); }
+      if(!this.value){ td.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>'; td.disabled=true; td.style.opacity='0.5'; }
+      else { td.disabled=false; td.style.opacity='1'; td.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>'; if(H[this.value]) Object.keys(H[this.value]).sort().forEach(function(d){ var o=document.createElement('option'); o.value=o.textContent=d; td.appendChild(o); }); }
     };
     setStep(3);
   } else if(selectedRole==='fi'){
@@ -6054,22 +6054,22 @@ function goBackToIdentity(){
     document.getElementById('lga-scope').style.display='none';
     document.getElementById('tamisemi-scope').style.display='none';
     var fiName=sessionFi||document.getElementById('fi-institution').value;
-    document.getElementById('fi-scope-title').textContent=(fiName||'FI')+' — Select scope';
+    document.getElementById('fi-scope-title').textContent=(fiName||'FI')+' — '+t('login.scope.heading');
     var fiGroups=(db().groups||[]).filter(function(g){ return g.fi===fiName; });
     var fiRegions=[]; fiGroups.forEach(function(g){ if(g.region&&fiRegions.indexOf(g.region)===-1) fiRegions.push(g.region); }); fiRegions.sort();
     var frEl=document.getElementById('fi-region');
-    frEl.innerHTML='<option value="">&#8212; All regions &#8212;</option>';
+    frEl.innerHTML='<option value="">'+escHtml(t('login.scope.allregions'))+'</option>';
     fiRegions.forEach(function(r){ var o=document.createElement('option'); o.value=o.textContent=r; frEl.appendChild(o); });
     var fdEl=document.getElementById('fi-district');
-    fdEl.innerHTML='<option value="">&#8212; All districts &#8212;</option>';
+    fdEl.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>';
     fdEl.disabled=true; fdEl.style.opacity='0.5';
     frEl.onchange=function(){
-      if(!this.value){ fdEl.innerHTML='<option value="">&#8212; All districts &#8212;</option>'; fdEl.disabled=true; fdEl.style.opacity='0.5'; }
+      if(!this.value){ fdEl.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>'; fdEl.disabled=true; fdEl.style.opacity='0.5'; }
       else {
         var r=this.value;
         var dists=[]; fiGroups.filter(function(g){ return g.region===r; }).forEach(function(g){ if(g.district&&dists.indexOf(g.district)===-1) dists.push(g.district); }); dists.sort();
         fdEl.disabled=false; fdEl.style.opacity='1';
-        fdEl.innerHTML='<option value="">&#8212; All districts &#8212;</option>';
+        fdEl.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>';
         dists.forEach(function(d){ var o=document.createElement('option'); o.value=o.textContent=d; fdEl.appendChild(o); });
       }
     };
