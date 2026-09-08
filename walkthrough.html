@@ -112,6 +112,15 @@ body{font-family:system-ui,sans-serif;font-size:15px;color:var(--text);backgroun
 .step.active .step-dot{background:var(--green);color:#fff}
 .step.done .step-dot{background:var(--green-light);color:var(--green)}
 .step-line{flex:1;height:1px;background:var(--gray200)}
+#busy-veil{position:fixed;inset:0;z-index:3000;display:none;cursor:progress;background:transparent}
+#busy-veil.on{display:block}
+#busy-veil .busy-bar,#busy-veil .busy-pill{opacity:0;transition:opacity .18s ease}
+#busy-veil.visible .busy-bar,#busy-veil.visible .busy-pill{opacity:1}
+#busy-veil .busy-bar{position:absolute;top:0;left:0;right:0;height:3px;background:var(--green-light);overflow:hidden}
+#busy-veil .busy-bar::after{content:"";position:absolute;top:0;bottom:0;width:40%;background:var(--green);animation:busy-slide 1.1s ease-in-out infinite}
+@keyframes busy-slide{0%{left:-40%}100%{left:100%}}
+#busy-veil .busy-pill{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:var(--green-dark);color:#fff;font-size:12px;font-weight:600;padding:5px 14px;border-radius:999px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+@media (prefers-reduced-motion: reduce){ #busy-veil .busy-bar::after{animation:none;width:100%} }
 .demo-banner{background:var(--green-dark);color:#fff;border-radius:var(--radius);padding:.875rem 1rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .demo-banner-text{font-size:13px;line-height:1.5}
 .demo-banner-text strong{display:block;font-size:14px;margin-bottom:2px}
@@ -2657,7 +2666,84 @@ const MOCK_SEED = {"hierarchy": {"Arusha": {"Arusha District Council": {"Bangata
 // ── SUPABASE CLIENT + DATA LAYER ──
 const SB_URL = 'https://demo.invalid';          /* blanked by build.py — unused */
 const SB_KEY = 'not-a-key';                     /* blanked by build.py — unused */
+// ── WAITING ON THE DATABASE ──
+// Every action on these screens is a round trip to a server in another region:
+// about 70ms on a good day, several hundred on a bad one. With nothing on the
+// screen a person reasonably concludes the click missed and clicks again —
+// which is how one meeting gets logged twice. So a veil goes up from the first
+// millisecond a request is in flight (it swallows the second click), and only
+// becomes visible after 350ms, which is long enough that an ordinary call never
+// makes it flicker.
+//
+// It counts fetches rather than wrapping each call site, so a query added later
+// is covered without anyone remembering to do anything.
+var BUSY={ n:0, showTimer:null, hideTimer:null, shownAt:0 };
+function busyVeil(){
+  var el=document.getElementById('busy-veil');
+  if(!el){
+    el=document.createElement('div');
+    el.id='busy-veil';
+    el.setAttribute('aria-hidden','true');
+    el.innerHTML='<div class="busy-bar"></div>'+
+      '<div class="busy-pill" role="status" aria-live="polite">'+escHtml(t('busy.working'))+'</div>';
+    document.body.appendChild(el);
+  }
+  return el;
+}
+function busyStart(){
+  BUSY.n++;
+  if(BUSY.n!==1) return;
+  clearTimeout(BUSY.hideTimer);
+  var el=busyVeil();
+  el.querySelector('.busy-pill').textContent=t('busy.working');
+  el.classList.add('on');                      // blocks the second click at once
+  BUSY.showTimer=setTimeout(function(){        // ...but says nothing yet
+    BUSY.shownAt=Date.now();
+    el.classList.add('visible');
+    el.setAttribute('aria-hidden','false');
+  }, 350);
+}
+function busyClear(){
+  clearTimeout(BUSY.showTimer);
+  var el=document.getElementById('busy-veil'); if(!el) return;
+  // If it became visible, hold it briefly so it reads as an answer, not a flash.
+  var shownFor=BUSY.shownAt?(Date.now()-BUSY.shownAt):0;
+  var wait=(el.classList.contains('visible') && shownFor<400) ? (400-shownFor) : 0;
+  BUSY.hideTimer=setTimeout(function(){
+    el.classList.remove('on'); el.classList.remove('visible');
+    el.setAttribute('aria-hidden','true');
+    BUSY.shownAt=0;
+  }, wait);
+}
+function busyEnd(){
+  BUSY.n=Math.max(0, BUSY.n-1);
+  if(BUSY.n===0) busyClear();
+}
+(function(){
+  var _fetch=window.fetch;
+  if(typeof _fetch!=='function') return;
+  window.fetch=function(){
+    busyStart();
+    // Each request releases its own hold, and releases it regardless after
+    // fifteen seconds. A veil that can only come down when the bookkeeping is
+    // perfect is a veil that will one day stay up: this bounds any mistake to
+    // one request rather than to the rest of the session.
+    var done=false;
+    var end=function(){ if(done) return; done=true; clearTimeout(tid); busyEnd(); };
+    var tid=setTimeout(function(){
+      console.warn('busy: a request has been in flight for 15s; releasing the veil while it continues');
+      end();
+    }, 15000);
+    try{
+      var p=_fetch.apply(this, arguments);
+      if(!p || typeof p.then!=='function'){ end(); return p; }
+      return p.then(function(r){ end(); return r; }, function(e){ end(); throw e; });
+    }catch(e){ end(); throw e; }   // the walkthrough's offline stub throws outright
+  };
+})();
+
 const SB = window.supabase.createClient(SB_URL, SB_KEY);
+
 const DEMO_PASSWORD = 'not-a-password';         /* blanked by build.py — unused */
 // ── FI INSTITUTIONS ──
 // Authorisation state is held in the fi_institutions table and owned by TAMISEMI.
@@ -2754,34 +2840,42 @@ async function sbSignIn(email){
 
 // Load all rows visible to the signed-in user (RLS-scoped) into APP.groups
 async function loadData(){
-  // Keep authorisation state and the rule parameters fresh alongside the data they gate.
-  await loadFiInstitutions();
-  await loadParameters();
-  const { data: cmgs, error } = await SB.from('cmg_registry').select('*');
+  // These eight reads used to run one after another: eight round trips to a
+  // server in another region, which was most of what a person felt as "the app
+  // is slow". Only three of them need anything from the others — the ones
+  // filtered by the group ids — so it runs in two waves instead. The .in(ids)
+  // filter is kept rather than leaning on row-level security alone, because the
+  // Administrator's policies on remittance and loan_application deliberately
+  // reach further than cmg_registry does.
+  const [ , , cmgQ, laq, sq ] = await Promise.all([
+    // Authorisation state and the rule parameters, fresh alongside the data they gate.
+    loadFiInstitutions(),
+    loadParameters(),
+    SB.from('cmg_registry').select('*'),
+    SB.from('loan_application').select('*'),
+    // Loan status is computed in one place — the database (get_loan_status, served
+    // for every visible group by the cmg_loan_status view). The page never derives it.
+    SB.from('cmg_loan_status').select('cmg_id,status,dpd,total_repaid,reported_repaid,unconfirmed')
+  ]);
+  const cmgs = cmgQ.data, error = cmgQ.error;
   if(error){ console.error('loadData cmg_registry', error); APP.groups=[]; return; }
   const ids = (cmgs||[]).map(function(c){ return c.cmg_id; });
-  let meetings=[], loans=[];
+  let meetings=[], loans=[], remits=[];
   if(ids.length){
-    const mq = await SB.from('meetings').select('*').in('cmg_id', ids);
-    const lq = await SB.from('external_loan').select('*').in('cmg_id', ids);
+    // G4: a remittance is a record in its own right — what the group reported, and
+    // (only if the lender confirmed it against the bank) what actually moved.
+    const [mq, lq, rq] = await Promise.all([
+      SB.from('meetings').select('*').in('cmg_id', ids),
+      SB.from('external_loan').select('*').in('cmg_id', ids),
+      SB.from('remittance').select('*').in('cmg_id', ids)
+    ]);
     if(mq.error) console.error('loadData meetings', mq.error);
     if(lq.error) console.error('loadData external_loan', lq.error);
-    meetings = mq.data||[]; loans = lq.data||[];
-  }
-  // G4: a remittance is a record in its own right — what the group reported, and
-  // (only if the lender confirmed it against the bank) what actually moved.
-  let remits=[];
-  if(ids.length){
-    const rq = await SB.from('remittance').select('*').in('cmg_id', ids);
     if(rq.error) console.error('loadData remittance', rq.error);
-    remits = rq.data||[];
+    meetings = mq.data||[]; loans = lq.data||[]; remits = rq.data||[];
   }
-  const laq = await SB.from('loan_application').select('*');
   if(laq.error) console.error('loadData loan_application', laq.error);
   APP.loanApps = laq.data || [];
-  // Loan status is computed in one place — the database (get_loan_status, served
-  // for every visible group by the cmg_loan_status view). The page never derives it.
-  const sq = await SB.from('cmg_loan_status').select('cmg_id,status,dpd,total_repaid,reported_repaid,unconfirmed');
   if(sq.error) console.error('loadData cmg_loan_status', sq.error);
   const statusOf = {};
   (sq.data||[]).forEach(function(s){ statusOf[s.cmg_id]=s; });
@@ -3202,8 +3296,8 @@ var regWiz=makeWizard({
     ward:function(){ return !!(regVal('reg-ward')&&villageVal('reg')); },
     members:function(){ return regMembersOk()&&regQuorumOk(); },
     freq:function(){ return !!regVal('reg-freq'); },
-    chair:function(){ return !!regVal('reg-chair')&&validPhone(regVal('reg-chairphone'))&&nidaFieldOk('reg-chairnida'); },
-    treasurer:function(){ var p=regVal('reg-treasurerphone'); return !!regVal('reg-treasurer')&&(!p||validPhone(p))&&nidaFieldOk('reg-treasurernida'); }
+    chair:function(){ return !!regVal('reg-chair')&&validPhone(regVal('reg-chairphone'))&&nidaFieldOk('reg-chairnida','reg-treasurernida'); },
+    treasurer:function(){ var p=regVal('reg-treasurerphone'); return !!regVal('reg-treasurer')&&(!p||validPhone(p))&&nidaFieldOk('reg-treasurernida','reg-chairnida'); }
   },
   refresh:{ members:regRefreshMembers,
             chair:function(){ regRefreshPhones(); regRefreshNida(); },
@@ -3249,12 +3343,24 @@ function nidaFormat(v){
 }
 // Whether a number is mandatory is ruling D6, so it is a parameter, not a constant.
 function nidaRequired(){ return Number(param('nida_required',0))===1; }
-function nidaFieldOk(id){
+function nidaFieldOk(id, otherId){
   var el=document.getElementById(id); var v=el?el.value.trim():'';
   if(!v) return !nidaRequired();
-  return nidaValid(v);
+  if(!nidaValid(v)) return false;
+  return !nidaClashes(id, otherId);
 }
-function nidaNote(id, noteId){
+// By the treasurer's screen the chairperson's number is already known, so the
+// field can say the two are the same person there rather than at the end. The
+// database refuses it either way; this is about not asking someone to finish a
+// form that cannot be accepted.
+function nidaClashes(id, otherId){
+  if(!otherId) return false;
+  var a=document.getElementById(id), b=document.getElementById(otherId);
+  if(!a||!b) return false;
+  var av=nidaDigits(a.value), bv=nidaDigits(b.value);
+  return !!(av && av===bv);
+}
+function nidaNote(id, noteId, otherId, clashKey){
   var el=document.getElementById(id), note=document.getElementById(noteId);
   if(!el||!note) return;
   var v=el.value.trim();
@@ -3263,10 +3369,14 @@ function nidaNote(id, noteId){
     else { note.className='q-hint warn'; note.textContent=t('reg.nida.missing'); }
     return;
   }
-  if(nidaValid(v)){ note.className='q-hint ok'; note.textContent='\u2713 '+nidaFormat(v); }
-  else { note.className='q-hint fail'; note.textContent=t('reg.nida.bad'); }
+  if(!nidaValid(v)){ note.className='q-hint fail'; note.textContent=t('reg.nida.bad'); return; }
+  if(nidaClashes(id, otherId)){ note.className='q-hint fail'; note.textContent=t(clashKey||'reg.nida.dup.other'); return; }
+  note.className='q-hint ok'; note.textContent='\u2713 '+nidaFormat(v);
 }
-function regRefreshNida(){ nidaNote('reg-chairnida','rw-chairnida-note'); nidaNote('reg-treasurernida','rw-treasurernida-note'); }
+function regRefreshNida(){
+  nidaNote('reg-chairnida','rw-chairnida-note','reg-treasurernida','reg.nida.dup.treasurer');
+  nidaNote('reg-treasurernida','rw-treasurernida-note','reg-chairnida','reg.nida.dup.chair');
+}
 
 function regPhoneNote(id, noteId){
   var p=regVal(id); var note=document.getElementById(noteId);
@@ -3391,7 +3501,7 @@ async function regSubmit(){
   var _cn=nidaDigits(regVal('reg-chairnida')), _tn=nidaDigits(regVal('reg-treasurernida'));
   if(nidaRequired() && (!_cn||!_tn)){ err.textContent='A NIDA number is required for both the chairperson and the treasurer.'; err.style.display='block'; return; }
   if((_cn&&!nidaValid(_cn))||(_tn&&!nidaValid(_tn))){ err.textContent='A NIDA number must be twenty digits beginning with the date of birth.'; err.style.display='block'; return; }
-  if(_cn&&_cn===_tn){ err.textContent='The chairperson and the treasurer must be two different people.'; err.style.display='block'; return; }
+  if(_cn&&_cn===_tn){ err.textContent='The chairperson and the treasurer have the same NIDA number. One person cannot hold both offices.'; err.style.display='block'; return; }
   if(!region||!district||!ward){ err.textContent='Please select region, district and ward.'; err.style.display='block'; return; }
   if(!villageVal('reg')){ err.textContent='Please select the village.'; err.style.display='block'; return; }
   if(!regMembersOk()){ err.textContent='Members must be between 5 and 30.'; err.style.display='block'; return; }
@@ -3814,7 +3924,7 @@ async function doResubmit(){
   var rcn=nidaDigits(v('rs-chairnida')), rtn=nidaDigits(v('rs-treasurernida'));
   if(nidaRequired() && (!rcn||!rtn)){ err.textContent='A NIDA number is required for both the chairperson and the treasurer.'; err.style.display='block'; return; }
   if((rcn&&!nidaValid(rcn))||(rtn&&!nidaValid(rtn))){ err.textContent='A NIDA number must be twenty digits beginning with the date of birth.'; err.style.display='block'; return; }
-  if(rcn&&rcn===rtn){ err.textContent='The chairperson and the treasurer must be two different people.'; err.style.display='block'; return; }
+  if(rcn&&rcn===rtn){ err.textContent='The chairperson and the treasurer have the same NIDA number. One person cannot hold both offices.'; err.style.display='block'; return; }
   if(!region||!district||!ward){ err.textContent='Please select region, district and ward.'; err.style.display='block'; return; }
   if(!villageVal('rs')){ err.textContent='Please select the village.'; err.style.display='block'; return; }
   if(!members){ err.textContent='Please enter the number of members.'; err.style.display='block'; return; }
@@ -4173,8 +4283,16 @@ async function submitLoanApplication(){
 
 // G4: where one meeting's reported remittance stands with the lender. Returns ''
 // when the meeting reported nothing, so it can be appended unconditionally.
+function remitOf(g, m){
+  return (g.remittances||[]).filter(function(x){ return x.meetingId===m._mid; })[0] || null;
+}
+function remitIsConfirmed(g, m){
+  var r=remitOf(g, m);
+  return !!(r && r.state==='CONFIRMED');
+}
+
 function remitStateItem(g, m){
-  var r=(g.remittances||[]).filter(function(x){ return x.meetingId===m._mid; })[0];
+  var r=remitOf(g, m);
   if(!r) return '';
   var val, cls='';
   if(r.state==='CONFIRMED'){
@@ -4804,7 +4922,11 @@ function renderChairHist(){
     return '<div class="mtg-card">'+
       '<div class="mtg-header"><div style="font-weight:700">'+dStr+'</div>'+
       '<div style="display:flex;gap:6px;align-items:center"><span class="badge '+(hasQ?'badge-ok':'badge-fail')+'">'+(hasQ?'Quorum met':'Below quorum')+'</span>'+
-      ((!hasQ && m._mid===lastMid) ? '<button class="btn btn-sm btn-danger" data-vmid="'+m._mid+'">Annul</button>' : '')+'</div></div>'+
+      ((!hasQ && m._mid===lastMid)
+        ? (remitIsConfirmed(g,m)
+            ? '<span style="font-size:11px;color:var(--muted)" title="The lender has confirmed this meeting\u2019s remittance against its bank statement">&#128274; Annul locked &mdash; remittance confirmed</span>'
+            : '<button class="btn btn-sm btn-danger" data-vmid="'+m._mid+'">Annul</button>')
+        : '')+'</div></div>'+
       '<div style="font-size:12px;color:var(--muted);margin-bottom:.75rem">'+m.present+' of '+g.members+' present</div>'+
       '<div class="mtg-grid col">'+
       '<div class="mtg-item"><span>Total savings</span><strong>'+fmt(m.savings)+'</strong></div>'+
@@ -5870,7 +5992,7 @@ document.getElementById('lreg-submit').addEventListener('click', async function(
   var lcn=nidaDigits(v('lreg-chairnida')), ltn=nidaDigits(v('lreg-treasurernida'));
   if(nidaRequired() && (!lcn||!ltn)){ err.textContent='A NIDA number is required for both the chairperson and the treasurer.'; err.style.display='block'; return; }
   if((lcn&&!nidaValid(lcn))||(ltn&&!nidaValid(ltn))){ err.textContent='A NIDA number must be twenty digits beginning with the date of birth.'; err.style.display='block'; return; }
-  if(lcn&&lcn===ltn){ err.textContent='The chairperson and the treasurer must be two different people.'; err.style.display='block'; return; }
+  if(lcn&&lcn===ltn){ err.textContent='The chairperson and the treasurer have the same NIDA number. One person cannot hold both offices.'; err.style.display='block'; return; }
   if(!ward){ err.textContent='Please select a ward.'; err.style.display='block'; return; }
   if(!villageVal('lreg')){ err.textContent='Please select the village.'; err.style.display='block'; return; }
   if(!members){ err.textContent='Please enter the number of members.'; err.style.display='block'; return; }
@@ -7071,6 +7193,9 @@ window.addEventListener('DOMContentLoaded', function(){
     'reg.nida.bad':'That is not a valid NIDA number. Twenty digits, beginning with the date of birth.',
     'reg.nida.missing':'You can leave this out for now; the officer verifying will be told it is missing.',
     'reg.nida.required':'A NIDA number is required.',
+    'reg.nida.dup.chair':'This is already entered as the chairperson\u2019s number. One person cannot hold both offices.',
+    'reg.nida.dup.treasurer':'This is already entered as the treasurer\u2019s number. One person cannot hold both offices.',
+    'reg.nida.dup.other':'This number is already entered for the other office-bearer. One person cannot hold both offices.',
     'reg.row.chairnida':'Chairperson NIDA', 'reg.row.treasurernida':'Treasurer NIDA',
     'rep.title':'Reports', 'rep.pick':'Report', 'rep.run':'Run',
     'rep.blurb':'Each report is computed in the database, so the table below and the file you download are the same query. You see only what your role may see.',
@@ -7079,6 +7204,7 @@ window.addEventListener('DOMContentLoaded', function(){
     'rep.rows':'{n} rows', 'rep.empty':'Nothing to report for your scope.',
     'rep.truncated':'Showing the first 300 of {n} rows. The download carries all of them.',
     'rep.failed':'The report could not be run:', 'rep.yes':'Yes', 'rep.no':'No',
+    'busy.working':'Working\u2026',
     'la.heading':'Apply for a loan', 'la.heading.new':'Apply for a new loan',
     'la.savings.ask':'In this cycle, how much has the group saved altogether?',
     'la.savings.help':'Everything the group holds (TZS) — not just this meeting.',
@@ -7195,6 +7321,9 @@ window.addEventListener('DOMContentLoaded', function(){
     'reg.nida.bad':'Hii si namba sahihi ya NIDA. Tarakimu ishirini, zikianza na tarehe ya kuzaliwa.',
     'reg.nida.missing':'Unaweza kuiacha kwa sasa; afisa atakayehakiki ataarifiwa kuwa haipo.',
     'reg.nida.required':'Namba ya NIDA inahitajika.',
+    'reg.nida.dup.chair':'Namba hii tayari imeandikwa kama ya mwenyekiti. Mtu mmoja hawezi kushika nyadhifa zote mbili.',
+    'reg.nida.dup.treasurer':'Namba hii tayari imeandikwa kama ya mweka hazina. Mtu mmoja hawezi kushika nyadhifa zote mbili.',
+    'reg.nida.dup.other':'Namba hii tayari imeandikwa kwa kiongozi mwingine. Mtu mmoja hawezi kushika nyadhifa zote mbili.',
     'reg.row.chairnida':'NIDA ya mwenyekiti', 'reg.row.treasurernida':'NIDA ya mweka hazina',
     'rep.title':'Taarifa', 'rep.pick':'Taarifa', 'rep.run':'Onyesha',
     'rep.blurb':'Kila taarifa huhesabiwa kwenye hifadhidata, hivyo jedwali hapa chini na faili unalopakua ni swali moja. Unaona tu yale jukumu lako linaruhusu.',
@@ -7203,6 +7332,7 @@ window.addEventListener('DOMContentLoaded', function(){
     'rep.rows':'Safu {n}', 'rep.empty':'Hakuna cha kuripoti katika eneo lako.',
     'rep.truncated':'Zinaonyeshwa safu 300 za kwanza kati ya {n}. Faili unalopakua lina zote.',
     'rep.failed':'Taarifa haikuweza kuonyeshwa:', 'rep.yes':'Ndiyo', 'rep.no':'Hapana',
+    'busy.working':'Inafanya kazi\u2026',
     'la.heading':'Omba mkopo', 'la.heading.new':'Omba mkopo mpya',
     'la.savings.ask':'Katika mzunguko huu, kikundi kimeweka jumla kiasi gani kama akiba?',
     'la.savings.help':'Kila kitu ambacho kikundi kinacho (TZS) — si mkutano huu tu.',
