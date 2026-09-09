@@ -8396,7 +8396,7 @@ var STEPS = [
   spot:function(){ return q("#c-dash-content"); }, hold:9500 },
 
 { ch:"c2", title:"Logging a meeting",
-  text:"One or two questions a screen, phone-sized. The date, then whether anyone has joined or left — the group's size is <em>confirmed before attendance is counted</em>, so the quorum rule is judged against today's group. The chairperson does this in the meeting, while everyone is still in the room.",
+  text:"One or two questions a screen, phone-sized. The date, then whether anyone has joined or left — the group's size is <em>confirmed before attendance is counted</em>, so the quorum rule is judged against today's group. The chairperson does this in the meeting.",
   act:async function(){
     await doAssign();
     await seedMeeting(M.m1); await seedMeeting(M.m2); await seedMeeting(M.m3);
@@ -8431,7 +8431,7 @@ var STEPS = [
   spot:function(){ return q('#la-form [data-screen="amount"]'); }, hold:9500 },
 
 { ch:"c3", title:"The history goes with it",
-  text:"Member count, years active, total savings — and behind them every meeting the group has logged. The application is not a set of claims to be verified later; it is <em>evidence the system already holds</em>.",
+  text:"Member count, years active, total savings — and behind them every meeting the group has logged. The application is <em>evidence the system already holds</em>.",
   act:async function(){
     await doRecord();
     if(rawApp()){ await asChair("loan"); return; }
@@ -8447,7 +8447,7 @@ var STEPS = [
 
 /* ── 04 accept ── */
 { ch:"c4", title:"The terms come back",
-  text:"The bank has approved <em>"+money(D.approved)+" of the "+money(D.requested)+" asked for</em>, at "+D.rate+"% a month over "+D.tenure+" months — "+money(D.totalDue)+" repayable. Every figure the group sees from here is computed off the approved amount, never the requested one.",
+  text:"The bank has approved <em>"+money(D.approved)+" of the "+money(D.requested)+" asked for</em>, at "+D.rate+"% a month over "+D.tenure+" months — "+money(D.totalDue)+" repayable. Every figure the group sees from here is computed off the approved amount.",
   act:async function(){ await doDecide(); await asChair("loan"); },
   spot:function(){ return q("#c-loan-content"); }, hold:11000 },
 
@@ -8492,19 +8492,19 @@ var STEPS = [
   spot:function(){ return q('#log-wizard [data-screen="remitslip"]'); }, ping:true, hold:9500 },
 
 { ch:"c5", title:"One instalment confirmed, one still waiting",
-  text:"Two instalments of "+money(D.instalment)+" have been reported. The bank has matched the first against its statement, so <em>only that one counts</em> against the "+money(D.totalDue)+" owed. The second sits in plain sight as reported-but-unconfirmed.",
+  text:"Two instalments of "+money(D.instalment)+" have been reported. The bank has matched the first against its statement, so <em>only that one counts</em> against the "+money(D.totalDue)+" owed. The second sits as reported-but-unconfirmed.",
   act:async function(){ await doRepay(); await asChair("dash"); },
   spot:function(){ return q("#c-dash-content"); }, hold:12500 },
 
 /* ═══ GOVERNMENT ════════════════════════════════════════════════════════ */
 /* ── 06 who may lend ── */
 { ch:"g1", title:"The gate on lending",
-  text:"Which institutions may lend to CMGs at all is held in <em>one register, owned by TAMISEMI</em>. Authorising one mints its lender login; nothing is hardcoded, and every district's dropdown updates with it. Six are authorised today.",
+  text:"Which institutions may lend to CMGs at all is held in <em>one register, owned by TAMISEMI</em>. Authorising one mints its lender login; nothing is hardcoded, and every district's dropdown updates with it. Six are authorised.",
   act:async function(){ await doRepay(); await asTam("fi"); },
   spot:function(){ return q("#tam-fi-panel"); }, hold:10500 },
 
 { ch:"g1", title:"Withdrawing it takes a reason",
-  text:"A lender cannot be suspended by clicking a button. A reason is required, and it is <em>recorded against the institution permanently</em>.",
+  text:"A lender can only be suspended with a specified reason, and it is <em>recorded against the institution permanently</em>.",
   act:async function(){
     await doRepay();
     if(rawFi(SUSPEND).status!=="AUTHORISED"){ await asTam("fi"); await renderFiDetail(SUSPEND); await tick(); return; }
@@ -8515,7 +8515,7 @@ var STEPS = [
   },
   spot:function(){ return q("#fi-suspend-form") || q("#tam-fi-panel"); }, ping:true, hold:10000 },
 
-{ ch:"g1", title:"Access ends immediately",
+{ ch:"g1", title:"FI access stops on suspension",
   text:"The lender can no longer sign in, and its groups <em>drop out of the council officer's list the moment the decision is taken</em>. Our own group is untouched: its lender is NMB, and it is still there.",
   act:async function(){ await doSuspend(); await asLga("groups"); },
   spot:function(){ return q("#obs-list-view") || q("#obs-tbody"); }, ping:true, hold:11500 },
@@ -8533,7 +8533,7 @@ var STEPS = [
   hold:10000 },
 
 { ch:"g2", title:"And by lender",
-  text:"The same portfolio cut the other way: what each authorised institution is carrying, and which groups it funds. This is the view that informs <em>a decision about a lender</em> — like the suspension you have just seen.",
+  text:"The same portfolio cut the other way: what each authorised institution is carrying, and which groups it funds.",
   act:async function(){ await doRepay(); await asTam("fi"); await renderFiDetail(D.fi); await tick(); },
   spot:function(){ return q("#tam-fi-panel"); }, hold:10000 },
 
