@@ -488,8 +488,10 @@ body.tour-on #tour-slide.on{ display:flex }
 .t-flow.two{ grid-template-columns:1.15fr 1fr; align-items:start }
 .t-flow.two .t-tree{ min-width:0 }
 .t-bar i{ min-width:24px }
-.t-cycle{ position:relative; row-gap:6px }
-.t-cycle svg.t-arrows{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible }
+.t-cycle{ row-gap:6px }
+/* the number in a circle that gives each box its place in the sequence */
+.t-cycle .c.on .n{ display:inline-block; width:19px; height:19px; line-height:19px; border-radius:50%; background:#fff; text-align:center; font-weight:800; font-size:11px; margin:-1px 7px 0 -2px; vertical-align:middle }
+.t-cycle .c.on.cmg .n{ color:#1a6b3c } .t-cycle .c.on.gov .n{ color:#1e4ea8 } .t-cycle .c.on.fi .n{ color:#8a5f14 }
 
 </style>
 <!-- supabase-js v2.115.0, bundled at build time (G15) — no runtime CDN
@@ -7820,7 +7822,7 @@ async function asAdmin(){
 function slideDesksTitle(){
   return '<div class="t-slide">'+
     '<h1>One record, four desks</h1>'+
-    '<div class="sub">A savings group, its council, its bank and the ministry, each keeping its own part of one record.</div>'+
+    '<div class="sub">The demo shows a CMG, LGA, TAMISEMI and FIs interacting through a loan cycle.</div>'+
     '<div class="t-desks">'+
       '<div class="t-desk cmg"><b>Chairperson</b><p>The group\u2019s own book</p></div>'+
       '<div class="t-desk gov"><b>LGA officer</b><p>The district\u2019s register</p></div>'+
@@ -7834,7 +7836,7 @@ function slideDesks(){
     '<div class="sub">What each stakeholder does.</div>'+
     '<div class="t-desks">'+
       '<div class="t-desk cmg"><b>Chairperson</b>'+
-        '<p>Keeps the group\u2019s record from the first meeting.</p></div>'+
+        '<p>Keeps the group\u2019s record. Only aggregate data is sought, to keep data entry simple but functional.</p></div>'+
       '<div class="t-desk gov"><b>LGA officer</b>'+
         '<p>Verifies the group into existence and attaches its lender.</p>'+
         '<p>One officer registers; a different officer verifies.</p></div>'+
@@ -7858,64 +7860,31 @@ function slideCycle(){
     ["Accept",            "Accepts, in a meeting that met quorum", "", "", ""],
     ["Disburse",          "Confirms the money arrived", "", "Records it with the bank reference", ""],
     ["Repay",             "Reports each remittance with the slip number", "", "", ""],
-    ["Confirm",           "", "", "Confirms it against the statement; the loan balance is updated", ""],
-    ["Track",             "Confirmed and reported, side by side", "District pipeline and exceptions", "Portfolio and arrears", "The country, live"]
+    ["Confirm",           "", "", "Confirms receipts against the bank statement and updates the loan balance", ""]
   ];
   var cls=["cmg","gov","fi","gov"];
-  var order={ "Disburse": {3:1, 1:2} };       /* column → reading order within that row */
+  /* Reading order, left to right within a row unless a row says otherwise:
+     at Disburse the lender records the transfer before the group confirms it. */
+  var order={ "Disburse": {3:1, 1:2} };
   var h='<div class="t-slide cycle"><h1>The loan cycle</h1><div class="sub">Who comes in when.</div><div class="t-cycle">'+
     '<div></div><div class="h cmg">Chairperson</div><div class="h gov">LGA officer</div><div class="h fi">FI lender</div><div class="h gov">TAMISEMI</div>';
-  rows.forEach(function(r,ri){
-    var last = ri===rows.length-1;              /* Track: four boxes in parallel, so the chain ends at the first */
+  var n=0;
+  rows.forEach(function(r){
     h+='<div class="st">'+r[0]+'</div>';
+    var cols=[1,2,3,4].filter(function(i){ return r[i]; });
+    var o=order[r[0]];
+    if(o) cols.sort(function(a,b){ return o[a]-o[b]; });
+    var num={}; cols.forEach(function(i){ num[i]=++n; });
     for(var i=1;i<5;i++){
-      var od=(order[r[0]]&&order[r[0]][i])?' data-order="'+order[r[0]][i]+'"':'';
-      h+='<div class="c'+(r[i]?' on '+cls[i-1]+(last?' par':''):'')+'"'+od+'>'+r[i]+'</div>';
+      h+= r[i] ? '<div class="c on '+cls[i-1]+'"><span class="n">'+num[i]+'</span>'+r[i]+'</div>'
+               : '<div class="c"></div>';
     }
   });
   return h+'</div></div>';
 }
-/* A dotted arrow from each box to the next, so the eye follows the zigzag
-   between columns without having to work out the order. Drawn after the
-   slide is laid out; redrawn on resize. */
-function drawCycleArrows(sl){
-  var grid=sl.querySelector('.t-cycle'); if(!grid) return;
-  var old=grid.querySelector('svg.t-arrows'); if(old) old.remove();
-  var boxes=Array.prototype.slice.call(grid.querySelectorAll('.c.on'));
-  /* DOM order is left to right within a row; a data-order attribute overrides it */
-  boxes.sort(function(a,b){
-    var ra=Math.round(a.offsetTop/10), rb=Math.round(b.offsetTop/10);
-    if(ra!==rb) return ra-rb;
-    var oa=+(a.getAttribute('data-order')||0), ob=+(b.getAttribute('data-order')||0);
-    if(oa&&ob) return oa-ob;
-    return a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
-  });
-  var chain=[], seenPar=false;
-  boxes.forEach(function(b){ if(b.classList.contains('par')){ if(!seenPar){ chain.push(b); seenPar=true; } } else chain.push(b); });
-  var g=grid.getBoundingClientRect();
-  var NS='http://www.w3.org/2000/svg', svg=document.createElementNS(NS,'svg');
-  svg.setAttribute('class','t-arrows');
-  svg.setAttribute('viewBox','0 0 '+g.width+' '+g.height);
-  var defs=document.createElementNS(NS,'defs');
-  defs.innerHTML='<marker id="t-arrowhead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">'+
-    '<path d="M0,1 L9,5 L0,9 Z" fill="#6f5416"/></marker>';
-  svg.appendChild(defs);
-  for(var i=0;i<chain.length-1;i++){
-    var a=chain[i].getBoundingClientRect(), b=chain[i+1].getBoundingClientRect();
-    var x1=a.left-g.left+a.width/2, y1=a.bottom-g.top, x2=b.left-g.left+b.width/2, y2=b.top-g.top;
-    var path=document.createElementNS(NS,'path');
-    path.setAttribute('d','M'+x1+','+y1+' L'+x2+','+y2);
-    path.setAttribute('stroke','#6f5416'); path.setAttribute('stroke-width','1.6');
-    path.setAttribute('stroke-dasharray','3 4'); path.setAttribute('fill','none');
-    path.setAttribute('marker-end','url(#t-arrowhead)');
-    svg.appendChild(path);
-  }
-  grid.appendChild(svg);
-}
 function slideRecordAndMoney(){
   return '<div class="t-slide">'+
     '<h1>The record and the money</h1>'+
-    '<div class="sub">Two systems, each doing one job.</div>'+
     '<div class="t-split">'+
       '<div class="t-box"><b>This system keeps the record</b><ul>'+
         '<li>Groups, members and meetings</li>'+
@@ -7938,7 +7907,7 @@ function slideBook(){
   var tile=function(n){ return '<div class="t-tile"><b>Meeting '+n+'</b>'+lines.map(function(l){ return '<span>'+l+'</span>'; }).join('')+'</div>'; };
   return '<div class="t-slide">'+
     '<h1>The group\u2019s own book</h1>'+
-    '<div class="sub">Kept from the first meeting, with no loan in sight. Per meeting, in aggregate.</div>'+
+    '<div class="sub">CMGs can maintain their own group records once registered and through a loan cycle.</div>'+
     '<div class="t-tiles">'+tile(1)+tile(2)+tile(3)+'<div class="t-tile more">\u2026</div></div>'+
     '<div class="t-bridge">Quorum is checked as each meeting is logged. This is the history a lender will later read.</div>'+
     '</div>';
@@ -8304,7 +8273,7 @@ var STEPS = [
   slide:function(){ return slideDesksTitle(); }, spot:null, hold:40000 },
 
 { ch:"p0", title:"The group's own book, from day one",
-  text:"A group uses this from the day it registers, with no loan in sight. Each meeting it records who came, whether quorum was met, the shares bought, what members repaid and what the group lent out — per meeting, in aggregate. Quorum is checked as the meeting is logged. This is the group's own book, and it is the history a lender will later read.",
+  text:"A group can start to use this once registered. Each meeting it records who came, whether quorum was met, the shares bought, what members repaid and what the group lent out — per meeting, in aggregate. Quorum is checked as the meeting is logged. This is the group's own book, and it is the history a lender will later read.",
   act:async function(){ showLogin(); },
   slide:function(){ return slideBook(); }, spot:null, hold:50000 },
 
@@ -8314,9 +8283,9 @@ var STEPS = [
   slide:function(){ return slideDesks(); }, spot:null, hold:45000 },
 
 { ch:"p0", title:"The loan cycle",
-  text:"Who comes in when. Read it top to bottom: the record passes from desk to desk, and each desk adds its part.",
+  text:"Who comes in when. Follow the numbers: the record passes from desk to desk, and each desk adds its part.",
   act:async function(){ showLogin(); },
-  slide:function(){ return slideCycle(); }, slideDraw:drawCycleArrows, spot:null, hold:55000 },
+  slide:function(){ return slideCycle(); }, spot:null, hold:55000 },
 
 { ch:"p0", title:"The council's desk",
   text:"Registration data must be complete for processing: name, place, members, quorum threshold, and the office-bearers with their identity numbers. The officer verifies it and attaches an authorised lender. A group registered by one officer is verified by another.",
