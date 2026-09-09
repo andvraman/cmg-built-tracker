@@ -800,7 +800,7 @@ function build(){
       db.meetings.push({
         id:db._seq.meetings++, cmg_id:id,
         date:d.toISOString().slice(0,10),
-        present:present,
+        present:present, members:members, quorum:80,
         savings:round(between(r,90000,260000),5000),
         memrepay:round(between(r,40000,180000),5000),
         disbursed:round(between(r,0,120000),5000),
@@ -1463,12 +1463,14 @@ var RPC = {
     var g = group(a.cmg_id);
     var m = find(DB.meetings, function(x){ return x.id===p.p_meeting_id; });
     if(!m) return err("That meeting could not be found.");
-    var thresh = Math.ceil((g.members||0)*(g.quorum||80)/100);
+    /* judged against the group as it was that day — the meeting's own figures */
+    var mem=(m.members!=null?m.members:g.members)||0, q=(m.quorum!=null?m.quorum:g.quorum)||80;
+    var thresh = Math.ceil(mem*q/100);
     if(m.voided || m.present < thresh)
       return err("That meeting did not meet quorum, so it cannot carry this decision.");
     a.status="ACCEPTED";
     a.accepted_meeting_date=m.date;
-    a.accepted_members=g.members;
+    a.accepted_members=mem;
     a.accepted_present=m.present;
     notify(a.fi, g.name+" ("+g.cmg_id+") accepted the approved loan at its meeting of "+m.date+".");
     confirmReceipt("OFFER_LETTER", a.cmg_id, a.id, a.fi, p);
@@ -2195,7 +2197,7 @@ window.SB_STUB = {
           <div class="wz-q">
             <h2 class="wz-ask"><label for="reg-members" data-i18n="reg.members.ask">How many members does the group have?</label></h2>
             <div class="wz-help" data-i18n="reg.members.help">Minimum 5, maximum 30.</div>
-            <div class="field"><input type="number" inputmode="numeric" class="wz-num" id="reg-members" min="5" max="30" placeholder="0"></div>
+            <div class="field"><input type="number" inputmode="numeric" class="wz-num" id="reg-members" min="1" placeholder="0"></div>
             <div id="rw-members-note"></div>
           </div>
           <div class="wz-q">
@@ -2408,7 +2410,7 @@ window.SB_STUB = {
             <div class="wz-q">
               <h2 class="wz-ask"><label for="l-members" data-i18n="mt.members.ask">How many members are there now?</label></h2>
               <div class="wz-help" data-i18n="mt.members.help">This becomes the group's new total: minimum 5, maximum 30.</div>
-              <div class="field"><input type="number" inputmode="numeric" class="wz-num" id="l-members" min="5" max="30" placeholder="0"></div>
+              <div class="field"><input type="number" inputmode="numeric" class="wz-num" id="l-members" min="1" placeholder="0"></div>
               <div id="wz-members-note"></div>
             </div>
           </div>
@@ -2981,6 +2983,9 @@ async function loadData(){
       .sort(function(a,b){ return (a.date||'')<(b.date||'')?-1:((a.date||'')>(b.date||'')?1:(a.id-b.id)); })
       .map(function(m){ return {
         id:'m'+m.id, _mid:m.id, date:m.date, present:m.present,
+        // The group as it was that day (null on rows from before this was kept).
+        members:(m.members===null||m.members===undefined)?null:Number(m.members),
+        quorum:(m.quorum===null||m.quorum===undefined)?null:Number(m.quorum),
         // null (not 0) on any meeting recorded before share tracking existed, or before
         // the group had set share_value — distinguishes "no shares" from "unknown".
         shares:(m.shares===null||m.shares===undefined)?null:Number(m.shares),
@@ -3021,7 +3026,8 @@ async function loadData(){
 // ── CHAIRPERSON WRITE HELPERS (Supabase) ──
 async function sbInsertMeeting(cmgId, rec){
   return await SB.from('meetings').insert({
-    cmg_id: cmgId, date: rec.date, present: rec.present, shares: rec.shares, savings: rec.savings,
+    cmg_id: cmgId, date: rec.date, present: rec.present, members: rec.members, quorum: rec.quorum,
+    shares: rec.shares, savings: rec.savings,
     memrepay: rec.memrepay, disbursed: rec.disbursed, repaid: rec.repaid,
     notes: rec.notes||null, remit_choice: rec.remitChoice, remit_type: rec.remitType,
     deposit_slip_no: rec.depositSlipNo||null, amendments: rec.amendments||[]
@@ -3029,7 +3035,7 @@ async function sbInsertMeeting(cmgId, rec){
 }
 async function sbUpdateMeeting(mid, rec){
   return await SB.from('meetings').update({
-    date: rec.date, present: rec.present, shares: rec.shares, savings: rec.savings,
+    date: rec.date, present: rec.present, members: rec.members, shares: rec.shares, savings: rec.savings,
     memrepay: rec.memrepay, disbursed: rec.disbursed, repaid: rec.repaid,
     notes: rec.notes||null, remit_choice: rec.remitChoice, remit_type: rec.remitType,
     deposit_slip_no: rec.depositSlipNo||null, amendments: rec.amendments
@@ -3387,7 +3393,13 @@ document.getElementById('inp-cmgid').addEventListener('input', function(){
 // existing one; the screens only decide which selects are on show at a time.
 function regVal(id){ var el=document.getElementById(id); return el?(el.value||'').trim():''; }
 var REG_SCREENS=['name','place','ward','members','freq','chair','treasurer','check'];
-function regMembersOk(){ var n=parseInt(regVal('reg-members')); return n>=5&&n<=30; }   // hard bound, README §5
+// The member range is the one in force (system_parameter members_min / members_max),
+// the same rule the LGA's bulk-upload check and the database apply — not a literal here.
+function membersMin(){ return param('members_min',5); }
+function membersMax(){ return param('members_max',25); }
+function membersInRange(n){ return n>=membersMin()&&n<=membersMax(); }
+function membersRangeMsg(){ return tf('mt.members.range',{min:membersMin(),max:membersMax()}); }
+function regMembersOk(){ return membersInRange(parseInt(regVal('reg-members'))); }
 function regQuorumOk(){ var q=regVal('reg-quorum'); var n=parseInt(q); return q!==''&&n>=1&&n<=100; }
 function regSelectOpt(){ return '<option value="">'+escHtml(t('wz.select'))+'</option>'; }
 function regVillageTyped(){ var inp=document.getElementById('reg-village'); return !!(inp&&inp.style.display!=='none'&&(inp.value||'').trim()); }
@@ -3415,7 +3427,7 @@ var regWiz=makeWizard({
 function regRefreshMembers(){
   var note=document.getElementById('rw-members-note'); var v=regVal('reg-members'); var n=parseInt(v);
   if(v===''||isNaN(n)){ note.className=''; note.textContent=''; }
-  else if(n<5||n>30){ note.className='q-hint fail'; note.textContent=t('mt.members.range'); }
+  else if(!membersInRange(n)){ note.className='q-hint fail'; note.textContent=membersRangeMsg(); }
   else if(n<10){ note.className='q-hint warn'; note.textContent=t('reg.members.lt10'); }
   else if(n>25){ note.className='q-hint warn'; note.textContent=t('reg.members.gt25'); }
   else { note.className='q-hint ok'; note.textContent=tf('reg.members.ok',{n:n}); }
@@ -4076,12 +4088,13 @@ function fmtDate(d){ if(!d) return '&mdash;'; var dd=(d instanceof Date)?d:new D
 function loanSchedule(g){
   if(!(g.loan>0)||!g.loandate||!g.deadline||!(g.totaldue>0)) return null;
   var start=new Date(g.loandate+'T00:00:00'), end=new Date(g.deadline+'T00:00:00'), msDay=86400000;
-  var tenure=Math.max(1, Math.round((end-start)/msDay/30));
-  var monthly=Math.round(g.totaldue/tenure);
   var app=currentLoanApp(g.id);
+  // The lender's term when the application carries it; else the term between disbursement and deadline.
+  var tenure=(app&&app.tenure_months>0)?Number(app.tenure_months):Math.max(1, Math.round((end-start)/msDay/30));
+  var monthly=Math.round(g.totaldue/tenure);
   var rate=(app&&app.monthly_interest_rate!=null)?Number(app.monthly_interest_rate):((g.totaldue/g.loan-1)/tenure*100);
   var today=new Date(); today.setHours(0,0,0,0);
-  var nextK=Math.max(1, Math.floor((today-start)/msDay/30)+1);
+  var nextK=Math.max(1, Math.ceil((today-start)/msDay/30));   // on the due day itself, that day
   var nextDue=new Date(start.getTime()+nextK*30*msDay);
   if(nextDue>end) nextDue=end;
   return { tenure:tenure, monthly:monthly, rate:rate, nextDue:nextDue, start:start, end:end };
@@ -4192,7 +4205,7 @@ async function confirmDisbursementReceipt(appId){
 }
 function renderAcceptDeclineSection(g, app){
   var thresh=Math.ceil((g.members||0)*(g.quorum||param('quorum_default_pct',80))/100);
-  var quorate=(g.meetings||[]).filter(function(m){ return !m.voided && m.present>=thresh; })
+  var quorate=(g.meetings||[]).filter(function(m){ return !m.voided && meetingQuorate(g,m); })
     .sort(function(a,b){ return (a.date<b.date)?1:((a.date>b.date)?-1:0); });
   if(!quorate.length){
     return '<div class="card"><div class="card-title">Respond to this approved loan</div>'+
@@ -4432,7 +4445,7 @@ function gStats(g){
   var totDis=ms.reduce(function(s,m){ return s+(m.disbursed||0); },0);
   var out=(g.totaldue||0)-totRep, pct=pctOf(totRep,g.totaldue);
   var thresh=Math.ceil((g.members||0)*(g.quorum||param('quorum_default_pct',80))/100);
-  var qOk=ms.filter(function(m){ return m.present>=thresh; }).length;
+  var qOk=ms.filter(function(m){ return meetingQuorate(g,m); }).length;
   var qPct=ms.length>0?Math.round(qOk/ms.length*100):null;
   return{totRep:totRep,totRepReported:totRepReported,unconf:unconf,totSav:totSav,totMem:totMem,totDis:totDis,out:out,pct:pct,thresh:thresh,qOk:qOk,qPct:qPct,count:ms.length};
 }
@@ -4445,7 +4458,7 @@ function renderChairDash(){
   var st=gStats(g); var pct=st.pct;
   var progCls=pct>=75?'':pct>=40?' warn':' bad';
   var alertHtml='';
-  if(g.deadline&&st.out>0){ var dl=Math.round((new Date(g.deadline)-new Date())/86400000); if(dl<90) alertHtml='<div class="alert alert-warn">&#9888; <strong>'+dl+' days</strong> to repayment deadline. '+fmt(st.out)+' still outstanding.</div>'; }
+  if(g.deadline&&st.out>0){ var today0=new Date(); today0.setHours(0,0,0,0); var dl=Math.round((new Date(g.deadline+'T00:00:00')-today0)/86400000); if(dl<90) alertHtml='<div class="alert alert-warn">&#9888; <strong>'+dl+' days</strong> to repayment deadline. '+fmt(st.out)+' still outstanding.</div>'; }
   document.getElementById('c-dash-content').innerHTML=alertHtml+
     '<div class="dash-cols">'+
     renderLoanScheduleCard(g)+
@@ -4473,10 +4486,10 @@ function enterLogTab(){
   var g=getG();
   renderLoanAlert(g);
   renderShareAlert(g);
-  var ms=g?g.meetings||[]:[];
+  var last=latestMeeting(g);
   // If there is at least one meeting, default to showing the most recent in review
-  if(ms.length>0){
-    showReview(ms[0]); // ms is sorted newest first
+  if(last){
+    showReview(last);
   } else {
     showWizardFresh();
   }
@@ -4515,8 +4528,7 @@ function updateLoanTabDot(g){
 // ── REVIEW SCREEN ──
 function showReview(m){
   var g=getG();
-  var thresh=Math.ceil((g.members||0)*(g.quorum||param('quorum_default_pct',80))/100);
-  var hasQ=m.present>=thresh;
+  var hasQ=meetingQuorate(g,m);
   var dStr=new Date(m.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
   var remitLabel=m.remitChoice==='no'?'No remittance made':
     m.remitType==='full'?'Full monthly instalment':
@@ -4539,7 +4551,7 @@ function showReview(m){
     '<div style="font-weight:700;font-size:15px">'+dStr+'</div>'+
     '<span class="badge '+(hasQ?'badge-ok':'badge-fail')+'">'+(hasQ?'Quorum met':'Below quorum')+'</span>'+
     '</div>'+
-    '<div style="font-size:13px;color:var(--muted);margin-bottom:1rem">'+m.present+' of '+g.members+' members present</div>'+
+    '<div style="font-size:13px;color:var(--muted);margin-bottom:1rem">'+m.present+' of '+meetingMembers(g,m)+' members present</div>'+
     '<div class="mtg-grid col" style="margin-bottom:.75rem">'+
     '<div class="mtg-item"><span>Total savings</span><strong>'+fmt(m.savings)+'</strong></div>'+
     '<div class="mtg-item"><span>Member repayments collected</span><strong>'+fmt(m.memrepay)+'</strong></div>'+
@@ -4604,12 +4616,30 @@ function wzLongDate(d){
   if(window.i18nLang && i18nLang()==='sw') return SW_DAYS[d.getDay()]+', '+d.getDate()+' '+SW_MONTHS[d.getMonth()]+' '+d.getFullYear();
   return d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 }
-function monthlyInstalment(g){ return g&&g.totaldue?Math.round(g.totaldue/12):0; }
+// The instalment the group is asked for each month: the total repayable over the
+// loan's real term, as loanSchedule() works it out — never a fixed twelve.
+function monthlyInstalment(g){
+  if(!(g&&g.totaldue>0)) return 0;
+  var s=loanSchedule(g); if(s) return s.monthly;
+  var app=currentLoanApp(g.id);   // an active loan without dates: fall back to the lender's term
+  return Math.round(g.totaldue/((app&&app.tenure_months>0)?Number(app.tenure_months):12));
+}
 function wzMark(btn, on){ var el=document.getElementById(btn); if(el) el.classList.toggle('selected', !!on); }
 
 // The member count this meeting is judged against: the total confirmed on the
 // membership screen if it changed, otherwise the registry value. Never the stored
 // value while a new one is on its way to the server (chair-screens/README.md §2).
+// g.meetings is kept oldest-first (loadData), so the most recent meeting is the last.
+function latestMeeting(g){ var ms=g?(g.meetings||[]):[]; return ms.length?ms[ms.length-1]:null; }
+// The quorum rule a meeting is judged by: the membership and quorum percentage
+// recorded on the meeting itself — the group as it was that day — falling back
+// to the registry only for meetings logged before those were kept.
+function meetingMembers(g, m){ return (m&&m.members!=null)?m.members:((g&&g.members)||0); }
+function meetingThresh(g, m){
+  var q=(m&&m.quorum!=null)?m.quorum:((g&&g.quorum)||param('quorum_default_pct',80));
+  return Math.ceil(meetingMembers(g,m)*q/100);
+}
+function meetingQuorate(g, m){ return !!m && m.present>=meetingThresh(g,m); }
 function confirmedMembers(){
   var g=getG(); var stored=g?(g.members||0):0;
   if(logChanged==='yes'){ var n=parseInt(wzVal('l-members')); if(n>0) return n; }
@@ -4643,7 +4673,7 @@ function wzScreens(){
 // What still blocks Next on each screen ('' = nothing). Hard bounds live here.
 var WZ_CHECK={
   date:function(){ if(!wzVal('l-date')) return 'date'; if(!logChanged) return 'changed'; return ''; },
-  members:function(){ var n=parseInt(wzVal('l-members')); return (n>=5&&n<=30)?'':'members'; },
+  members:function(){ return membersInRange(parseInt(wzVal('l-members')))?'':'members'; },
   present:function(){ var n=parseInt(wzVal('l-present')); return (n>=1&&n<=confirmedMembers())?'':'present'; },
   money:function(){
     var r=wzVal('l-memrepay'); if(r===''||parseFloat(r)<0) return 'money';
@@ -4730,7 +4760,7 @@ document.getElementById('tog-changed-no').addEventListener('click', function(){
 function wzRefreshMembers(){
   var g=getG(); var v=wzVal('l-members'); var n=parseInt(v); var note=document.getElementById('wz-members-note');
   if(v===''||isNaN(n)){ note.className=''; note.textContent=''; return; }
-  if(n<5||n>30){ note.className='q-hint fail'; note.textContent=t('mt.members.range'); return; }
+  if(!membersInRange(n)){ note.className='q-hint fail'; note.textContent=membersRangeMsg(); return; }
   note.className='q-hint ok';
   note.textContent=(g&&g.members&&g.members!==n)?tf('mt.members.new.was',{n:n,was:g.members}):tf('mt.members.new',{n:n});
 }
@@ -4849,8 +4879,8 @@ function wzRenderCheck(){
 
 // ── footer ──
 function wzCancel(){
-  var g=getG(); var ms=g?g.meetings||[]:[];
-  if(ms.length>0) showReview(ms[0]); else { document.getElementById('log-wizard').style.display='none'; }
+  var last=latestMeeting(getG());
+  if(last) showReview(last); else { document.getElementById('log-wizard').style.display='none'; }
 }
 document.getElementById('wz-back').addEventListener('click', function(){ if(wzIdx===0) wzCancel(); else wzShow(wzIdx-1); });
 document.getElementById('wz-next').addEventListener('click', function(){
@@ -4937,6 +4967,10 @@ async function saveMeeting(){
   var rec={
     date:document.getElementById('l-date').value,
     present:parseInt(document.getElementById('l-present').value)||0,
+    // The membership the wizard confirmed before counting attendance, and the
+    // quorum rule in force today: what this meeting is judged by, for good.
+    members:confirmedMembers(),
+    quorum:(g.quorum||param('quorum_default_pct',80)),
     shares:sharesN,
     savings:moneyLegacy?(parseFloat(document.getElementById('l-savings').value)||0):(sharesN*(g.shareValue||0)),
     memrepay:parseFloat(document.getElementById('l-memrepay').value)||0,
@@ -4955,6 +4989,7 @@ async function saveMeeting(){
     var changes=[];
     if(m.date!==rec.date) changes.push('date: '+m.date+' → '+rec.date);
     if(m.present!==rec.present) changes.push('present: '+m.present+' → '+rec.present);
+    if(m.members!=null && m.members!==rec.members) changes.push('members: '+m.members+' → '+rec.members);
     if(!moneyLegacy && m.shares!==rec.shares) changes.push('shares: '+(m.shares==null?'—':m.shares)+' → '+rec.shares);
     if(m.savings!==rec.savings) changes.push('savings: '+fmt(m.savings)+' → '+fmt(rec.savings));
     if(m.memrepay!==rec.memrepay) changes.push('repayments: '+fmt(m.memrepay)+' → '+fmt(rec.memrepay));
@@ -4991,7 +5026,6 @@ async function saveMeeting(){
 
 function renderChairHist(){
   var g=getG(); var ms=(g?(g.meetings||[]):[]).slice().sort(function(a,b){ return (a.date<b.date)?1:((a.date>b.date)?-1:0); });  // newest first
-  var thresh=g?Math.ceil((g.members||0)*(g.quorum||param('quorum_default_pct',80))/100):0;
   // Annul is allowed ONLY on the most recent meeting on file, and ONLY if it was below quorum.
   var lastMid=null, lastKey='';
   ms.filter(function(m){ return !m.voided; }).forEach(function(m){
@@ -5001,7 +5035,7 @@ function renderChairHist(){
   var el=document.getElementById('c-hist-content');
   if(!ms.length){ el.innerHTML='<div class="empty-state">No meetings logged yet.</div>'; return; }
   el.innerHTML=ms.map(function(m){
-    var hasQ=m.present>=thresh;
+    var hasQ=meetingQuorate(g,m);
     var dStr=new Date(m.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
     var amendHtml='';
     if(m.amendments&&m.amendments.length){
@@ -5017,7 +5051,7 @@ function renderChairHist(){
       return '<div class="mtg-card" style="opacity:.65;background:var(--gray50)">'+
         '<div class="mtg-header"><div style="font-weight:700;text-decoration:line-through">'+dStr+'</div>'+
         '<span class="badge badge-fail">Annulled</span></div>'+
-        '<div style="font-size:12px;color:var(--muted);margin-bottom:.5rem;text-decoration:line-through">'+m.present+' of '+g.members+' present &middot; '+fmt(m.repaid)+' remitted</div>'+
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:.5rem;text-decoration:line-through">'+m.present+' of '+meetingMembers(g,m)+' present &middot; '+fmt(m.repaid)+' remitted</div>'+
         '<div style="font-size:12px;color:var(--red);border-top:1px dashed var(--border);padding-top:.6rem">'+
           '<strong>Annulled</strong>'+(m.voidedBy?' by '+m.voidedBy:'')+(vWhen?' &middot; '+vWhen:'')+'<br>'+
           'Reason: '+(escHtml(m.voidedReason)||'&mdash;')+'</div>'+
@@ -5032,7 +5066,7 @@ function renderChairHist(){
             ? '<span style="font-size:11px;color:var(--muted)" title="The lender has confirmed this meeting\u2019s remittance against its bank statement">&#128274; Annul locked &mdash; remittance confirmed</span>'
             : '<button class="btn btn-sm btn-danger" data-vmid="'+m._mid+'">Annul</button>')
         : '')+'</div></div>'+
-      '<div style="font-size:12px;color:var(--muted);margin-bottom:.75rem">'+m.present+' of '+g.members+' present</div>'+
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:.75rem">'+m.present+' of '+meetingMembers(g,m)+' present</div>'+
       '<div class="mtg-grid col">'+
       '<div class="mtg-item"><span>Total savings</span><strong>'+fmt(m.savings)+'</strong></div>'+
       '<div class="mtg-item"><span>Member repayments collected</span><strong>'+fmt(m.memrepay)+'</strong></div>'+
@@ -5118,6 +5152,9 @@ function statusCountBar(groups, asRows, clickable, highlight, view){
   var counts={};
   order.forEach(function(s){ counts[s]=0; });
   groups.forEach(function(g){ var s=loanStatus(g); if(counts[s]!==undefined) counts[s]++; });
+  var unknown=groups.filter(function(g){ return loanStatus(g)==='unknown'; }).length;
+  // A status the database could not supply is said, not silently left out of every bucket.
+  var notice=unknown?'<div class="alert alert-warn" style="margin-bottom:.75rem">&#9888; Loan status could not be read for '+unknown+' group'+(unknown!==1?'s':'')+'. The counts below leave '+(unknown!==1?'them':'it')+' out; reload to try again.</div>':'';
   if(asRows){
     var rows='<div class="status-rows">';
     order.forEach(function(s){
@@ -5133,7 +5170,7 @@ function statusCountBar(groups, asRows, clickable, highlight, view){
         '<span style="font-size:15px;font-weight:700;color:'+c.color+';font-variant-numeric:tabular-nums">'+n+'</span>'+
       '</div>';
     });
-    return rows+'</div>';
+    return notice+rows+'</div>';
   }
   var total=groups.length;
   var html='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem">';
@@ -5144,7 +5181,7 @@ function statusCountBar(groups, asRows, clickable, highlight, view){
       '<span style="font-size:12px;font-weight:600;color:'+c.color+'">'+statusLabelOf(s,labels)+'</span></div>';
   });
   html+='</div>';
-  return html;
+  return notice+html;
 }
 
 // ── FI AGGREGATED ──
@@ -5792,11 +5829,11 @@ function obsDetail(gid){
   var st=gStats(g); var ms=(g.meetings||[]).slice().sort(function(a,b){ return (a.date<b.date)?1:((a.date>b.date)?-1:0); }); var pct=st.pct;  // newest first
   var progCls=pct>=75?'':pct>=40?' warn':' bad';
   var mHtml=ms.length?ms.map(function(m){
-    var hasQ=m.present>=st.thresh;
+    var hasQ=meetingQuorate(g,m);
     var dStr=new Date(m.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
     return '<div class="mtg-card">'+
       '<div class="mtg-header"><div style="font-weight:700">'+dStr+'</div><span class="badge '+(hasQ?'badge-ok':'badge-fail')+'">'+(hasQ?'Quorum met':'Below quorum')+'</span></div>'+
-      '<div style="font-size:12px;color:var(--muted);margin-bottom:.75rem">'+m.present+' of '+g.members+' present</div>'+
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:.75rem">'+m.present+' of '+meetingMembers(g,m)+' present</div>'+
       '<div class="mtg-grid">'+
       '<div class="mtg-item"><span>Total savings</span><strong>'+fmt(m.savings)+'</strong></div>'+
       '<div class="mtg-item"><span>Member repayments collected</span><strong>'+fmt(m.memrepay)+'</strong></div>'+
@@ -6065,7 +6102,7 @@ function renderBulkResults(totalParsed, validRows, clientErrors, server){
     html+='<div style="font-size:12px;font-weight:700;color:var(--green-dark);margin:.5rem 0 .25rem">Registered (Pending verification)</div>'+
       okList.map(function(res){
         var warn=(res.warnings&&res.warnings.length)?(' <span style="color:var(--amber)">&#9888; '+res.warnings.map(function(w){ return escHtml(w.message); }).join('; ')+'</span>'):'';
-        return '<div style="font-size:13px;padding:.3rem 0;border-bottom:1px solid var(--gray100)"><span class="fi-pill">'+res.cmg_id+'</span> '+nameByServerRow(res)+warn+'</div>';
+        return '<div style="font-size:13px;padding:.3rem 0;border-bottom:1px solid var(--gray100)"><span class="fi-pill">'+res.cmg_id+'</span> '+escHtml(nameByServerRow(res))+warn+'</div>';
       }).join('');
   }
   var allErrors=clientErrors.map(function(e){ return e.label+' — '+e.error; })
@@ -6204,8 +6241,8 @@ function enterTamisemi(){
 }
 
 function aggStats(groups){
-  var counts={total:groups.length}; STATUS_ORDER.forEach(function(s){ counts[s]=0; });
-  groups.forEach(function(g){ counts[loanStatus(g)]++; });
+  var counts={total:groups.length, unknown:0}; STATUS_ORDER.forEach(function(s){ counts[s]=0; });
+  groups.forEach(function(g){ var s=loanStatus(g); if(counts[s]===undefined) counts[s]=0; counts[s]++; });
   var totLoan=groups.reduce(function(s,g){ return s+(g.loan||0); },0);
   var totRep=groups.reduce(function(s,g){ return s+gStats(g).totRep; },0);
   var totOut=groups.reduce(function(s,g){ return s+gStats(g).out; },0);
@@ -6352,12 +6389,12 @@ function renderTamisemi(groups){
 // ── CSV ──
 document.getElementById('csv-btn').addEventListener('click', function(){
   var g=getG(); if(!g){ alert('No group data.'); return; }
-  var ms=g.meetings||[], thresh=Math.ceil((g.members||0)*(g.quorum||param('quorum_default_pct',80))/100);
+  var ms=g.meetings||[];
   var rows=[['PAMOJA CMG External Loan Tracker'],['CMG Number',g.cmgNumber||g.id],['Group name',g.name],
     ['Ward',g.ward],['Village',g.village||''],['FI',g.fi],['Members',g.members],['Quorum %',g.quorum||param('quorum_default_pct',80)],
     ['Loan (TZS)',g.loan],['Total due (TZS)',g.totaldue],['Deadline',g.deadline||''],['Chairperson',g.chair],[],
     ['Date','Present','Threshold','Quorum','Savings (TZS)','Member repayments (TZS)','Disbursed (TZS)','Remitted to lender (TZS)','Notes']];
-  ms.forEach(function(m){ rows.push([m.date,m.present,thresh,m.present>=thresh?'Y':'N',m.savings||0,m.memrepay||0,m.disbursed||0,m.repaid||0,m.notes||'']); });
+  ms.forEach(function(m){ var th=meetingThresh(g,m); rows.push([m.date,m.present,th,m.present>=th?'Y':'N',m.savings||0,m.memrepay||0,m.disbursed||0,m.repaid||0,m.notes||'']); });
   if(ms.length){ rows.push([]); rows.push(['TOTALS','','','',ms.reduce(function(s,m){ return s+(m.savings||0); },0),ms.reduce(function(s,m){ return s+(m.memrepay||0); },0),ms.reduce(function(s,m){ return s+(m.disbursed||0); },0),ms.reduce(function(s,m){ return s+(m.repaid||0); },0),'']); }
   dlCSV(rows,(g.name||'cmg').replace(/[^a-z0-9]/gi,'_')+'_meetings_'+new Date().toISOString().slice(0,10)+'.csv');
 });
@@ -7310,7 +7347,7 @@ window.addEventListener('DOMContentLoaded', function(){
     'mt.changed.yes':'Yes, the number changed', 'mt.changed.no':'No, still {n}',
     'mt.members.ask':'How many members are there now?',
     'mt.members.help':'This becomes the group\'s new total: minimum 5, maximum 30.',
-    'mt.members.range':'Enter a number between 5 and 30.',
+    'mt.members.range':'Enter a number between {min} and {max}.',
     'mt.members.new':'✓ New total: {n} members.', 'mt.members.new.was':'✓ New total: {n} members (was {was}).',
     'mt.present.ask':'How many members attended?',
     'mt.present.help':'Count everyone who attended. The group has {n} members.',
@@ -7438,7 +7475,7 @@ window.addEventListener('DOMContentLoaded', function(){
     'mt.changed.yes':'Ndiyo, idadi imebadilika', 'mt.changed.no':'Hapana, bado {n}',
     'mt.members.ask':'Kikundi kina wanachama wangapi?',                          /* reviewed */
     'mt.members.help':'Hii inakuwa jumla mpya ya kikundi: kiwango cha chini 5, kiwango cha juu 30.',
-    'mt.members.range':'Andika idadi kati ya 5 na 30.',
+    'mt.members.range':'Andika idadi kati ya {min} na {max}.',
     'mt.members.new':'✓ Jumla mpya: wanachama {n}.', 'mt.members.new.was':'✓ Jumla mpya: wanachama {n} (awali {was}).',
     'mt.present.ask':'Wanachama wangapi walihudhuria?',                          /* reviewed */
     'mt.present.help':'Hesabu kila mtu aliyehudhuria. Kikundi kina wanachama {n}.',
