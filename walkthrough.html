@@ -3058,9 +3058,8 @@ async function sbSaveSetup(cmgId, f){
 let SESSION = null, selectedRole = null;
 
 function db(){ return { groups: APP.groups }; }
-function dbSave(d){ if(d && d.groups) APP.groups = d.groups; }
 
-function fmt(n){ return 'TZS '+Math.round(n||0).toLocaleString() }
+function fmt(n){ return 'TZS '+Math.round(Number(n)||0).toLocaleString(); }
 // Escape anything a person typed before it goes near innerHTML.
 function escHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
@@ -3606,22 +3605,38 @@ function showRegResult(d){
     await doCmgLookup();
   });
 }
+// One validator for the three ways a group is registered — the chairperson's own
+// form, a resubmission after rejection, and an LGA officer's direct entry — so a
+// rule, and its wording, changes in one place. Returns the message to show, or ''.
+// Only the chairperson's form holds the member range hard (its wizard already gates
+// on it); the other two accept any count and leave the range to the verifying officer.
+function registrationError(prefix, opts){
+  opts=opts||{};
+  var v=function(f){ var el=document.getElementById(prefix+'-'+f); return el?(el.value||'').trim():''; };
+  if(!v('name')||!v('chair')||!v('chairphone')||!v('treasurer')) return 'CMG name, chairperson name & phone, and treasurer name are required.';
+  if(!validPhone(v('chairphone'))) return 'Chairperson phone must be 9 digits (or 10 with a leading 0), e.g. 0712345678.';
+  var tp=v('treasurerphone'); if(tp && !validPhone(tp)) return 'Treasurer phone must be 9 digits (or 10 with a leading 0).';
+  var cn=nidaDigits(v('chairnida')), tn=nidaDigits(v('treasurernida'));
+  if(nidaRequired() && (!cn||!tn)) return 'A NIDA number is required for both the chairperson and the treasurer.';
+  if((cn&&!nidaValid(cn))||(tn&&!nidaValid(tn))) return 'A NIDA number must be twenty digits beginning with the date of birth.';
+  if(cn&&cn===tn) return 'The chairperson and the treasurer have the same NIDA number. One person cannot hold both offices.';
+  if(opts.wardOnly){ if(!v('ward')) return 'Please select a ward.'; }
+  else if(!v('region')||!v('district')||!v('ward')) return 'Please select region, district and ward.';
+  if(!villageVal(prefix)) return 'Please select the village.';
+  var n=parseInt(v('members'))||0;
+  if(!n) return 'Please enter the number of members.';
+  if(opts.enforceRange && !membersInRange(n)) return membersRangeMsg();
+  return '';
+}
 async function regSubmit(){
   var err=document.getElementById('reg-err'); err.style.display='none';
   var name=regVal('reg-name'), chair=regVal('reg-chair'), chairphone=regVal('reg-chairphone'), treasurer=regVal('reg-treasurer');
   var region=regVal('reg-region'), district=regVal('reg-district'), ward=regVal('reg-ward');
   var members=parseInt(regVal('reg-members'))||0;
   // Every screen gated Next on its own answers; this is the belt-and-braces pass before the RPC.
-  if(!name||!chair||!chairphone||!treasurer){ err.textContent='CMG name, chairperson name & phone, and treasurer name are required.'; err.style.display='block'; return; }
-  if(!validPhone(chairphone)){ err.textContent='Chairperson phone must be 9 digits (or 10 with a leading 0), e.g. 0712345678.'; err.style.display='block'; return; }
-  var _rtp=regVal('reg-treasurerphone'); if(_rtp && !validPhone(_rtp)){ err.textContent='Treasurer phone must be 9 digits (or 10 with a leading 0).'; err.style.display='block'; return; }
-  var _cn=nidaDigits(regVal('reg-chairnida')), _tn=nidaDigits(regVal('reg-treasurernida'));
-  if(nidaRequired() && (!_cn||!_tn)){ err.textContent='A NIDA number is required for both the chairperson and the treasurer.'; err.style.display='block'; return; }
-  if((_cn&&!nidaValid(_cn))||(_tn&&!nidaValid(_tn))){ err.textContent='A NIDA number must be twenty digits beginning with the date of birth.'; err.style.display='block'; return; }
-  if(_cn&&_cn===_tn){ err.textContent='The chairperson and the treasurer have the same NIDA number. One person cannot hold both offices.'; err.style.display='block'; return; }
-  if(!region||!district||!ward){ err.textContent='Please select region, district and ward.'; err.style.display='block'; return; }
-  if(!villageVal('reg')){ err.textContent='Please select the village.'; err.style.display='block'; return; }
-  if(!regMembersOk()){ err.textContent='Members must be between 5 and 30.'; err.style.display='block'; return; }
+  var _rtp=regVal('reg-treasurerphone');
+  var problem=registrationError('reg',{enforceRange:true});
+  if(problem){ err.textContent=problem; err.style.display='block'; return; }
   var btn=document.getElementById('rw-next'); btn.disabled=true; btn.textContent=t('reg.registering');
   var resp=await SB.rpc('register_cmg', {
     p_chair_name:chair, p_chair_phone:chairphone, p_treasurer_name:treasurer,
@@ -3685,23 +3700,7 @@ document.getElementById('step2-continue').addEventListener('click', async functi
     document.getElementById('tamisemi-scope').style.display='block';
     document.getElementById('lga-scope').style.display='none';
     document.getElementById('fi-scope').style.display='none';
-    // Populate region dropdown
-    var tr=document.getElementById('tamisemi-region');
-    tr.innerHTML='<option value="">'+escHtml(t('login.scope.allregions'))+'</option>';
-    Object.keys(H).sort().forEach(function(r){ var o=document.createElement('option'); o.value=o.textContent=r; tr.appendChild(o); });
-    var td=document.getElementById('tamisemi-district');
-    td.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>';
-    td.disabled=true; td.style.opacity='0.5';
-    tr.onchange=function(){
-      if(!this.value){
-        td.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>';
-        td.disabled=true; td.style.opacity='0.5';
-      } else {
-        td.disabled=false; td.style.opacity='1';
-        td.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>';
-        if(H[this.value]) Object.keys(H[this.value]).sort().forEach(function(d){ var o=document.createElement('option'); o.value=o.textContent=d; td.appendChild(o); });
-      }
-    };
+    wireTamisemiScope();
     document.getElementById('s3-err').style.display='none';
     setStep(3);
   } else if(selectedRole==='fi'){
@@ -3724,27 +3723,7 @@ document.getElementById('step2-continue').addEventListener('click', async functi
     document.getElementById('fi-scope').style.display='block';
     document.getElementById('lga-scope').style.display='none';
     document.getElementById('tamisemi-scope').style.display='none';
-    var fiName=document.getElementById('fi-institution').value;
-    document.getElementById('fi-scope-title').textContent=fiName+' — '+t('login.scope.heading');
-    // Populate fi-region with only regions that have groups for this FI
-    var fiGroups=(db().groups||[]).filter(function(g){ return g.fi===fiName; });
-    var fiRegions=[]; fiGroups.forEach(function(g){ if(g.region&&fiRegions.indexOf(g.region)===-1) fiRegions.push(g.region); }); fiRegions.sort();
-    var frEl=document.getElementById('fi-region');
-    frEl.innerHTML='<option value="">'+escHtml(t('login.scope.allregions'))+'</option>';
-    fiRegions.forEach(function(r){ var o=document.createElement('option'); o.value=o.textContent=r; frEl.appendChild(o); });
-    var fdEl=document.getElementById('fi-district');
-    fdEl.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>';
-    fdEl.disabled=true; fdEl.style.opacity='0.5';
-    frEl.onchange=function(){
-      if(!this.value){ fdEl.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>'; fdEl.disabled=true; fdEl.style.opacity='0.5'; }
-      else {
-        var r=this.value;
-        var dists=[]; fiGroups.filter(function(g){ return g.region===r; }).forEach(function(g){ if(g.district&&dists.indexOf(g.district)===-1) dists.push(g.district); }); dists.sort();
-        fdEl.disabled=false; fdEl.style.opacity='1';
-        fdEl.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>';
-        dists.forEach(function(d){ var o=document.createElement('option'); o.value=o.textContent=d; fdEl.appendChild(o); });
-      }
-    };
+    wireFiScope(document.getElementById('fi-institution').value);
     document.getElementById('s3-err').style.display='none';
     setStep(3);
   }
@@ -3857,8 +3836,8 @@ document.getElementById('step3-logout').addEventListener('click', function(){
 function getG(){ return (db().groups||[]).find(function(x){ return (x.cmgNumber||x.id)===SESSION.cmgNumber; }); }
 function enterChair(){
   var g=getG();
-  if(!g){ var mock=(MOCK_SEED.groups||[]).find(function(x){ return x.cmgNumber===SESSION.cmgNumber; }); if(mock) prefillSetup(mock); showAppScreen('screen-setup'); }
-  else showChairMain(g);
+  if(!g){ showAppScreen('screen-setup'); return; }   // no group on file for this login
+  showChairMain(g);
 }
 function prefillSetup(g){
   document.getElementById('su-cmgnum').value=g.cmgNumber||g.id||'';
@@ -4035,16 +4014,9 @@ async function doResubmit(){
   var name=v('rs-name'), chair=v('rs-chair'), phone=v('rs-chairphone'), treas=v('rs-treasurer');
   var region=v('rs-region'), district=v('rs-district'), ward=v('rs-ward');
   var members=parseInt(v('rs-members'))||0;
-  if(!name||!chair||!phone||!treas){ err.textContent='CMG name, chairperson name & phone, and treasurer name are required.'; err.style.display='block'; return; }
-  if(!validPhone(phone)){ err.textContent='Chairperson phone must be 9 digits (or 10 with a leading 0), e.g. 0712345678.'; err.style.display='block'; return; }
-  var tp=v('rs-treasurerphone'); if(tp && !validPhone(tp)){ err.textContent='Treasurer phone must be 9 digits (or 10 with a leading 0).'; err.style.display='block'; return; }
-  var rcn=nidaDigits(v('rs-chairnida')), rtn=nidaDigits(v('rs-treasurernida'));
-  if(nidaRequired() && (!rcn||!rtn)){ err.textContent='A NIDA number is required for both the chairperson and the treasurer.'; err.style.display='block'; return; }
-  if((rcn&&!nidaValid(rcn))||(rtn&&!nidaValid(rtn))){ err.textContent='A NIDA number must be twenty digits beginning with the date of birth.'; err.style.display='block'; return; }
-  if(rcn&&rcn===rtn){ err.textContent='The chairperson and the treasurer have the same NIDA number. One person cannot hold both offices.'; err.style.display='block'; return; }
-  if(!region||!district||!ward){ err.textContent='Please select region, district and ward.'; err.style.display='block'; return; }
-  if(!villageVal('rs')){ err.textContent='Please select the village.'; err.style.display='block'; return; }
-  if(!members){ err.textContent='Please enter the number of members.'; err.style.display='block'; return; }
+  var tp=v('rs-treasurerphone'), rcn=nidaDigits(v('rs-chairnida')), rtn=nidaDigits(v('rs-treasurernida'));
+  var problem=registrationError('rs');
+  if(problem){ err.textContent=problem; err.style.display='block'; return; }
   var btn=document.getElementById('rs-submit'); btn.disabled=true; btn.textContent='Resubmitting…';
   var resp=await SB.rpc('resubmit_cmg', {
     p_cmg_id:SESSION.cmgNumber, p_name:name, p_chair_name:chair, p_chair_phone:phone,
@@ -4082,7 +4054,6 @@ function currentLoanApp(cmgId){
   apps.sort(function(a,b){ return b.id-a.id; });
   return apps[0]||null;   // latest
 }
-function fmtMoney(n){ return 'TZS '+Math.round(Number(n)||0).toLocaleString(); }
 function fmtDate(d){ if(!d) return '&mdash;'; var dd=(d instanceof Date)?d:new Date(String(d)+'T00:00:00'); if(isNaN(dd)) return '&mdash;'; return dd.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
 // Repayment schedule for an active loan: months, monthly amount, monthly rate, next 30-day due date.
 function loanSchedule(g){
@@ -4212,7 +4183,7 @@ function renderAcceptDeclineSection(g, app){
       '<div class="alert alert-warn">&#9888; To accept or decline, the decision must be taken in a meeting that met quorum ('+thresh+' of '+g.members+' present).</div></div>';
   }
   var opts=quorate.map(function(m){
-    var d=new Date(m.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    var d=fmtDate(m.date);
     return '<option value="'+m._mid+'">'+d+' &mdash; '+m.present+' of '+g.members+' present</option>';
   }).join('');
   var declStyle='display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:0 0 .5rem';
@@ -4265,12 +4236,12 @@ function renderLoanStatusCard(app){
   else if(app.status==='ACCEPTED'){ badge='<span class="badge badge-ok">Accepted</span>'; note='You accepted this loan. Awaiting disbursal by '+app.fi+'.'; }
   else if(app.status==='DISBURSED'){ badge='<span class="badge badge-ok">Disbursed</span>'; note='Loan disbursed and now active — see the Dashboard.'; }
   var rows='<div class="stat-grid" style="margin-top:.75rem">'+
-    '<div class="stat"><div class="stat-label">Requested</div><div class="stat-val">'+fmtMoney(app.amount_requested)+'</div></div>'+
-    (app.approved_amount?'<div class="stat"><div class="stat-label">Approved</div><div class="stat-val good">'+fmtMoney(app.approved_amount)+'</div></div>':'')+
-    (app.total_repayable?'<div class="stat"><div class="stat-label">Total repayable</div><div class="stat-val">'+fmtMoney(app.total_repayable)+'</div></div>':'')+
+    '<div class="stat"><div class="stat-label">Requested</div><div class="stat-val">'+fmt(app.amount_requested)+'</div></div>'+
+    (app.approved_amount?'<div class="stat"><div class="stat-label">Approved</div><div class="stat-val good">'+fmt(app.approved_amount)+'</div></div>':'')+
+    (app.total_repayable?'<div class="stat"><div class="stat-label">Total repayable</div><div class="stat-val">'+fmt(app.total_repayable)+'</div></div>':'')+
     (app.monthly_interest_rate!=null?'<div class="stat"><div class="stat-label">Monthly interest</div><div class="stat-val">'+app.monthly_interest_rate+'%</div></div>':'')+
     (app.tenure_months?'<div class="stat"><div class="stat-label">Months to repay</div><div class="stat-val">'+app.tenure_months+'</div></div>':'')+
-    ((app.total_repayable&&app.tenure_months)?'<div class="stat"><div class="stat-label">Monthly repayment</div><div class="stat-val">'+fmtMoney(app.total_repayable/app.tenure_months)+'</div></div>':'')+
+    ((app.total_repayable&&app.tenure_months)?'<div class="stat"><div class="stat-label">Monthly repayment</div><div class="stat-val">'+fmt(app.total_repayable/app.tenure_months)+'</div></div>':'')+
     '</div>';
   return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div class="card-title" style="margin:0">Loan application</div>'+badge+'</div>'+
     '<div style="font-size:13px;color:var(--muted);margin-top:.4rem">'+escHtml(note)+'</div>'+
@@ -4365,11 +4336,11 @@ function laRefreshAmount(){
 }
 function laRenderCheck(){
   var g=getG(); var st=gStats(g);
-  var prior=(g.loan>0)?tf('la.note.prior.one',{amt:fmtMoney(g.loan),status:((STATUS_CFG[loanStatus(g)]||{}).label||loanStatus(g))}):t('la.note.prior.none');
+  var prior=(g.loan>0)?tf('la.note.prior.one',{amt:fmt(g.loan),status:((STATUS_CFG[loanStatus(g)]||{}).label||loanStatus(g))}):t('la.note.prior.none');
   var rows=[
-    ['savings',t('la.row.savings'),fmtMoney(LA.savings)],
+    ['savings',t('la.row.savings'),fmt(LA.savings)],
     ['savings',t('la.row.years'),LA.years],
-    ['amount',t('la.row.amount'),fmtMoney(LA.amount)],
+    ['amount',t('la.row.amount'),fmt(LA.amount)],
     ['amount',t('la.row.purpose'),LA.purpose.trim()]
   ];
   var box=document.getElementById('la-check');
@@ -4451,7 +4422,8 @@ function gStats(g){
 }
 
 // A CMG has an "active loan" when a loan has been disbursed, not written off, and is not yet fully repaid.
-function hasActiveLoan(g){ return (g.loan>0) && !g.writtenOff && (gStats(g).out>0); }
+function activeLoanFrom(g, st){ return (g.loan>0) && !g.writtenOff && (st.out>0); }
+function hasActiveLoan(g){ return activeLoanFrom(g, gStats(g)); }
 
 function renderChairDash(){
   var g=getG(); if(!g) return;
@@ -4529,7 +4501,7 @@ function updateLoanTabDot(g){
 function showReview(m){
   var g=getG();
   var hasQ=meetingQuorate(g,m);
-  var dStr=new Date(m.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  var dStr=fmtDate(m.date);
   var remitLabel=m.remitChoice==='no'?'No remittance made':
     m.remitType==='full'?'Full monthly instalment':
     m.remitType==='partial'?'Partial payment':fmt(m.repaid);
@@ -5036,7 +5008,7 @@ function renderChairHist(){
   if(!ms.length){ el.innerHTML='<div class="empty-state">No meetings logged yet.</div>'; return; }
   el.innerHTML=ms.map(function(m){
     var hasQ=meetingQuorate(g,m);
-    var dStr=new Date(m.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    var dStr=fmtDate(m.date);
     var amendHtml='';
     if(m.amendments&&m.amendments.length){
       amendHtml='<div style="margin-top:.75rem;border-top:1px dashed var(--border);padding-top:.75rem">'+
@@ -5297,7 +5269,7 @@ function renderFiLoans(){
     html+='<div class="card" style="margin-bottom:1rem"><div class="card-title" style="color:var(--muted)">In progress</div>'+
       others.map(function(a){
         var lbl=a.status==='APPROVED'?'Approved — awaiting group acceptance':'Declined by group';
-        return '<div style="font-size:13px;padding:.4rem 0;border-bottom:1px solid var(--gray100)"><strong>'+escHtml(nameOf(a.cmg_id))+'</strong> <span class="fi-pill">'+a.cmg_id+'</span> &mdash; '+fmtMoney(a.approved_amount||a.amount_requested)+' &middot; '+lbl+'</div>';
+        return '<div style="font-size:13px;padding:.4rem 0;border-bottom:1px solid var(--gray100)"><strong>'+escHtml(nameOf(a.cmg_id))+'</strong> <span class="fi-pill">'+a.cmg_id+'</span> &mdash; '+fmt(a.approved_amount||a.amount_requested)+' &middot; '+lbl+'</div>';
       }).join('')+'</div>';
   }
   box.innerHTML=html;
@@ -5308,7 +5280,7 @@ function renderFiDisburseCard(a, name){
   var today=new Date().toISOString().slice(0,10);
   return '<div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:.85rem 1rem;margin-top:.6rem">'+
     '<div style="font-weight:700">'+escHtml(name)+' <span class="fi-pill">'+a.cmg_id+'</span></div>'+
-    '<div style="font-size:12px;color:var(--muted);margin-top:.25rem">Approved '+fmtMoney(a.approved_amount)+' &middot; '+a.monthly_interest_rate+'%/mo &middot; '+a.tenure_months+' mo &middot; total '+fmtMoney(a.total_repayable)+'</div>'+
+    '<div style="font-size:12px;color:var(--muted);margin-top:.25rem">Approved '+fmt(a.approved_amount)+' &middot; '+a.monthly_interest_rate+'%/mo &middot; '+a.tenure_months+' mo &middot; total '+fmt(a.total_repayable)+'</div>'+
     (a.accepted_meeting_date?'<div style="font-size:12px;color:var(--muted)">Group accepted '+a.accepted_meeting_date+' ('+a.accepted_present+' of '+a.accepted_members+' present)</div>':'')+
     '<div style="margin-top:.6rem;border-top:1px solid var(--border);padding-top:.6rem">'+
       '<div class="row2">'+
@@ -5345,9 +5317,9 @@ async function fiDisburse(id){
 function renderFiAppCard(a, name){
   return '<div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:.85rem 1rem;margin-top:.6rem">'+
     '<div style="font-weight:700">'+escHtml(name)+' <span class="fi-pill">'+a.cmg_id+'</span></div>'+
-    '<div style="font-size:12px;color:var(--muted);margin-top:.25rem">Requested '+fmtMoney(a.amount_requested)+' &middot; '+(a.members_at_application||'-')+' members &middot; '+(a.years_active||'-')+' yrs active &middot; savings '+fmtMoney(a.group_savings)+'</div>'+
+    '<div style="font-size:12px;color:var(--muted);margin-top:.25rem">Requested '+fmt(a.amount_requested)+' &middot; '+(a.members_at_application||'-')+' members &middot; '+(a.years_active||'-')+' yrs active &middot; savings '+fmt(a.group_savings)+'</div>'+
     (a.purpose?'<div style="font-size:12px;color:var(--muted)">Purpose: '+escHtml(a.purpose)+'</div>':'')+
-    '<div style="font-size:12px;color:var(--muted)">Prior loan: '+(a.had_prior_loan?('Yes &middot; '+fmtMoney(a.prior_loan_amount)+' &middot; '+(a.prior_loan_status||'-')):'No')+'</div>'+
+    '<div style="font-size:12px;color:var(--muted)">Prior loan: '+(a.had_prior_loan?('Yes &middot; '+fmt(a.prior_loan_amount)+' &middot; '+(a.prior_loan_status||'-')):'No')+'</div>'+
     '<div style="margin-top:.6rem;border-top:1px solid var(--border);padding-top:.6rem">'+
       '<div class="row2">'+
         '<div class="field"><label>Approved amount (TZS) &mdash; reduce for partial</label><input type="number" id="fa-amt-'+a.id+'" value="'+a.amount_requested+'" min="1"></div>'+
@@ -5441,7 +5413,7 @@ function fiRemitPendingCard(r, g){
   var age=daysSince(r.reportedAt);
   var ageCls=age>=14?'bad':(age>=7?'warn':'');
   var meta=[];
-  meta.push('reported '+(r.reportedAt?new Date(r.reportedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—'));
+  meta.push('reported '+(r.reportedAt?fmtDate(new Date(r.reportedAt)):'—'));
   if(r.depositSlipNo) meta.push('slip '+escHtml(r.depositSlipNo));
   if(age!==null) meta.push('<span class="stat-val '+ageCls+'" style="font-size:12px">'+age+' day'+(age===1?'':'s')+' waiting</span>');
   var reversed = r.state==='REVERSED'
@@ -5606,7 +5578,7 @@ function renderLgaLoanPipeline(){
   var nameOf=function(cmgId){ var g=inScope[cmgId]; return g?g.name:cmgId; };
   var stage=function(a){
     if(a.status==='PENDING')   return ['badge-warn','Applied — pending FI review'];
-    if(a.status==='APPROVED')  return ['badge-ok','FI approved '+fmtMoney(a.approved_amount)+' — awaiting group decision'];
+    if(a.status==='APPROVED')  return ['badge-ok','FI approved '+fmt(a.approved_amount)+' — awaiting group decision'];
     if(a.status==='REJECTED')  return ['badge-fail','FI rejected'+(a.rejection_reason?(': '+escHtml(a.rejection_reason)):'')];
     if(a.status==='ACCEPTED')  return ['badge-ok','Group accepted — awaiting disbursal'];
     if(a.status==='DECLINED')  return ['badge-fail','Group declined'+(a.rejection_reason?(': '+escHtml(a.rejection_reason)):'')];
@@ -5616,7 +5588,7 @@ function renderLgaLoanPipeline(){
   box.innerHTML='<div class="card" style="margin-bottom:1rem"><div class="card-title">Loan pipeline ('+apps.length+')</div>'+
     apps.map(function(a){ var s=stage(a);
       return '<div style="font-size:13px;padding:.45rem 0;border-bottom:1px solid var(--gray100);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center">'+
-        '<span><strong>'+escHtml(nameOf(a.cmg_id))+'</strong> <span class="fi-pill">'+a.cmg_id+'</span> &middot; '+fmtMoney(a.amount_requested)+' &middot; '+escHtml(a.fi)+'</span>'+
+        '<span><strong>'+escHtml(nameOf(a.cmg_id))+'</strong> <span class="fi-pill">'+a.cmg_id+'</span> &middot; '+fmt(a.amount_requested)+' &middot; '+escHtml(a.fi)+'</span>'+
         '<span class="badge '+s[0]+'">'+s[1]+'</span></div>';
     }).join('')+'</div>';
 }
@@ -5830,7 +5802,7 @@ function obsDetail(gid){
   var progCls=pct>=75?'':pct>=40?' warn':' bad';
   var mHtml=ms.length?ms.map(function(m){
     var hasQ=meetingQuorate(g,m);
-    var dStr=new Date(m.date+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    var dStr=fmtDate(m.date);
     return '<div class="mtg-card">'+
       '<div class="mtg-header"><div style="font-weight:700">'+dStr+'</div><span class="badge '+(hasQ?'badge-ok':'badge-fail')+'">'+(hasQ?'Quorum met':'Below quorum')+'</span></div>'+
       '<div style="font-size:12px;color:var(--muted);margin-bottom:.75rem">'+m.present+' of '+meetingMembers(g,m)+' present</div>'+
@@ -6128,16 +6100,9 @@ document.getElementById('lreg-submit').addEventListener('click', async function(
   var v=function(id){ return (document.getElementById(id).value||'').trim(); };
   var name=v('lreg-name'), chair=v('lreg-chair'), phone=v('lreg-chairphone'), treas=v('lreg-treasurer'), ward=v('lreg-ward');
   var members=parseInt(v('lreg-members'))||0;
-  if(!name||!chair||!phone||!treas){ err.textContent='CMG name, chairperson name & phone, and treasurer name are required.'; err.style.display='block'; return; }
-  if(!validPhone(phone)){ err.textContent='Chairperson phone must be 9 digits (or 10 with a leading 0), e.g. 0712345678.'; err.style.display='block'; return; }
-  var _ltp=v('lreg-treasurerphone'); if(_ltp && !validPhone(_ltp)){ err.textContent='Treasurer phone must be 9 digits (or 10 with a leading 0).'; err.style.display='block'; return; }
   var lcn=nidaDigits(v('lreg-chairnida')), ltn=nidaDigits(v('lreg-treasurernida'));
-  if(nidaRequired() && (!lcn||!ltn)){ err.textContent='A NIDA number is required for both the chairperson and the treasurer.'; err.style.display='block'; return; }
-  if((lcn&&!nidaValid(lcn))||(ltn&&!nidaValid(ltn))){ err.textContent='A NIDA number must be twenty digits beginning with the date of birth.'; err.style.display='block'; return; }
-  if(lcn&&lcn===ltn){ err.textContent='The chairperson and the treasurer have the same NIDA number. One person cannot hold both offices.'; err.style.display='block'; return; }
-  if(!ward){ err.textContent='Please select a ward.'; err.style.display='block'; return; }
-  if(!villageVal('lreg')){ err.textContent='Please select the village.'; err.style.display='block'; return; }
-  if(!members){ err.textContent='Please enter the number of members.'; err.style.display='block'; return; }
+  var problem=registrationError('lreg',{wardOnly:true});
+  if(problem){ err.textContent=problem; err.style.display='block'; return; }
   var btn=this; btn.disabled=true; btn.textContent='Registering…';
   var resp=await SB.rpc('register_cmg', {
     p_chair_name:chair, p_chair_phone:phone, p_treasurer_name:treas,
@@ -6154,6 +6119,34 @@ document.getElementById('lreg-submit').addEventListener('click', async function(
   }
   showLgaRegResult(resp.data);
 });
+
+// The region → district cascade on the scope step, wired from one place for both
+// the first login and "Change selection". TAMISEMI chooses from the whole
+// reference list; a lender only from the regions and districts where it funds groups.
+function wireRegionDistrict(regionEl, districtEl, regions, districtsOf){
+  var allDistricts=function(){ return '<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>'; };
+  regionEl.innerHTML='<option value="">'+escHtml(t('login.scope.allregions'))+'</option>';
+  regions.forEach(function(r){ var o=document.createElement('option'); o.value=o.textContent=r; regionEl.appendChild(o); });
+  districtEl.innerHTML=allDistricts(); districtEl.disabled=true; districtEl.style.opacity='0.5';
+  regionEl.onchange=function(){
+    districtEl.innerHTML=allDistricts();
+    if(!this.value){ districtEl.disabled=true; districtEl.style.opacity='0.5'; return; }
+    districtEl.disabled=false; districtEl.style.opacity='1';
+    districtsOf(this.value).forEach(function(d){ var o=document.createElement('option'); o.value=o.textContent=d; districtEl.appendChild(o); });
+  };
+}
+function wireTamisemiScope(){
+  wireRegionDistrict(document.getElementById('tamisemi-region'), document.getElementById('tamisemi-district'),
+    Object.keys(H).sort(), function(r){ return H[r]?Object.keys(H[r]).sort():[]; });
+}
+function wireFiScope(fiName){
+  var fiGroups=(db().groups||[]).filter(function(g){ return g.fi===fiName; });
+  var uniq=function(list){ var out=[]; list.forEach(function(x){ if(x&&out.indexOf(x)===-1) out.push(x); }); return out.sort(); };
+  document.getElementById('fi-scope-title').textContent=(fiName||'FI')+' — '+t('login.scope.heading');
+  wireRegionDistrict(document.getElementById('fi-region'), document.getElementById('fi-district'),
+    uniq(fiGroups.map(function(g){ return g.region; })),
+    function(r){ return uniq(fiGroups.filter(function(g){ return g.region===r; }).map(function(g){ return g.district; })); });
+}
 
 // ── CHANGE SELECTION ──
 // For LGA/TAMISEMI: go to step 3 (scope) so officer doesn't have to re-verify
@@ -6179,42 +6172,14 @@ function goBackToIdentity(){
     document.getElementById('tamisemi-scope').style.display='block';
     document.getElementById('lga-scope').style.display='none';
     document.getElementById('fi-scope').style.display='none';
-    var tr=document.getElementById('tamisemi-region');
-    tr.innerHTML='<option value="">'+escHtml(t('login.scope.allregions'))+'</option>';
-    Object.keys(H).sort().forEach(function(r){ var o=document.createElement('option'); o.value=o.textContent=r; tr.appendChild(o); });
-    var td=document.getElementById('tamisemi-district');
-    td.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>';
-    td.disabled=true; td.style.opacity='0.5';
-    tr.onchange=function(){
-      if(!this.value){ td.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>'; td.disabled=true; td.style.opacity='0.5'; }
-      else { td.disabled=false; td.style.opacity='1'; td.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>'; if(H[this.value]) Object.keys(H[this.value]).sort().forEach(function(d){ var o=document.createElement('option'); o.value=o.textContent=d; td.appendChild(o); }); }
-    };
+    wireTamisemiScope();
     setStep(3);
   } else if(selectedRole==='fi'){
     // Re-open scope step for FI
     document.getElementById('fi-scope').style.display='block';
     document.getElementById('lga-scope').style.display='none';
     document.getElementById('tamisemi-scope').style.display='none';
-    var fiName=sessionFi||document.getElementById('fi-institution').value;
-    document.getElementById('fi-scope-title').textContent=(fiName||'FI')+' — '+t('login.scope.heading');
-    var fiGroups=(db().groups||[]).filter(function(g){ return g.fi===fiName; });
-    var fiRegions=[]; fiGroups.forEach(function(g){ if(g.region&&fiRegions.indexOf(g.region)===-1) fiRegions.push(g.region); }); fiRegions.sort();
-    var frEl=document.getElementById('fi-region');
-    frEl.innerHTML='<option value="">'+escHtml(t('login.scope.allregions'))+'</option>';
-    fiRegions.forEach(function(r){ var o=document.createElement('option'); o.value=o.textContent=r; frEl.appendChild(o); });
-    var fdEl=document.getElementById('fi-district');
-    fdEl.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>';
-    fdEl.disabled=true; fdEl.style.opacity='0.5';
-    frEl.onchange=function(){
-      if(!this.value){ fdEl.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>'; fdEl.disabled=true; fdEl.style.opacity='0.5'; }
-      else {
-        var r=this.value;
-        var dists=[]; fiGroups.filter(function(g){ return g.region===r; }).forEach(function(g){ if(g.district&&dists.indexOf(g.district)===-1) dists.push(g.district); }); dists.sort();
-        fdEl.disabled=false; fdEl.style.opacity='1';
-        fdEl.innerHTML='<option value="">'+escHtml(t('login.scope.alldistricts'))+'</option>';
-        dists.forEach(function(d){ var o=document.createElement('option'); o.value=o.textContent=d; fdEl.appendChild(o); });
-      }
-    };
+    wireFiScope(sessionFi||document.getElementById('fi-institution').value);
     setStep(3);
   } else {
     // Chair — go back to step 2 identity
@@ -6240,13 +6205,18 @@ function enterTamisemi(){
   showAppScreen('screen-tamisemi');
 }
 
-function aggStats(groups){
+// statOf: an optional memoised gStats, so a rollup that visits the same group at
+// region, district and ward level works its meetings out once, not three times.
+function aggStats(groups, statOf){
+  statOf=statOf||gStats;
   var counts={total:groups.length, unknown:0}; STATUS_ORDER.forEach(function(s){ counts[s]=0; });
-  groups.forEach(function(g){ var s=loanStatus(g); if(counts[s]===undefined) counts[s]=0; counts[s]++; });
-  var totLoan=groups.reduce(function(s,g){ return s+(g.loan||0); },0);
-  var totRep=groups.reduce(function(s,g){ return s+gStats(g).totRep; },0);
-  var totOut=groups.reduce(function(s,g){ return s+gStats(g).out; },0);
-  var activeLoans=groups.filter(hasActiveLoan).length;
+  var totLoan=0, totRep=0, totOut=0, activeLoans=0;
+  groups.forEach(function(g){
+    var s=loanStatus(g); if(counts[s]===undefined) counts[s]=0; counts[s]++;
+    var st=statOf(g);
+    totLoan+=(g.loan||0); totRep+=st.totRep; totOut+=st.out;
+    if(activeLoanFrom(g, st)) activeLoans++;
+  });
   return{counts:counts,totLoan:totLoan,totRep:totRep,totOut:totOut,activeLoans:activeLoans};
 }
 
@@ -6311,7 +6281,7 @@ function fiStatusCardHtml(groups, rowsLayout){
 }
 function aggTreeHtml(groups, showWards, rowsLayout, view){
   var html='';
-  // Build Region → District → Ward tree
+  // Build Region → District → Ward tree, once; every level below reads from it.
   var tree={};
   groups.forEach(function(g){
     var r=g.region||'Unknown', dc=g.district||'Unknown', w=g.ward||'Unknown';
@@ -6320,10 +6290,12 @@ function aggTreeHtml(groups, showWards, rowsLayout, view){
     if(!tree[r][dc][w]) tree[r][dc][w]=[];
     tree[r][dc][w].push(g);
   });
+  var flat=function(node){ return Object.keys(node).reduce(function(a,k){ return a.concat(Array.isArray(node[k])?node[k]:flat(node[k])); },[]); };
+  var memo=new Map(), statOf=function(g){ var st=memo.get(g); if(!st){ st=gStats(g); memo.set(g,st); } return st; };
 
   Object.keys(tree).sort().forEach(function(region){
-    var rGroups=groups.filter(function(g){ return g.region===region; });
-    var rAgg=aggStats(rGroups);
+    var rGroups=flat(tree[region]);
+    var rAgg=aggStats(rGroups, statOf);
     html+='<div class="card" style="margin-bottom:1rem">'+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">'+
       '<div><span style="font-size:15px;font-weight:700;color:var(--green-dark)">&#127757; '+escHtml(region)+'</span>'+
@@ -6334,8 +6306,8 @@ function aggTreeHtml(groups, showWards, rowsLayout, view){
       statusMiniBar(rAgg.counts, view);
 
     Object.keys(tree[region]).sort().forEach(function(district){
-      var dcGroups=groups.filter(function(g){ return g.region===region&&g.district===district; });
-      var dcAgg=aggStats(dcGroups);
+      var dcGroups=flat(tree[region][district]);
+      var dcAgg=aggStats(dcGroups, statOf);
       html+='<div style="margin-left:1rem;margin-top:.875rem;padding:.875rem;background:var(--gray50);border:1px solid var(--border);border-radius:var(--radius)">'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">'+
         '<div><span style="font-size:14px;font-weight:700;color:var(--text)">&#127968; '+escHtml(district)+'</span>'+
@@ -6355,7 +6327,7 @@ function aggTreeHtml(groups, showWards, rowsLayout, view){
           '</tr></thead><tbody>';
         Object.keys(tree[region][district]).sort().forEach(function(ward){
           var wGroups=tree[region][district][ward];
-          var wAgg=aggStats(wGroups);
+          var wAgg=aggStats(wGroups, statOf);
           html+='<tr>'+
             '<td><strong>'+escHtml(ward)+'</strong></td>'+
             '<td class="num">'+wGroups.length+'</td>'+
@@ -6815,21 +6787,22 @@ async function renderFiAuthPanel(){
 // the list, so the officer sees what a lender holds before acting on it.
 async function renderFiDetail(name){
   var el=document.getElementById('tam-fi-panel');
-  await loadFiInstitutions();
+  // FI_ALL was filled by the lender list this came from, or by loadData() after a
+  // status change; only an empty list is worth a round trip.
+  if(!FI_ALL.length) await loadFiInstitutions();
   var f=FI_ALL.find(function(x){ return x.name===name; });
   if(!f){ renderFiAuthPanel(); return; }
 
   var gs=(db().groups||[]).filter(function(g){ return g.fi===name; });
   var hist=await SB.from('fi_status_log').select('*').eq('fi', name).order('at',{ascending:false}).limit(8);
   var log=hist.data||[];
-  var fmtDate=function(s){ if(!s) return '—'; var d=new Date(s);
-    return d.toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}); };
+  var fmtWhen=function(s){ return s?fmtDate(new Date(s)):'&mdash;'; };   // timestamps, in the app's one date format
 
   var rows=[['Status', fiStatusChip(f.status)],
             ['Lender login', escHtml(f.login_email) || '<span style="color:var(--muted)">not yet provisioned</span>'],
             ['CMGs assigned', String(gs.length)],
-            ['Authorised', fmtDate(f.authorised_at)]];
-  if(f.status==='SUSPENDED') rows.push(['Suspended', fmtDate(f.suspended_at)]);
+            ['Authorised', fmtWhen(f.authorised_at)]];
+  if(f.status==='SUSPENDED') rows.push(['Suspended', fmtWhen(f.suspended_at)]);
 
   var html='<div class="card">'+
     '<button class="btn btn-sm" id="fi-detail-back" style="margin-bottom:.75rem">&#8592; All lenders</button>'+
@@ -6852,7 +6825,7 @@ async function renderFiDetail(name){
       log.map(function(e){
         return '<div style="font-size:13px;padding:.35rem 0;border-bottom:1px solid var(--gray100)">'+
           '<strong>'+(FI_STATUS_CFG[e.to_status]||{label:e.to_status}).label+'</strong>'+
-          '<span style="color:var(--muted)"> &middot; '+fmtDate(e.at)+
+          '<span style="color:var(--muted)"> &middot; '+fmtWhen(e.at)+
           (e.actor_officer_id?(' &middot; '+e.actor_officer_id):'')+'</span>'+
           (e.note?('<div style="color:var(--muted);font-size:12px;margin-top:2px">“'+escHtml(e.note)+'”</div>'):'')+
         '</div>'; }).join('');
