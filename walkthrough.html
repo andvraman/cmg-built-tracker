@@ -112,7 +112,11 @@ body{font-family:system-ui,sans-serif;font-size:15px;color:var(--text);backgroun
 .step.active .step-dot{background:var(--green);color:#fff}
 .step.done .step-dot{background:var(--green-light);color:var(--green)}
 .step-line{flex:1;height:1px;background:var(--gray200)}
-#busy-veil{position:fixed;inset:0;z-index:3000;display:none;cursor:progress;background:transparent}
+/* No cursor on the veil. It sits under the pointer for as long as a request takes —
+   often 50ms — and the browser keeps drawing whatever cursor it last computed until
+   the mouse moves, so a "progress" cursor here outlived the work by however long the
+   hand stayed still. The bar and the pill say "working" when a wait is real. */
+#busy-veil{position:fixed;inset:0;z-index:3000;display:none;background:transparent}
 #busy-veil.on{display:block}
 #busy-veil .busy-bar,#busy-veil .busy-pill{opacity:0;transition:opacity .18s ease}
 #busy-veil.visible .busy-bar,#busy-veil.visible .busy-pill{opacity:1}
