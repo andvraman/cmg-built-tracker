@@ -715,6 +715,7 @@ function build(){
       { key:"members_min", effective_from:"2026-07-11", value:5, label:"Minimum members", unit:"members", description:"Registration warns when a group has fewer members than this.", set_by:null, set_at:"2026-07-11T08:00:00.000Z" },
       { key:"members_max", effective_from:"2026-07-11", value:25, label:"Maximum members", unit:"members", description:"Registration warns when a group has more members than this.", set_by:null, set_at:"2026-07-11T08:00:00.000Z" },
       { key:"quorum_default_pct", effective_from:"2026-07-11", value:80, label:"Default quorum", unit:"%", description:"Used when a group does not state its own quorum.", set_by:null, set_at:"2026-07-11T08:00:00.000Z" },
+      { key:"idle_timeout_seconds", effective_from:"2026-07-11", value:180, label:"Automatic sign-out after", unit:"seconds", description:"A signed-in person who does nothing on the page for this long is signed out and must sign in again.", set_by:null, set_at:"2026-07-11T08:00:00.000Z" },
       { key:"share_value_min", effective_from:"2026-07-11", value:1000, label:"Lowest value of one share", unit:"TZS", description:"A group chooses its share value once; it must lie in this range.", set_by:null, set_at:"2026-07-11T08:00:00.000Z" },
       { key:"share_value_max", effective_from:"2026-07-11", value:10000, label:"Highest value of one share", unit:"TZS", description:"See share_value_min.", set_by:null, set_at:"2026-07-11T08:00:00.000Z" },
       { key:"share_value_step", effective_from:"2026-07-11", value:1000, label:"Share value step", unit:"TZS", description:"The share value must be a multiple of this.", set_by:null, set_at:"2026-07-11T08:00:00.000Z" },
@@ -985,6 +986,19 @@ function clone(v){ return v==null ? v : JSON.parse(JSON.stringify(v)); }
 
 /* who is signed in, as an email — the stub's stand-in for auth.uid() */
 var SESSION_USER = null;
+
+/* The tour drives the page itself, so the app's automatic idle sign-out must
+   stay off — a reader pausing on a slide is not a person who walked away. */
+window.PAMOJA_NO_IDLE_TIMEOUT = true;
+
+/* Logins the Administrator has deactivated during the tour: login_id → why. */
+var INACTIVE_LOGINS = {};
+function loginKeyOf(id){
+  if(!id) return null;
+  if(id.role==="chair") return id.cmg_id;
+  if(id.role==="fi")    return id.fi;
+  return SESSION_USER.replace(/@pamoja\.demo$/,"").toUpperCase();
+}
 
 /* ═════ 4. identity → role and scope ═════
    Mirrors the real project's app_identity lookup: the login email carries the
@@ -1593,6 +1607,47 @@ var RPC = {
   }
 };
 
+/* admin_list_logins / admin_set_login_active — every login the system holds,
+   and the Administrator's switch on each. Mirrors the server: a reason to
+   deactivate, never your own login, refused at sign-in once off. */
+function allLogins(){
+  var me = SESSION_USER.replace(/@pamoja\.demo$/,"").toUpperCase();
+  var rows = [];
+  function add(login_id, role, name, scope, email){
+    var off = INACTIVE_LOGINS[login_id];
+    rows.push({ login_id:login_id, role:role, name:name, scope:scope, email:email,
+      active:!off, deactivated_at:off?off.at:null, deactivated_by:off?off.by:null,
+      deactivation_reason:off?off.reason:null, last_sign_in_at:null, is_self:login_id===me });
+  }
+  DB.admin_officers.forEach(function(o){ add(o.officer_id, "ADMIN", o.name, "National", o.officer_id.toLowerCase()+"@pamoja.demo"); });
+  DB.tamisemi_officers.forEach(function(o){ add(o.officer_id, "TAMISEMI_OFFICER", o.name, "National", o.officer_id.toLowerCase()+"@pamoja.demo"); });
+  DB.lga_officers.forEach(function(o){ add(o.officer_id, "LGA_OFFICER", o.name, o.district, o.officer_id.toLowerCase()+"@pamoja.demo"); });
+  DB.fi_institutions.filter(function(f){ return f.login_email; })
+    .forEach(function(f){ add(f.name, "FI_LENDER", f.name, f.status, f.login_email); });
+  DB.cmg_registry.forEach(function(g){ add(g.cmg_id, "CHAIRPERSON", g.name, g.district, g.cmg_id.toLowerCase()+"@pamoja.demo"); });
+  return rows;
+}
+RPC.admin_list_logins = function(){
+  var id = identity();
+  if(!id || id.role!=="admin") return err("Only an Administrator may list logins");
+  return ok(allLogins());
+};
+RPC.admin_set_login_active = function(p){
+  var id = identity();
+  if(!id || id.role!=="admin") return err("Only an Administrator may deactivate or reactivate logins");
+  var key = String(p.p_login_id||"").trim().toUpperCase();
+  if(!key) return err("Which login? Give an officer ID, a CMG number or an institution name");
+  var listed = allLogins();
+  var row = find(listed, function(x){ return String(x.login_id).toUpperCase()===key; });
+  if(!row) return err("No login found for "+key);
+  if(row.is_self) return err("You cannot deactivate your own login");
+  var reason = String(p.p_reason||"").trim();
+  if(!p.p_active && !reason) return err("A reason is required to deactivate a login");
+  if(p.p_active) delete INACTIVE_LOGINS[row.login_id];
+  else INACTIVE_LOGINS[row.login_id] = { reason:reason, by:"ADM001", at:new Date().toISOString() };
+  return ok({ login_id:row.login_id, role:row.role, active:!!p.p_active, changed:true });
+};
+
 /* confirm_remittance / reverse_remittance (G4) — the lender's officer only,
    for its own institution, and never without evidence or a written reason. */
 RPC.confirm_remittance = function(p){
@@ -1903,6 +1958,12 @@ function createClient(){
           return Promise.resolve({ data:{ user:null, session:null },
             error:{ message:"Invalid login credentials", code:"invalid_credentials" } });
         }
+        /* a deactivated login is refused exactly as GoTrue refuses a banned user */
+        if(INACTIVE_LOGINS[loginKeyOf(id)]){
+          SESSION_USER = prev;
+          return Promise.resolve({ data:{ user:null, session:null },
+            error:{ message:"User is banned", code:"user_banned" } });
+        }
         /* a chair may only sign in once the group exists */
         if(id.role==="chair" && !group(id.cmg_id)){
           SESSION_USER = prev;
@@ -1999,6 +2060,7 @@ window.SB_STUB = {
     <div id="login-step1" style="display: none;">
       <div style="font-weight:700;font-size:15px;margin-bottom:.25rem" data-i18n="role.heading">Select your role</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:1rem" data-i18n="role.subtitle">Only registered users may access this system.</div>
+      <div id="login-notice" class="alert alert-warn" style="display:none"></div>
       <div class="role-card" id="rc-chair">
         <div class="role-card-title" data-i18n="role.chair.title">Chairperson</div>
         <div class="role-card-desc" data-i18n="role.chair.desc">Log meetings for your registered CMG</div>
@@ -2278,6 +2340,7 @@ window.SB_STUB = {
   </div>
 </div>
 
+<div id="idle-warn" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;text-align:center;padding:8px 14px;font-size:13px;font-weight:600;background:var(--amber-light);color:var(--amber);border-bottom:1px solid #fcd34d"></div>
 <div id="app-shell" style="display:none">
   <div class="topbar">
     <div class="topbar-brand">PAMOJA CMG Tracker</div>
@@ -2690,6 +2753,7 @@ window.SB_STUB = {
       </div>
     </div>
     <div id="adm-officers"></div>
+    <div id="adm-logins"></div>
     <div id="adm-suspended"></div>
     <div id="adm-params"></div>
     <div id="adm-audit"></div>
@@ -2936,6 +3000,7 @@ function validPhone(p){ var d=String(p||'').replace(/\D/g,''); return (d.length=
 
 async function sbSignIn(email){
   const { data, error } = await SB.auth.signInWithPassword({ email: email, password: DEMO_PASSWORD });
+  if(!error) idleArm();
   return error ? { ok:false, error:error } : { ok:true, data:data };
 }
 
@@ -3142,6 +3207,7 @@ function setStep(n){
     if(el) el.className='step'+(i<n?' done':i===n?' active':'');
   });
   document.getElementById('login-step1').style.display=n===1?'block':'none';
+  if(n!==1){ var ln=document.getElementById('login-notice'); if(ln) ln.style.display='none'; }
   document.getElementById('login-step2').style.display=n===2?'block':'none';
   document.getElementById('login-step3').style.display=n===3?'block':'none';
 }
@@ -3272,7 +3338,10 @@ var _admOfficer = null;
 // logins, no network. They shared one sentence; the second now carries its
 // real reason, and the first names the ID it could not find.
 function loginFailText(res, notFound){
-  var m=(res&&res.error&&res.error.message)||'';
+  var m=(res&&res.error&&res.error.message)||'', c=(res&&res.error&&res.error.code)||'';
+  // A deactivated login carries banned_until in auth.users; GoTrue refuses it
+  // with this message on both the password and the refresh grant.
+  if(c==='user_banned' || /banned/i.test(m)) return t('login.err.deactivated');
   return /invalid login credentials/i.test(m) ? notFound : tf('login.err.signin',{msg:m||t('login.err.unknown')});
 }
 
@@ -3721,7 +3790,7 @@ document.getElementById('step2-continue').addEventListener('click', async functi
     }
     if(!FI_EMAIL[_fiName]){ err.textContent=tf('login.err.fiprov',{fi:_fiName}); err.style.display='block'; return; }
     var _fiRes=await sbSignIn(FI_EMAIL[_fiName]);
-    if(!_fiRes.ok){ err.textContent=tf('login.err.fisignin',{fi:_fiName}); err.style.display='block'; return; }
+    if(!_fiRes.ok){ err.textContent=loginFailText(_fiRes, tf('login.err.fisignin',{fi:_fiName})); err.style.display='block'; return; }
     await loadData();
     // Go to step 3: scope
     document.getElementById('fi-scope').style.display='block';
@@ -3803,7 +3872,7 @@ var DYNAMIC_PANELS=[
   'obs-title','obs-sub','obs-pending','obs-summary','obs-status-bar','obs-loans','obs-tbody',
   'obs-detail-content','obs-reg-result','obs-bulk-result','obs-reports','fi-reports','tam-reports',
   // TAMISEMI / Administrator / chairperson
-  'tam-content','adm-officers','c-dash-content','c-loan-content','c-loan-alert','c-share-alert','c-resubmit','review-card',
+  'tam-content','adm-officers','adm-logins','c-dash-content','c-loan-content','c-loan-alert','c-share-alert','c-resubmit','review-card',
   'share-settings-body',
   'topbar-label'
 ];
@@ -3817,7 +3886,10 @@ function resetAppViews(){
   DEFAULT_SUBVIEWS.forEach(function(v){ var el=document.getElementById(v[0]); if(el) el.style.display=v[1]; });
 }
 
-document.getElementById('logout-btn').addEventListener('click', function(){
+// Everything a sign-out has to undo, whether the person pressed Log out, left
+// the scope step, or simply walked away (see AUTOMATIC SIGN-OUT below).
+function signOutToLogin(reason){
+  idleDisarm();
   SB.auth.signOut(); APP.groups=[]; APP.loanApps=[];
   SESSION=null; selectedRole=null; _lookedUpCmgId=null; _lgaOfficer=null; _tamOfficer=null; _admOfficer=null;
   resetAppViews();
@@ -3825,16 +3897,57 @@ document.getElementById('logout-btn').addEventListener('click', function(){
   document.getElementById('app-shell').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   setStep(1);
-});
+  var n=document.getElementById('login-notice');
+  if(n){
+    if(reason==='idle'){ n.textContent=tf('login.idle.notice',{t:idleLimitText()}); n.style.display='block'; }
+    else n.style.display='none';
+  }
+}
+document.getElementById('logout-btn').addEventListener('click', function(){ signOutToLogin(); });
+document.getElementById('step3-logout').addEventListener('click', function(){ signOutToLogin(); });
 
-document.getElementById('step3-logout').addEventListener('click', function(){
-  SB.auth.signOut(); APP.groups=[]; APP.loanApps=[];
-  SESSION=null; selectedRole=null; _lookedUpCmgId=null; _lgaOfficer=null; _tamOfficer=null; _admOfficer=null;
-  resetAppViews();
-  document.querySelectorAll('.role-card').forEach(function(c){ c.classList.remove('selected'); });
-  document.getElementById('login-screen').style.display='flex';
-  setStep(1);
+// ── AUTOMATIC SIGN-OUT ──
+// Armed by every successful sign-in (sbSignIn), so it also covers a person who
+// verified their ID and then left the login screen open. Any pointer, key,
+// touch or scroll counts as activity. The limit is the idle_timeout_seconds
+// parameter (Administrator card), 180 s until one is set. The check runs on a
+// one-second interval and again the moment a hidden tab becomes visible, since
+// browsers throttle timers in background tabs; the server side needs nothing
+// from this, because the token itself is what the sign-out drops.
+var IDLE_WARN_SECONDS=30;
+var _idle={armed:false, last:0, timer:null};
+function idleLimitSeconds(){ return Math.max(30, Number(param('idle_timeout_seconds',180))||180); }
+function idleLimitText(){
+  var s=idleLimitSeconds();
+  return s%60===0 ? tf('idle.unit.min',{n:s/60}) : tf('idle.unit.sec',{n:s});
+}
+function idleWarnEl(){ return document.getElementById('idle-warn'); }
+function idleTouch(){
+  _idle.last=Date.now();
+  var w=idleWarnEl(); if(w && w.style.display!=='none') w.style.display='none';
+}
+function idleArm(){
+  if(window.PAMOJA_NO_IDLE_TIMEOUT) return;   // the guided walkthrough drives itself
+  _idle.armed=true; idleTouch();
+  if(!_idle.timer) _idle.timer=setInterval(idleCheck, 1000);
+}
+function idleDisarm(){
+  _idle.armed=false;
+  if(_idle.timer){ clearInterval(_idle.timer); _idle.timer=null; }
+  var w=idleWarnEl(); if(w) w.style.display='none';
+}
+function idleCheck(){
+  if(!_idle.armed) return;
+  var left=idleLimitSeconds()*1000-(Date.now()-_idle.last);
+  if(left<=0){ signOutToLogin('idle'); return; }
+  var w=idleWarnEl(); if(!w) return;
+  if(left<=IDLE_WARN_SECONDS*1000){ w.textContent=tf('idle.warn',{s:Math.ceil(left/1000)}); w.style.display='block'; }
+  else if(w.style.display!=='none') w.style.display='none';
+}
+['mousemove','mousedown','keydown','touchstart','scroll','click','input'].forEach(function(ev){
+  document.addEventListener(ev, idleTouch, {passive:true, capture:true});
 });
+document.addEventListener('visibilitychange', function(){ if(!document.hidden) idleCheck(); });
 
 // ── CHAIRPERSON ──
 function getG(){ return (db().groups||[]).find(function(x){ return (x.cmgNumber||x.id)===SESSION.cmgNumber; }); }
@@ -6920,6 +7033,7 @@ async function enterAdmin(){
   await loadFiInstitutions();
   await loadData();
   renderAdminOfficers();
+  await renderAdminLogins();
   renderAdminSuspended();
   renderAdminParameters();
   renderAuditLog(document.getElementById('adm-audit'));
@@ -7009,6 +7123,96 @@ function renderAdminOfficers(){
   });
 }
 
+// ── LOGINS (Administrator) ──
+// Every login the system holds, with a switch to deactivate or reactivate it.
+// Deactivation is two-layered on the server (admin_set_login_active): the auth
+// account is banned so no new session can be minted or renewed, and the
+// identity row goes inactive so an already-open session reads and writes
+// nothing. A reason is required, and the Administrator cannot deactivate the
+// login they are using.
+var LOGIN_ROLE_LABEL={ADMIN:'Administrator', TAMISEMI_OFFICER:'TAMISEMI officer', LGA_OFFICER:'LGA officer',
+                      FI_LENDER:'FI lender', CHAIRPERSON:'Chairperson'};
+async function renderAdminLogins(okMsg){
+  var el=document.getElementById('adm-logins'); if(!el) return;
+  var r=await SB.rpc('admin_list_logins');
+  if(r.error){
+    el.innerHTML='<div class="card"><div class="card-title">Logins</div>'+
+      '<p style="color:var(--red);font-size:13px">'+escHtml(r.error.message||'Unable to list logins.')+'</p></div>';
+    return;
+  }
+  var rows=r.data||[];
+  var off=rows.filter(function(x){ return !x.active; }).length;
+  var html='<div class="card"><div class="card-title">Logins</div>'+
+    '<div style="font-size:13px;color:var(--muted);margin-bottom:.75rem">'+rows.length+' login'+(rows.length!==1?'s':'')+
+    (off?', '+off+' deactivated':'')+'. A deactivated login is refused at sign-in, and any session it still holds '+
+    'loses access at once. Deactivation needs a reason; reactivation is immediate.</div>'+
+    '<p id="login-err" style="color:var(--red);font-size:13px;margin-bottom:.5rem;display:none"></p>'+
+    '<div id="login-ok" class="alert-ok" style="'+(okMsg?'':'display:none;')+'margin-bottom:.5rem">'+escHtml(okMsg||'')+'</div>'+
+    '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>ID</th><th>Role</th><th>Name</th><th>Scope</th>'+
+    '<th>Status</th><th>Last sign-in</th><th></th></tr></thead><tbody>';
+  rows.forEach(function(x, i){
+    var status=x.active
+      ? '<span class="badge badge-ok">Active</span>'
+      : '<span class="badge badge-fail">Deactivated</span>'+
+        '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+escHtml(x.deactivation_reason||'')+
+        (x.deactivated_by?' · '+escHtml(x.deactivated_by):'')+(x.deactivated_at?' · '+auditWhen(x.deactivated_at):'')+'</div>';
+    var action=x.is_self
+      ? '<span style="font-size:12px;color:var(--muted)">this login</span>'
+      : x.active
+        ? '<button class="btn btn-sm" data-login-off="'+i+'">Deactivate</button>'
+        : '<button class="btn btn-sm btn-primary" data-login-on="'+i+'">Reactivate</button>';
+    html+='<tr><td style="font-weight:700;white-space:nowrap">'+escHtml(x.login_id||'')+'</td>'+
+      '<td style="white-space:nowrap">'+escHtml(LOGIN_ROLE_LABEL[x.role]||x.role||'')+'</td>'+
+      '<td>'+escHtml(x.name||'')+'</td><td>'+escHtml(x.scope||'')+'</td><td>'+status+'</td>'+
+      '<td style="white-space:nowrap">'+(x.last_sign_in_at?auditWhen(x.last_sign_in_at):'<span style="color:var(--muted)">never</span>')+'</td>'+
+      '<td style="white-space:nowrap">'+action+'</td></tr>'+
+      '<tr id="login-reason-'+i+'" style="display:none"><td colspan="7" style="background:var(--bg,#f8fafc)">'+
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+        '<span style="font-size:13px">Reason for deactivating <strong>'+escHtml(x.login_id||'')+'</strong>:</span>'+
+        '<input type="text" data-login-reason="'+i+'" placeholder="e.g. officer transferred" style="flex:1;min-width:14em">'+
+        '<button class="btn btn-sm btn-primary" data-login-confirm="'+i+'">Confirm deactivation</button>'+
+        '<button class="btn btn-sm" data-login-cancel="'+i+'">Cancel</button></div></td></tr>';
+  });
+  html+='</tbody></table></div></div>';
+  el.innerHTML=html;
+
+  function fail(msg){ var e=document.getElementById('login-err'); e.textContent=msg; e.style.display='block'; }
+  async function setActive(i, active, reason){
+    var x=rows[i];
+    var r2=await SB.rpc('admin_set_login_active',{p_login_id:x.login_id, p_active:active, p_reason:reason||null});
+    if(r2.error){ fail(r2.error.message||'Unable to change the login.'); return; }
+    await renderAdminLogins('\u2713 '+x.login_id+(active?' reactivated. They can sign in again straight away.':' deactivated. They can no longer sign in.'));
+  }
+  el.querySelectorAll('[data-login-off]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var i=this.getAttribute('data-login-off');
+      el.querySelectorAll('tr[id^="login-reason-"]').forEach(function(tr){ tr.style.display='none'; });
+      document.getElementById('login-reason-'+i).style.display='';
+      el.querySelector('[data-login-reason="'+i+'"]').focus();
+    });
+  });
+  el.querySelectorAll('[data-login-cancel]').forEach(function(b){
+    b.addEventListener('click', function(){ document.getElementById('login-reason-'+this.getAttribute('data-login-cancel')).style.display='none'; });
+  });
+  el.querySelectorAll('[data-login-confirm]').forEach(function(b){
+    b.addEventListener('click', async function(){
+      var i=this.getAttribute('data-login-confirm');
+      var reason=el.querySelector('[data-login-reason="'+i+'"]').value.trim();
+      document.getElementById('login-err').style.display='none';
+      if(!reason){ fail('A reason is required to deactivate a login.'); return; }
+      this.disabled=true;
+      await setActive(i, false, reason);
+    });
+  });
+  el.querySelectorAll('[data-login-on]').forEach(function(b){
+    b.addEventListener('click', async function(){
+      document.getElementById('login-err').style.display='none';
+      this.disabled=true;
+      await setActive(this.getAttribute('data-login-on'), true);
+    });
+  });
+}
+
 // Custody view: the groups of suspended lenders, which RLS exposes to Admin alone.
 function renderAdminSuspended(){
   var el=document.getElementById('adm-suspended');
@@ -7044,7 +7248,7 @@ function renderAdminSuspended(){
 // The values the rules run on, with the date each took effect. A change takes
 // effect today or on a future date; history stays in the table and the audit log.
 var PARAM_ORDER=['members_min','members_max','quorum_default_pct','share_value_min','share_value_max','share_value_step',
-                 'max_shares_per_meeting_cap','on_track_tolerance_pct','delinquent_after_days'];
+                 'max_shares_per_meeting_cap','on_track_tolerance_pct','delinquent_after_days','idle_timeout_seconds'];
 function renderAdminParameters(){
   var el=document.getElementById('adm-params'); if(!el) return;
   var today=new Date().toISOString().slice(0,10);
@@ -7250,7 +7454,11 @@ window.addEventListener('DOMContentLoaded', function(){
       'login.err.fisignin':'Unable to sign in for {fi}.',
       'login.err.officernotfound':'No officer with ID {id}.', 'login.err.adminnotfound':'No administrator with ID {id}.',
       'login.err.verifyfirst':'Click Verify first.', 'login.err.lookupfirst':'Click Look up first.',
-      'login.err.signin':'Could not sign in: {msg}', 'login.err.unknown':'no reason was given'
+      'login.err.signin':'Could not sign in: {msg}', 'login.err.unknown':'no reason was given',
+      'login.err.deactivated':'This login has been deactivated by the Administrator. Please contact the concerned official.',
+      'login.idle.notice':'You were signed out after {t} without activity. Please sign in again.',
+      'idle.warn':'No activity for a while — you will be signed out in {s} s. Move the mouse or press a key to stay signed in.',
+      'idle.unit.min':'{n} minutes', 'idle.unit.sec':'{n} seconds'
     },
     sw: {
       'brand.subtitle':'Kifuatiliaji cha mikopo ya nje · Tanzania',
@@ -7301,7 +7509,11 @@ window.addEventListener('DOMContentLoaded', function(){
       'login.err.fisignin':'Imeshindikana kuingia kwa {fi}.',
       'login.err.officernotfound':'Hakuna afisa mwenye namba {id}.', 'login.err.adminnotfound':'Hakuna msimamizi mwenye namba {id}.',
       'login.err.verifyfirst':'Bonyeza Thibitisha kwanza.', 'login.err.lookupfirst':'Bonyeza Tafuta kwanza.',
-      'login.err.signin':'Imeshindikana kuingia: {msg}', 'login.err.unknown':'hakuna sababu iliyotolewa'
+      'login.err.signin':'Imeshindikana kuingia: {msg}', 'login.err.unknown':'hakuna sababu iliyotolewa',
+      'login.err.deactivated':'Akaunti hii imefungwa na Msimamizi. Tafadhali wasiliana na afisa husika.',
+      'login.idle.notice':'Ulitolewa nje baada ya {t} bila shughuli. Tafadhali ingia tena.',
+      'idle.warn':'Hakuna shughuli kwa muda — utatolewa nje baada ya sekunde {s}. Sogeza kipanya au bonyeza kitufe ili kuendelea.',
+      'idle.unit.min':'dakika {n}', 'idle.unit.sec':'sekunde {n}'
     }
   };
 
