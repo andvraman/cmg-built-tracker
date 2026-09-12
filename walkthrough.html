@@ -2395,7 +2395,7 @@ window.SB_STUB = {
       </div>
       <div style="display:flex;gap:6px">
         <button class="btn btn-sm" id="csv-btn">↓ CSV</button>
-        <button class="btn btn-sm" id="edit-setup-btn">⚙ Edit</button>
+        <button class="btn btn-sm" id="edit-setup-btn">Group profile</button>
       </div>
     </div>
     <div id="c-status-banner"></div>
@@ -2504,7 +2504,7 @@ window.SB_STUB = {
                  amend of a record that predates share tracking (moneyIsLegacy()). -->
             <div id="wz-money-blocked" style="display:none">
               <div class="alert alert-warn"><span id="wz-money-blocked-text"></span></div>
-              <button type="button" class="btn" id="wz-money-blocked-go" style="margin-top:.5rem">Go to Group profile &#8594;</button>
+              <button type="button" class="btn" id="wz-money-blocked-go" style="margin-top:.5rem">Go to group profile &#8594;</button>
             </div>
             <div id="wz-money-fields">
               <div class="wz-q">
@@ -2752,11 +2752,18 @@ window.SB_STUB = {
         <div style="font-size:13px;color:var(--muted)" id="adm-sub">1 suspended lender under administrative oversight</div>
       </div>
     </div>
-    <div id="adm-officers"></div>
-    <div id="adm-logins"></div>
-    <div id="adm-suspended"></div>
-    <div id="adm-params"></div>
-    <div id="adm-audit"></div>
+    <div class="tabs" id="adm-tabs">
+      <button class="tab active" id="tab-adm-officers">Create an officer login</button>
+      <button class="tab" id="tab-adm-logins">Manage logins</button>
+      <button class="tab" id="tab-adm-suspended">Suspended lenders</button>
+      <button class="tab" id="tab-adm-params">System parameters</button>
+      <button class="tab" id="tab-adm-audit">Audit log</button>
+    </div>
+    <div id="admt-officers" style="display: block;"><div id="adm-officers"></div></div>
+    <div id="admt-logins" style="display: none;"><div id="adm-logins"></div></div>
+    <div id="admt-suspended" style="display: none;"><div id="adm-suspended"></div></div>
+    <div id="admt-params" style="display: none;"><div id="adm-params"></div></div>
+    <div id="admt-audit" style="display: none;"><div id="adm-audit"></div></div>
   </div>
 
   <!-- ── FI AGGREGATED SCREEN ── -->
@@ -3879,7 +3886,8 @@ var DYNAMIC_PANELS=[
 // [id, display] pairs putting each screen's sub-views back to their markup defaults
 var DEFAULT_SUBVIEWS=[
   ['fi-status-detail','none'],
-  ['obs-list-view','block'],['obs-detail-view','none'],['obs-reg-view','none'],['obs-bulk-view','none']
+  ['obs-list-view','block'],['obs-detail-view','none'],['obs-reg-view','none'],['obs-bulk-view','none'],
+  ['admt-officers','block'],['admt-logins','none'],['admt-suspended','none'],['admt-params','none'],['admt-audit','none']
 ];
 function resetAppViews(){
   DYNAMIC_PANELS.forEach(function(id){ var el=document.getElementById(id); if(el) el.innerHTML=''; });
@@ -4590,7 +4598,7 @@ function renderLoanAlert(g){
   if(app && app.status==='APPROVED'){
     box.innerHTML='<div class="alert alert-warn" style="margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'+
       '<div>&#128276; <strong>An approved loan from '+escHtml(app.fi)+' is awaiting the group’s decision.</strong> If this meeting has met quorum, open the Loan tab to accept or decline it.</div>'+
-      '<button class="btn btn-sm btn-primary" id="c-loan-alert-go" style="white-space:nowrap">Open Loan tab &#8594;</button></div>';
+      '<button class="btn btn-sm btn-primary" id="c-loan-alert-go" style="white-space:nowrap">Open the Loan tab &#8594;</button></div>';
     var b=document.getElementById('c-loan-alert-go'); if(b) b.addEventListener('click', function(){ switchTab('loan'); });
   } else { box.innerHTML=''; }
 }
@@ -4602,7 +4610,7 @@ function renderShareAlert(g){
   if(shareConfigSet(g)){ box.innerHTML=''; return; }
   box.innerHTML='<div class="alert alert-warn" style="margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'+
     '<div>&#9888; <strong>This group has not set its share value yet.</strong> A chairperson must set it once, from Group profile, before shares can be logged at a meeting.</div>'+
-    '<button class="btn btn-sm btn-primary" id="c-share-alert-go" style="white-space:nowrap">Go to Group profile &#8594;</button></div>';
+    '<button class="btn btn-sm btn-primary" id="c-share-alert-go" style="white-space:nowrap">Go to group profile &#8594;</button></div>';
   var b=document.getElementById('c-share-alert-go');
   if(b) b.addEventListener('click', function(){ var gg=getG(); if(gg) prefillSetup(gg); showAppScreen('screen-setup'); });
 }
@@ -7037,8 +7045,28 @@ async function enterAdmin(){
   renderAdminSuspended();
   renderAdminParameters();
   renderAuditLog(document.getElementById('adm-audit'));
+  switchAdmTab('officers');
   showAppScreen('screen-admin');
 }
+
+// The five panels of the Administrator screen, one tab each. The officer form
+// is drawn once per sign-in so a half-typed name survives a tab change; the
+// other four are redrawn on entry so they show the latest state.
+function switchAdmTab(tab){
+  ['officers','logins','suspended','params','audit'].forEach(function(t){
+    var el=document.getElementById('admt-'+t);
+    if(el) el.style.display = t===tab?'block':'none';
+  });
+  document.querySelectorAll('#screen-admin .tab').forEach(function(b){ b.classList.remove('active'); });
+  var btn=document.getElementById('tab-adm-'+tab); if(btn) btn.classList.add('active');
+  if(tab==='logins') renderAdminLogins();
+  if(tab==='suspended') renderAdminSuspended();
+  if(tab==='params') renderAdminParameters();
+  if(tab==='audit') renderAuditLog(document.getElementById('adm-audit'));
+}
+['officers','logins','suspended','params','audit'].forEach(function(t){
+  document.getElementById('tab-adm-'+t).addEventListener('click', function(){ switchAdmTab(t); });
+});
 
 function renderAdminOfficers(){
   // Districts are the unit an LGA officer is posted to; the region follows from
@@ -7136,13 +7164,13 @@ async function renderAdminLogins(okMsg){
   var el=document.getElementById('adm-logins'); if(!el) return;
   var r=await SB.rpc('admin_list_logins');
   if(r.error){
-    el.innerHTML='<div class="card"><div class="card-title">Logins</div>'+
+    el.innerHTML='<div class="card"><div class="card-title">Manage logins</div>'+
       '<p style="color:var(--red);font-size:13px">'+escHtml(r.error.message||'Unable to list logins.')+'</p></div>';
     return;
   }
   var rows=r.data||[];
   var off=rows.filter(function(x){ return !x.active; }).length;
-  var html='<div class="card"><div class="card-title">Logins</div>'+
+  var html='<div class="card"><div class="card-title">Manage logins</div>'+
     '<div style="font-size:13px;color:var(--muted);margin-bottom:.75rem">'+rows.length+' login'+(rows.length!==1?'s':'')+
     (off?', '+off+' deactivated':'')+'. A deactivated login is refused at sign-in, and any session it still holds '+
     'loses access at once. Deactivation needs a reason; reactivation is immediate.</div>'+
@@ -8879,7 +8907,7 @@ var STEPS = [
 
 { ch:"a1", title:"The record survives the institution",
   text:"The groups the council can no longer see, still here in full — portfolio, repayments, outstanding balances. Suspending a lender <em>withdraws access without destroying anything</em>.",
-  act:async function(){ await doSuspend(); await asAdmin(); },
+  act:async function(){ await doSuspend(); await asAdmin(); switchAdmTab("suspended"); },
   spot:function(){ return q("#adm-suspended"); }, ping:true, hold:14000 },
 
 { ch:"a1", title:"One record, four desks",
