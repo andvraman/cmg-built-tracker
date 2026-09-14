@@ -261,6 +261,8 @@ body.tour-on #tour-rail{ display:flex }
 .t-paused{ display:none; margin-top:12px; font-size:12.5px; line-height:1.5;
   color:var(--t-ink-dim); border-left:2px solid var(--t-g-line); padding-left:10px }
 body.tour-on:not(.tour-playing) .t-paused{ display:block }
+/* not on a slide: the panel covers the application, so there is nothing to click around */
+body.tour-on #tour-slide.on ~ #tour-rail .t-paused{ display:none }
 
 /* buttons on the green band */
 /* outlined, not washed: a pale fill lightens the green underneath and drops
@@ -8357,7 +8359,7 @@ var STEPS = [
    the presenter steps through with the arrows. */
 
 { ch:"p0", title:"Stakeholders and their functions",
-  text:"Five functional areas: <em>getting in, groups and meetings, loans and repayments, lenders and oversight, administration</em>. Each coloured line represents one desk: the chairperson, the council, the lender, TAMISEMI, the administrator.",
+  text:"Five functional areas: <em>getting in, groups and meetings, loans and repayments, lenders and oversight, administration</em>. Each coloured line represents one desk: the chairperson, the council, the lender, TAMISEMI, the administrator. Connected stations represent shared functions.",
   act:async function(){ showLogin(); },
   slide:function(){ return slideStakeholders(); }, spot:null, hold:45000 },
 
