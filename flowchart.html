@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PAMOJA Loan Journey</title>
+<meta name="description" content="Flowchart of the PAMOJA CMG Loan Tracker: the full journey on one page, then each of the eight chapters in focus with its explanation.">
+<style>
+  :root{
+    --ground:#eef1ea; --card:#ffffff; --card-2:#f5f7f1;
+    --ink:#17241d; --muted:#5b6b60; --faint:#8a978c;
+    --line:#dbe0d5; --line-strong:#c6cdbe;
+    --primary:#1c5a3f; --primary-deep:#0f3d29; --primary-soft:#dcebe1;
+    --chair:#1c5a3f; --lga:#2f6f7d; --fi:#a8741f; --tam:#4a5b74; --sys:#6b4f7a;
+    --chair-bg:#e3efe6; --lga-bg:#e1eef0; --fi-bg:#f5ead3; --tam-bg:#e4e8ef; --sys-bg:#ece4f0;
+    --exc:#b9791b; --ok:#2f7d4f; --bad:#b23b2e;
+    --shadow:0 1px 2px rgba(20,40,28,.06),0 8px 24px -12px rgba(20,40,28,.22);
+    --shadow-lg:0 2px 6px rgba(20,40,28,.10),0 30px 70px -28px rgba(20,40,28,.38);
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0d1411; --card:#15201a; --card-2:#111a15;
+      --ink:#eaf0e8; --muted:#9db0a4; --faint:#6f8175;
+      --line:#243029; --line-strong:#31413a;
+      --primary:#57b485; --primary-deep:#3d9067; --primary-soft:#173226;
+      --chair:#57b485; --lga:#5aa7b6; --fi:#d7a441; --tam:#8a9cc0; --sys:#b092c0;
+      --chair-bg:#14271d; --lga-bg:#12262a; --fi-bg:#2a2112; --tam-bg:#1a1f2a; --sys-bg:#231b28;
+      --exc:#d99f3a; --ok:#4bbd7a; --bad:#e0705f;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -14px rgba(0,0,0,.6);
+      --shadow-lg:0 2px 6px rgba(0,0,0,.5),0 30px 70px -28px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0d1411; --card:#15201a; --card-2:#111a15;
+    --ink:#eaf0e8; --muted:#9db0a4; --faint:#6f8175;
+    --line:#243029; --line-strong:#31413a;
+    --primary:#57b485; --primary-deep:#3d9067; --primary-soft:#173226;
+    --chair:#57b485; --lga:#5aa7b6; --fi:#d7a441; --tam:#8a9cc0; --sys:#b092c0;
+    --chair-bg:#14271d; --lga-bg:#12262a; --fi-bg:#2a2112; --tam-bg:#1a1f2a; --sys-bg:#231b28;
+    --exc:#d99f3a; --ok:#4bbd7a; --bad:#e0705f;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--ground);color:var(--ink);font:15px/1.5 var(--sans)}
+  button{font:inherit;color:inherit}
+  .view{display:none}
+  body[data-view="cover"] #cover, body[data-view="chapter"] #chapter{display:block}
+
+  /* ── shared bits ── */
+  .eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--primary)}
+  .btn{font-size:14px;font-weight:600;border-radius:10px;border:1px solid var(--line-strong);background:var(--card);color:var(--ink);padding:8px 14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{border-color:var(--primary)}
+  .btn:disabled{opacity:.35;cursor:default}
+  .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+  :root[data-theme="dark"] .btn.primary{color:#0d1411}
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .btn.primary{color:#0d1411} }
+  .chip{font-size:13px;font-weight:600;border-radius:999px;border:1px solid var(--line-strong);background:var(--card);color:var(--muted);padding:5px 11px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .chip i{width:9px;height:9px;border-radius:50%}
+  .chip[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+  .switch{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;user-select:none}
+  .switch input{width:16px;height:16px;accent-color:var(--exc)}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+
+  /* ── cover ── */
+  #cover main{max-width:1240px;margin:0 auto;padding:28px 24px 80px}
+  h1{font-family:var(--serif);font-size:clamp(28px,4vw,42px);line-height:1.1;margin:.3rem 0 .6rem;font-weight:600}
+  .lede{max-width:780px;color:var(--muted);font-size:16px;margin:0 0 1.1rem}
+  .glance{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 1.2rem}
+  .glance span{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600;box-shadow:var(--shadow)}
+  .glance i{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .glance b{color:var(--faint);font-weight:400}
+  .toolbar{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--ground) 92%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:10px 0;margin-bottom:10px;border-bottom:1px solid var(--line)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  #cover .legend{margin:0 0 18px}
+
+  /* ── chart (both views) ── */
+  .chart{position:relative;display:grid;grid-template-columns:128px repeat(4,minmax(0,1fr));column-gap:30px;row-gap:34px;padding-bottom:10px}
+  .band{grid-row:1/-1;border-radius:16px;z-index:0;opacity:.55}
+  .lanehead{position:sticky;top:calc(var(--sticky,58px) + 6px);z-index:6;align-self:start;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:12px;padding:8px 10px;text-align:center;box-shadow:var(--shadow)}
+  .lanehead b{display:block;font-size:14px;color:var(--c)}
+  .lanehead small{display:block;font-size:11.5px;color:var(--muted);line-height:1.3}
+  .railhead{align-self:end;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);text-align:right;padding-bottom:6px}
+  .stage{grid-column:1/-1;z-index:4;display:flex;align-items:baseline;gap:12px;background:var(--ground);border:0;border-top:1px solid var(--line-strong);padding:10px 4px 0;margin-top:6px;text-align:left;width:100%}
+  .stage .n{font-family:var(--serif);font-size:26px;line-height:1;color:var(--primary);font-weight:600;min-width:26px}
+  .stage h2{font-family:var(--serif);font-size:19px;margin:0;font-weight:600}
+  .stage p{margin:0;color:var(--muted);font-size:13px}
+  button.stage{cursor:pointer}
+  button.stage .go{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--primary);opacity:0;transition:opacity .2s;white-space:nowrap}
+  button.stage:hover .go,button.stage:focus-visible .go{opacity:1}
+  button.stage:hover h2{color:var(--primary)}
+
+  .node{position:relative;z-index:3;text-align:left;color:inherit;background:var(--card);border:1px solid var(--line);border-left:5px solid var(--c);
+    border-radius:12px;padding:10px 12px 11px;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s,box-shadow .15s,opacity .2s,outline-color .2s;outline:3px solid transparent;outline-offset:2px;width:100%}
+  .node:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+  .node:focus-visible{outline-color:var(--c)}
+  .node.active{outline-color:var(--c);box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+  .node .who{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--c);margin-bottom:3px}
+  .node .num{flex:none;width:21px;height:21px;border-radius:50%;background:var(--cbg);color:var(--c);font-size:11px;letter-spacing:0;display:grid;place-items:center}
+  .node .ttl{display:block;font-weight:700;font-size:14.5px;line-height:1.25}
+  .node .sum{display:block;color:var(--muted);font-size:12.5px;line-height:1.4;margin-top:3px}
+  .node .exc-note{display:none;margin-top:6px;font-size:12px;color:var(--exc);font-weight:600}
+  .node .cstat{display:none}
+  .node.span{border-left-width:1px;border-top:5px solid var(--c);text-align:center;background:linear-gradient(var(--cbg),var(--card))}
+  .node.span .who{justify-content:center}
+  .node.dim{opacity:.22}
+  .node.ghost{background:transparent;border:1.5px dashed var(--line-strong);border-left:4px dashed var(--c);box-shadow:none;padding:7px 11px}
+  .node.ghost.span{border-top:4px dashed var(--c);border-left:1.5px dashed var(--line-strong)}
+  .node.ghost .who{font-size:10px}
+  .node.ghost .ttl{font-size:13px;color:var(--muted);font-weight:600}
+  .node.ghost:hover{background:var(--card)}
+
+  .pill{justify-self:end;align-self:center;z-index:3;font-size:11.5px;font-weight:700;line-height:1.25;text-align:right;border-radius:8px;padding:4px 8px;background:var(--card);border:1px solid var(--line-strong);color:var(--ink);box-shadow:var(--shadow);max-width:128px}
+  .pill::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--pc,var(--primary));margin-right:5px;vertical-align:1px}
+
+  svg.wires{position:absolute;left:0;top:0;z-index:2;pointer-events:none;overflow:visible}
+  .wire{fill:none;stroke:var(--line-strong);stroke-width:2;transition:stroke .2s,opacity .2s}
+  .wire.main{stroke:var(--faint)}
+  .wire.exc{stroke:var(--exc);stroke-dasharray:6 5}
+  .wire.loop{stroke:var(--primary);stroke-dasharray:2 5;stroke-linecap:round}
+  .wire.feed{stroke:var(--sys);opacity:.55}
+  .wire.hot{stroke:var(--ink);stroke-width:2.6;opacity:1}
+  .wire.dim{opacity:.12}
+  .wire.out{opacity:.55}
+  .labels{position:absolute;inset:0;z-index:5;pointer-events:none}
+  .wl{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--ground);border:1px solid var(--line-strong);color:var(--muted);transition:opacity .2s}
+  .wl.exc{color:var(--exc);border-color:var(--exc)}
+  .wl.loop{color:var(--primary);border-color:var(--primary)}
+  .wl.dim{opacity:.15}
+  body.no-exc .wire.exc, body.no-exc .wl.exc, body.no-exc .exc-note{display:none!important}
+
+  /* ── chapter view ── */
+  .cbar{position:sticky;top:0;z-index:30;background:var(--card);border-bottom:1px solid var(--line);padding:10px 22px;display:flex;align-items:center;gap:14px}
+  .ctiles{flex:1;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px;min-width:0}
+  .ct{position:relative;text-align:left;border:1px solid var(--line);background:var(--card-2);border-radius:10px;padding:5px 8px 6px;cursor:pointer;min-width:0;overflow:hidden}
+  .ct:hover{border-color:var(--primary)}
+  .ct i{display:block;font-style:normal;font-size:10.5px;font-weight:800;color:var(--faint)}
+  .ct span{display:block;font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ct.here{background:var(--primary);border-color:var(--primary);color:#fff}
+  .ct.here i{color:rgba(255,255,255,.75)}
+  .split{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(330px,1fr);align-items:start}
+  .split .left{padding:18px 16px 60px 22px;min-width:0}
+  .split .left .legend{margin:0 0 14px}
+  /* one chapter: no status rail (the pane shows the status), tighter columns */
+  #chart-one{grid-template-columns:0 repeat(4,minmax(0,1fr));column-gap:22px}
+  #chart-one .railhead,#chart-one .pill{display:none}
+  #chart-one .node .sum{font-size:12px}
+  .pane{position:sticky;top:var(--sticky,60px);height:calc(100vh - var(--sticky,60px));height:calc(100dvh - var(--sticky,60px));overflow:auto;background:var(--card);border-left:1px solid var(--line);display:flex;flex-direction:column}
+  .pane .in{padding:22px 24px 18px;flex:1}
+  .pane .kick{font-size:11.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--primary)}
+  .pane h2{font-family:var(--serif);font-size:28px;line-height:1.15;font-weight:600;margin:.2rem 0 .6rem}
+  .pane .intro{font-size:15.5px;line-height:1.6;margin:0 0 12px}
+  .who-row{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+  .who-row span{font-size:12px;font-weight:700;border-radius:999px;padding:3px 10px;background:var(--cbg);color:var(--c)}
+  .stbox{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;color:var(--muted);background:var(--card-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:0 0 16px}
+  .stbox b{font-size:12.5px;color:var(--ink);background:var(--card);border:1px solid var(--line-strong);border-radius:7px;padding:2px 8px}
+  .steps{display:flex;flex-direction:column;gap:8px}
+  .step{border:1px solid var(--line);border-left:4px solid var(--c);border-radius:12px;background:var(--card);overflow:hidden}
+  .step.open{box-shadow:var(--shadow);border-color:var(--c)}
+  .step > button{width:100%;text-align:left;background:none;border:0;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:10px}
+  .step .num{flex:none;width:24px;height:24px;border-radius:50%;background:var(--cbg);color:var(--c);font-size:12px;font-weight:800;display:grid;place-items:center}
+  .step .t{flex:1;min-width:0}
+  .step .t small{display:block;font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--c)}
+  .step .t b{display:block;font-size:15px;line-height:1.25}
+  .step .chev{color:var(--faint);transition:transform .2s}
+  .step.open .chev{transform:rotate(90deg)}
+  .step .body{display:none;padding:0 14px 12px 46px;font-size:14px}
+  .step.open .body{display:block}
+  .step .body p{margin:0 0 8px}
+  .step h4{font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin:10px 0 4px}
+  .step ul{margin:0;padding-left:18px}
+  .step li{margin:0 0 4px}
+  .paper{background:var(--card-2);border:1px dashed var(--line-strong);border-radius:10px;padding:7px 11px;font-size:13.5px}
+  .statuses div{display:flex;gap:10px;align-items:baseline;margin-bottom:5px}
+  .statuses b{flex:none;min-width:88px}
+  .pane nav{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding:12px 20px}
+  .pane nav span{font-size:13px;color:var(--muted);font-weight:600}
+
+  .foot{margin-top:36px;color:var(--faint);font-size:12.5px;border-top:1px solid var(--line);padding-top:14px}
+
+  /* ── phones: one column; the flow reads top to bottom ── */
+  @media (max-width:760px){
+    #cover main{padding:20px 16px 60px}
+    .toolbar{position:static}
+    .chart,#chart-one{grid-template-columns:1fr;row-gap:22px}
+    .band,.lanehead,.railhead,.pill,svg.wires,.labels{display:none}
+    .node,.stage{grid-column:1!important;grid-row:auto!important}
+    button.stage .go{opacity:1}
+    .node .exc-note{display:block}
+    .node .cstat{display:inline-block;margin-top:7px;font-size:11.5px;font-weight:700;border-radius:6px;padding:2px 7px;background:var(--cbg);color:var(--c)}
+    .node:not(.first)::before{content:"";position:absolute;left:50%;top:-22px;height:22px;border-left:2px solid var(--line-strong)}
+    .node:not(.first)::after{content:"";position:absolute;left:calc(50% - 5px);top:-8px;border:5px solid transparent;border-top-color:var(--line-strong)}
+    .cbar{flex-wrap:wrap;padding:10px 12px;gap:8px}
+    .ctiles{order:3;flex-basis:100%}
+    .ct{text-align:center;padding:5px 0}
+    .ct span{display:none}
+    .ct i{font-size:12px}
+    .split{display:block}
+    .split .left{padding:14px 12px 10px}
+    .split .left .legend{display:none}
+    .pane{position:static;height:auto;border-left:0;border-top:1px solid var(--line)}
+    .pane .in{padding:18px 16px}
+  }
+  @media (max-width:1100px) and (min-width:761px){ .ct span{font-size:11px} .split{grid-template-columns:minmax(0,1fr) 320px} #chart-one{column-gap:16px} }
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important;scroll-behavior:auto!important} }
+</style>
+</head>
+<body data-view="cover">
+
+<!-- ═══ COVER: the whole journey on one page ═══ -->
+<section class="view" id="cover">
+<main>
+  <div class="eyebrow">PAMOJA CMG Loan Tracker · How it works</div>
+  <h1>The loan journey, from registration to the last repayment</h1>
+  <p class="lede">The whole journey on one page: four parties, eight chapters, one shared record. Click any chapter or box to see that chapter on its own, with its explanation alongside.</p>
+  <div class="glance" aria-label="The journey at a glance">
+    <span><i style="background:var(--tam)"></i>TAMISEMI authorises lenders</span><b>→</b>
+    <span><i style="background:var(--lga)"></i>Councils verify groups and appoint lenders</span><b>→</b>
+    <span><i style="background:var(--chair)"></i>Groups meet, save and borrow</span><b>→</b>
+    <span><i style="background:var(--fi)"></i>Lenders decide, disburse and confirm repayments</span><b>→</b>
+    <span><i style="background:var(--sys)"></i>Everyone sees the same status</span>
+  </div>
+  <div class="toolbar" id="cover-bar">
+    <button class="btn primary" id="start">Go chapter by chapter ▶</button>
+    <div class="chips" role="group" aria-label="Highlight one party">
+      <button class="chip" data-lane="" aria-pressed="true">Everyone</button>
+      <button class="chip" data-lane="chair" aria-pressed="false"><i style="background:var(--chair)"></i>Chairperson</button>
+      <button class="chip" data-lane="lga" aria-pressed="false"><i style="background:var(--lga)"></i>LGA officer</button>
+      <button class="chip" data-lane="fi" aria-pressed="false"><i style="background:var(--fi)"></i>Lender</button>
+      <button class="chip" data-lane="tam" aria-pressed="false"><i style="background:var(--tam)"></i>TAMISEMI</button>
+    </div>
+    <label class="switch"><input type="checkbox" class="excbox" checked> Show rejections &amp; returns</label>
+  </div>
+  <div class="legend" aria-hidden="true"></div>
+  <div class="chart" id="chart-all"></div>
+  <p class="foot">Based on the PAMOJA CMG Loan Tracker beta (September 2026). Quorum, share limits, the 30-day instalment cycle and the 120-day delinquency threshold are system settings the Administrator can change. Paper documents named here are confirmed as received in the app; the paper itself stays with the office that holds it.</p>
+</main>
+</section>
+
+<!-- ═══ CHAPTER: one chapter in focus, explained on the right ═══ -->
+<section class="view" id="chapter">
+  <div class="cbar" id="chapter-bar">
+    <button class="btn" id="back-cover">⤢ Full diagram</button>
+    <nav class="ctiles" id="ctiles" aria-label="Chapters"></nav>
+    <label class="switch"><input type="checkbox" class="excbox" checked> Rejections &amp; returns</label>
+  </div>
+  <div class="split">
+    <div class="left">
+      <div class="legend" aria-hidden="true"></div>
+      <div class="chart" id="chart-one"></div>
+    </div>
+    <aside class="pane" id="pane" aria-live="polite">
+      <div class="in" id="pane-in"></div>
+      <nav>
+        <button class="btn" id="pc-prev">◀ Previous</button>
+        <span id="pc-pos"></span>
+        <button class="btn primary" id="pc-next">Next ▶</button>
+      </nav>
+    </aside>
+  </div>
+</section>
+
+<script>
+(function(){
+  var LANES={
+    chair:{name:'Chairperson',sub:'leads the group',col:2},
+    lga:{name:'LGA officer',sub:'council',col:3},
+    fi:{name:'Lender (FI)',sub:'bank or microfinance',col:4},
+    tam:{name:'TAMISEMI',sub:'national',col:5},
+    sys:{name:'The system',sub:'',col:2}
+  };
+
+  // ── every step; d = the explanation ──
+  var N={
+    T1:{lane:'tam',title:'Authorise lenders',sum:'Decides which banks and MFIs may lend to groups.',
+      d:{what:'TAMISEMI keeps the national list of lenders: banks and microfinance institutions. Only a lender TAMISEMI has authorised can be appointed to a group. Authorising a lender also opens its login to the system.',
+         rules:['A lender still waiting for authorisation cannot be picked by any council.','TAMISEMI can suspend a lender, giving a written reason. Its staff are locked out and councils can no longer appoint it. Its existing groups stay on record.','Every authorisation, suspension and withdrawal is kept in the lender’s history.']}},
+    C1:{lane:'chair',title:'Register the group',sum:'A few questions on a phone. A group number is issued at once.',status:'Pending verification',
+      d:{what:'The chairperson registers the Community Microfinance Group (CMG): its name, region, council, ward and village; how many members it has; the share of members who must attend to take decisions (usually 80%); how often it meets; and the chairperson’s and treasurer’s names, phones and NIDA numbers.',
+         rules:['A group has between 5 and 30 members.','The same group cannot be registered twice.','One person cannot be both chairperson and treasurer.','Available in English and Kiswahili, one or two questions per screen.'],
+         out:['A CMG number is issued immediately. The chairperson uses it to log in and check progress.']}},
+    L1:{lane:'lga',title:'Verify the group',sum:'Checks the registration pack, then approves or rejects with a reason.',
+      exc:'↩ Rejected: the chairperson fixes the details and resubmits',
+      d:{what:'The LGA officer sees every new group in their council, with anything that needs a closer look flagged: a missing NIDA number, an unusually small or large group, or a village typed in rather than chosen from the official list.',
+         paper:'The group’s registration pack. The officer confirms it was received before deciding.',
+         out:['Approved: the group becomes Active.','Rejected: the chairperson sees the officer’s reason, corrects the details and resubmits. The group comes back to the officer.']}},
+    C2:{lane:'chair',title:'The group is active',sum:'Dashboard, meeting log, history and Loan tab unlock.',status:'Registered, no lender yet',
+      d:{what:'Until the council approves, the chairperson sees only a status message. Once the group is Active, its dashboard, meeting log, history and Loan tab open.'}},
+    L2:{lane:'lga',title:'Appoint a lender',sum:'Chooses one of TAMISEMI’s authorised lenders for the group.',status:'Lender assigned',
+      d:{what:'The LGA officer appoints a lender, and optionally the branch, to each active group in their council. The list offers only lenders TAMISEMI has authorised. From then on, that lender can see the group and receive its applications.',
+         rules:['A group must have a lender before it can apply for a loan.','Suspended lenders do not appear in the list.']}},
+    C3:{lane:'chair',title:'Set the share value, once',sum:'The value of one share and the most shares a member may buy at a meeting.',
+      d:{what:'Before shares can be recorded, the chairperson sets the value of one share (for example TZS 2,000) and the most shares a member may buy at one meeting.',
+         rules:['These are locked once saved, so the group’s savings stay comparable over time.']}},
+    C4:{lane:'chair',title:'Log every meeting',sum:'Attendance, shares bought, repayments and lending, one or two questions per screen.',
+      d:{what:'After each meeting the chairperson records the date, any change in membership, how many members attended, shares bought, repayments collected from members, and loans given to members.',
+         rules:['The app says straight away whether the meeting met its quorum, for example “18 of 22 attended, 18 needed”. Only meetings that met quorum can take loan decisions.','Shares must fit the number of members present and the per-member limit.','Changes to a saved meeting go into an amendment log. The latest meeting, if it missed quorum, can be annulled with a reason; it stays on file for audit.'],
+         out:['This repeats at every meeting, for as long as the group runs.']}},
+    C5:{lane:'chair',title:'Apply for a loan',sum:'Savings, years saving together, amount and purpose, sent to the group’s lender.',status:'Applied',
+      d:{what:'The chairperson enters the group’s total savings this cycle, how many years it has saved together, the amount it wants and what the money is for. The app shows how the request compares with the group’s savings.',
+         rules:['The lender also receives what the group never has to type: membership, meetings logged, how many met quorum, and any earlier loan.','A group cannot apply while an earlier loan is still being repaid.']}},
+    F1:{lane:'fi',title:'Review and decide',sum:'Approves with terms, or rejects with a reason.',
+      exc:'↩ Rejected: the group may apply again',
+      d:{what:'The lender reviews the application together with the group’s record, then decides.',
+         paper:'The paper application form. The lender confirms it was received before approving or rejecting.',
+         out:['Approved, with the terms: amount, monthly interest, months to repay and total repayable.','Rejected, with a reason the chairperson can see. The group may apply again.']}},
+    C6:{lane:'chair',title:'Accept or decline, in a quorate meeting',sum:'The group decides together; the chairperson records the decision.',status:'Approved, then Accepted',
+      exc:'↩ Declined: the group may apply again later',
+      d:{what:'The group discusses the lender’s terms at a meeting. The chairperson picks the meeting where the group decided and ticks the declaration.',
+         paper:'Accepting also confirms the lender’s offer letter was received.',
+         rules:['Only a meeting that met quorum can be chosen. Without one, the decision cannot be recorded.','Until the group decides, the meeting screen reminds the chairperson that a loan is waiting.'],
+         out:['Accepted: the lender can disburse.','Declined (a reason is optional): the group may apply again later.']}},
+    F2:{lane:'fi',title:'Disburse the loan',sum:'Records the date, amount and loan account number.',status:'Disbursed',
+      d:{what:'The lender pays the loan into the group’s account and records the disbursal date, the amount and the loan account number.',
+         paper:'The group’s acceptance minutes and the signed loan contract. The lender confirms both were received before it can record the disbursal.',
+         out:['The repayment schedule starts: a monthly instalment, due every 30 days until the deadline.']}},
+    C7:{lane:'chair',title:'Confirm the money arrived',sum:'A record that the bank credit reached the group’s account.',
+      d:{what:'The chairperson confirms the money reached the group’s account, with the reference on the bank advice if there is one.',
+         rules:['This holds nothing up. It is evidence that the money arrived.','If there is still no confirmation five days after disbursal, the chairperson’s screen flags it.']}},
+    C8:{lane:'chair',title:'Pay at the bank, report it at the meeting',sum:'Full or part instalment, with the deposit slip number.',
+      d:{what:'The group pays its instalment at the bank. At the next meeting the chairperson records whether it paid, whether it was the full instalment or part of it, and the deposit slip number.',
+         rules:['The group may pay in full, in part, or not at all at any meeting.','A reported payment is the group’s claim. It does not reduce the balance until the lender confirms it.']}},
+    F3:{lane:'fi',title:'Confirm against the bank statement',sum:'Only confirmed money reduces the balance.',status:'Active: on track or behind',
+      d:{what:'The lender matches each reported payment to its bank statement and records the amount the bank shows, the value date and the statement reference.',
+         rules:['No evidence, no confirmation: a statement reference is required.','Arrears are counted from the bank’s value date, not the day it was typed in.','A confirmation can be reversed, with a written reason. The payment goes back to “reported”.','Once a payment is confirmed, the meeting it came from can no longer be annulled.'],
+         out:['Steps 13 and 14 repeat for every instalment until the loan is repaid.']}},
+    SYS:{lane:'sys',span:true,title:'Loan status is worked out automatically',sum:'From confirmed repayments only. Nobody sets it by hand, so every party sees the same answer.',
+      d:{what:'The system recalculates every group’s loan status from the confirmed repayments, the schedule and the deadline. The chairperson, the council, the lender and TAMISEMI all see the same status.',
+         statuses:[['On track','Confirmed repayments are at least 90% of what should have been paid by now.','var(--ok)'],['Behind','Below that line, but the deadline has not passed.','var(--exc)'],['Overdue','Past the deadline with money still owed. Days past due are counted.','var(--exc)'],['Delinquent','More than 120 days past the deadline.','var(--bad)'],['Completed','Repaid in full.','var(--ok)']]}},
+    C9:{lane:'chair',title:'Group dashboard',sum:'Balance, next due date, savings and meeting record.',
+      d:{what:'The chairperson sees the loan’s balance, what the lender has confirmed, what is still awaiting confirmation, the next due date, total savings and how many meetings met quorum.',
+         rules:['A warning appears when the repayment deadline is less than 90 days away.']}},
+    L3:{lane:'lga',title:'Council oversight',sum:'Every group in the council, its status and its meetings.',
+      d:{what:'The LGA officer follows every group in their council: groups awaiting verification, loan status across the council, each group’s meeting record, and reports that can be downloaded.'}},
+    F4:{lane:'fi',title:'Lender portfolio',sum:'Applications to decide, payments to confirm, loans by region.',
+      d:{what:'The lender sees its portfolio: new applications, accepted loans ready to disburse, payments waiting for confirmation, and its loans by region and status, with notifications as groups act.'}},
+    T2:{lane:'tam',title:'National overview',sum:'Every region and district at a glance.',
+      d:{what:'TAMISEMI sees loan activity aggregated by region and district, keeps the lender list up to date, and runs the national reports, which download as CSV or Excel. Each report is the same database query on screen and in the file.'}},
+    OUT:{lane:'sys',span:true,title:'The loan closes, or needs follow-up',sum:'Completed: the group may apply again. Overdue or delinquent: council and lender follow up.',status:'Completed, overdue or delinquent',
+      d:{what:'When confirmed repayments reach the total repayable, the loan is Completed and the group can apply for its next loan. If the deadline passes with money still owed, the loan shows as Overdue and then Delinquent, and the council and lender see it straight away.'}}
+  };
+  var ORDER=['T1','C1','L1','C2','L2','C3','C4','C5','F1','C6','F2','C7','C8','F3','SYS','C9','L3','F4','T2','OUT'];
+
+  // ── the eight chapters ──
+  var CH=[null,
+    {t:'Lenders are chosen',p:'Before any group can borrow',rows:[['T1']],
+     intro:'Before any group can borrow, TAMISEMI decides which banks and microfinance institutions may lend to community groups. Only lenders it has authorised ever reach a council’s list, and TAMISEMI can suspend one at any time.'},
+    {t:'The group registers',p:'The chairperson applies; the council verifies',rows:[['C1'],['L1'],['C2']],
+     intro:'The chairperson registers the group on a phone and gets a group number at once. The council’s LGA officer checks the paper registration pack and either approves the group or sends it back with a reason.'},
+    {t:'A lender is appointed',p:'The council picks from TAMISEMI’s authorised list',rows:[['L2']],
+     intro:'The LGA officer connects each active group in the council with one lender, chosen only from the lenders TAMISEMI has authorised. From that moment the lender can see the group’s record.'},
+    {t:'The group meets and saves',p:'Every meeting is recorded',rows:[['C3'],['C4']],
+     intro:'The group fixes its share rules once, then records every meeting: who came, the shares bought, repayments into the group and loans given out. The app checks the quorum each time, which matters later for loan decisions.'},
+    {t:'The group applies for a loan',p:'The lender decides; the group accepts in a quorate meeting',rows:[['C5'],['F1'],['C6']],
+     intro:'The chairperson applies, and the application arrives with the group’s record attached. The lender approves with terms or rejects with a reason. An approved loan must then be accepted, or declined, at a meeting that met its quorum.'},
+    {t:'The money reaches the group',p:'Both sides keep evidence',rows:[['F2'],['C7']],
+     intro:'Once it holds the group’s acceptance minutes and the signed contract, the lender disburses and records it. The chairperson then confirms the money arrived, so both sides of the transfer are on record.'},
+    {t:'Repayment, instalment by instalment',p:'Reported by the group, confirmed by the lender',rows:[['C8'],['F3']],
+     intro:'Each month the group pays at the bank and the chairperson reports it with the deposit slip. The lender confirms it against the bank statement; only confirmed money reduces the balance. The loop repeats until the loan is repaid.'},
+    {t:'Everyone tracks the loan',p:'One status, four views',rows:[['SYS'],['C9','L3','F4','T2'],['OUT']],
+     intro:'The system works out the loan status from confirmed repayments, so all four parties see the same answer on their own screens. The loan ends Completed, or shows Overdue and then Delinquent so the council and lender can follow up.'}
+  ];
+  var CHOF={}; CH.forEach(function(c,i){ if(c) c.rows.forEach(function(r){ r.forEach(function(id){ CHOF[id]=i; }); }); });
+
+  // [from, to, kind, label, route]
+  var EDGES=[
+    ['T1','L2','main','Authorised lenders only','side'],
+    ['C1','L1','main'],['L1','C2','main','Approved'],['L1','C1','exc','Rejected → resubmit'],
+    ['C2','L2','main'],['L2','C3','main'],['C3','C4','main'],['C4','C5','main','When the group is ready'],
+    ['C5','F1','main'],['F1','C6','main','Approved with terms'],['F1','C5','exc','Rejected'],
+    ['C6','C5','exc','Declined'],['C6','F2','main','Accepted'],['F2','C7','main'],['C7','C8','main'],
+    ['C8','F3','main','Deposit slip'],['F3','C8','loop','Next instalment'],['F3','SYS','main'],
+    ['SYS','C9','feed'],['SYS','L3','feed'],['SYS','F4','feed'],['SYS','T2','feed'],['SYS','OUT','main']
+  ];
+
+  var NS='http://www.w3.org/2000/svg';
+  function el(tag, cls, html){ var e=document.createElement(tag); if(cls) e.className=cls; if(html!=null) e.innerHTML=html; return e; }
+  function laneVars(e, lane){ e.style.setProperty('--c','var(--'+lane+')'); e.style.setProperty('--cbg','var(--'+lane+'-bg)'); }
+  function stepNo(id){ return ORDER.indexOf(id)+1; }
+
+  // legend, in both views
+  document.querySelectorAll('.legend').forEach(function(l){ l.innerHTML=
+    '<span><svg width="34" height="8"><line x1="0" y1="4" x2="34" y2="4" stroke="var(--faint)" stroke-width="2"/></svg>Main path</span>'+
+    '<span><svg width="34" height="8"><line x1="0" y1="4" x2="34" y2="4" stroke="var(--exc)" stroke-width="2" stroke-dasharray="6 5"/></svg>If rejected or declined</span>'+
+    '<span><svg width="34" height="8"><line x1="0" y1="4" x2="34" y2="4" stroke="var(--primary)" stroke-width="2" stroke-dasharray="2 5" stroke-linecap="round"/></svg>Repeats every instalment</span>'+
+    '<span><svg width="34" height="8"><line x1="0" y1="4" x2="34" y2="4" stroke="var(--sys)" stroke-width="2" opacity=".6"/></svg>Status shared with everyone</span>'+
+    '<span><svg width="34" height="12"><rect x="1" y="1" width="32" height="10" rx="3" fill="none" stroke="var(--line-strong)" stroke-width="1.5" stroke-dasharray="3 3"/></svg>Another chapter</span>'; });
+
+  // ── one chart builder for both views ──
+  // spec: array of {stage:n} or [ids] or {ghosts:[{id,to}]} ; returns {nodes, draw, paint}
+  function buildChart(root, spec, onNode, onStage){
+    root.innerHTML='';
+    var els={}, row=2, first=true;
+    root.appendChild(el('div','railhead','Status the<br>group sees'));
+    ['chair','lga','fi','tam'].forEach(function(k){
+      var h=el('div','lanehead','<b>'+LANES[k].name+'</b><small>'+LANES[k].sub+'</small>');
+      h.style.setProperty('--c','var(--'+k+')'); h.style.gridColumn=LANES[k].col; h.style.gridRow=1; root.appendChild(h);
+    });
+    spec.forEach(function(r){
+      if(r.stage){
+        var c=CH[r.stage], s=el(onStage?'button':'div','stage','<span class="n">'+r.stage+'</span><div><h2>'+c.t+'</h2><p>'+c.p+'</p></div>'+(onStage?'<span class="go">Focus on this chapter →</span>':''));
+        if(onStage){ s.type='button'; s.addEventListener('click', function(){ onStage(r.stage); }); }
+        s.style.gridRow=row++; root.appendChild(s); first=true; return;
+      }
+      if(r.ghosts){
+        r.ghosts.forEach(function(g){
+          var n=N[g.id], ch=CHOF[g.id];
+          var b=el('button','node ghost'+(n.span?' span':'')+(first?' first':''));
+          b.type='button'; laneVars(b, n.lane);
+          b.innerHTML='<span class="who"><span>'+(g.dir==='in'?'↑ From':'↓ Continues in')+' chapter '+ch+'</span></span><span class="ttl">'+stepNo(g.id)+'. '+n.title+'</span>';
+          b.style.gridRow=row; b.style.gridColumn=n.span?'2 / 6':String(LANES[n.lane].col);
+          b.setAttribute('aria-label',(g.dir==='in'?'From':'Continues in')+' chapter '+ch+': '+n.title);
+          b.addEventListener('click', function(){ go(ch, g.id); });
+          root.appendChild(b); els[g.key]=b; first=false;
+        });
+        row++; return;
+      }
+      r.forEach(function(id){
+        var n=N[id], lane=n.lane, step=stepNo(id);
+        var b=el('button','node'+(n.span?' span':'')+(first?' first':''));
+        b.type='button'; b.dataset.id=id; b.dataset.lane=lane; laneVars(b, lane);
+        b.innerHTML='<span class="who"><span>'+LANES[lane].name+'</span><span class="num">'+step+'</span></span>'+
+          '<span class="ttl">'+n.title+'</span><span class="sum">'+n.sum+'</span>'+
+          (n.exc?'<span class="exc-note">'+n.exc+'</span>':'')+(n.status?'<span class="cstat">Status: '+n.status+'</span>':'');
+        b.style.gridRow=row; b.style.gridColumn=n.span?'2 / 6':String(LANES[lane].col);
+        b.setAttribute('aria-label','Step '+step+': '+n.title+' ('+LANES[lane].name+')');
+        b.addEventListener('click', function(){ onNode(id); });
+        root.appendChild(b); els[id]=b; first=false;
+        if(n.status){
+          var p=el('div','pill',n.status); p.style.gridRow=row; p.style.gridColumn=1;
+          p.style.setProperty('--pc', id==='OUT'?'var(--sys)':'var(--'+lane+')'); root.appendChild(p);
+        }
+      });
+      row++;
+    });
+    ['chair','lga','fi','tam'].forEach(function(k){
+      var bd=el('div','band'); bd.style.gridColumn=LANES[k].col; bd.style.gridRow='1 / '+row; bd.style.background='var(--'+k+'-bg)';
+      root.insertBefore(bd, root.firstChild);
+    });
+
+    // wires between whatever is on this chart (ghosts stand in for other chapters)
+    var svg=document.createElementNS(NS,'svg'); svg.setAttribute('class','wires'); root.appendChild(svg);
+    var labels=el('div','labels'); root.appendChild(labels);
+    var defs=document.createElementNS(NS,'defs'); svg.appendChild(defs);
+    var uid=root.id;
+    ['main','exc','loop','feed','hot'].forEach(function(k){
+      var m=document.createElementNS(NS,'marker');
+      m.setAttribute('id',uid+'-ah-'+k); m.setAttribute('viewBox','0 0 10 10'); m.setAttribute('refX','9'); m.setAttribute('refY','5');
+      m.setAttribute('markerWidth','7'); m.setAttribute('markerHeight','7'); m.setAttribute('orient','auto-start-reverse');
+      var p=document.createElementNS(NS,'path'); p.setAttribute('d','M0,0 L10,5 L0,10 z');
+      p.setAttribute('fill',{main:'var(--faint)',exc:'var(--exc)',loop:'var(--primary)',feed:'var(--sys)',hot:'var(--ink)'}[k]);
+      m.appendChild(p); defs.appendChild(m);
+    });
+    var wires=[];
+    EDGES.forEach(function(e){
+      var a=els[e[0]]?e[0]:(els['in:'+e[0]]?'in:'+e[0]:null), b=els[e[1]]?e[1]:(els['out:'+e[1]]?'out:'+e[1]:null);
+      if(!a||!b) return;
+      if(a.indexOf(':')>0 && b.indexOf(':')>0) return;
+      var p=document.createElementNS(NS,'path'); p.setAttribute('class','wire '+e[2]+((a.indexOf(':')>0||b.indexOf(':')>0)?' out':''));
+      p.setAttribute('marker-end','url(#'+uid+'-ah-'+e[2]+')'); svg.appendChild(p);
+      var l=null; if(e[3]){ l=el('div','wl '+e[2], e[3]); labels.appendChild(l); }
+      wires.push({from:a,to:b,realFrom:e[0],realTo:e[1],kind:e[2],route:e[4],path:p,label:l});
+    });
+
+    function box(id){
+      var r=els[id].getBoundingClientRect(), c=root.getBoundingClientRect();
+      var o={l:r.left-c.left, t:r.top-c.top, r:r.right-c.left, b:r.bottom-c.top};
+      o.cx=(o.l+o.r)/2; o.cy=(o.t+o.b)/2; o.w=o.r-o.l; return o;
+    }
+    function draw(){
+      if(!root.offsetParent || getComputedStyle(svg).display==='none') return;
+      svg.setAttribute('width', root.scrollWidth); svg.setAttribute('height', root.scrollHeight);
+      wires.forEach(function(w){
+        var s=box(w.from), t=box(w.to), d, lx, ly;
+        if(t.t > s.b-1){
+          var oL=Math.max(s.l,t.l), oR=Math.min(s.r,t.r);
+          if(w.route==='side' && !(oR-oL>24)){
+            var ex = t.l > s.cx ? t.l : t.r;
+            d='M'+s.cx+','+s.b+' V'+t.cy+' H'+ex; lx=(s.cx+ex)/2; ly=t.cy;
+          } else if(oR-oL > 24){
+            var x = s.w>t.w+4 ? t.cx : (t.w>s.w+4 ? s.cx : (oL+oR)/2);
+            d='M'+x+','+s.b+' V'+t.t; lx=x; ly=t.t-16;
+          } else {
+            var my=t.t-15;
+            d='M'+s.cx+','+s.b+' V'+my+' H'+t.cx+' V'+t.t; lx=(s.cx+t.cx)/2; ly=my;
+          }
+        } else if(Math.abs(s.cx-t.cx)<6){
+          var xo=s.l-15;
+          d='M'+s.l+','+s.cy+' H'+xo+' V'+t.cy+' H'+t.l; lx=xo; ly=(s.cy+t.cy)/2;
+        } else {
+          var left = t.cx < s.cx, sx = left ? s.l : s.r;
+          var X = left ? t.l + t.w*0.24 : t.r - t.w*0.24;
+          d='M'+sx+','+s.cy+' H'+X+' V'+t.b; lx=(sx+X)/2; ly=s.cy;
+        }
+        w.path.setAttribute('d', d);
+        if(w.label){ w.label.style.left=lx+'px'; w.label.style.top=ly+'px'; }
+      });
+    }
+    new ResizeObserver(function(){ requestAnimationFrame(draw); }).observe(root);
+    function paint(activeId, lane){
+      Object.keys(els).forEach(function(id){
+        var n=N[id]; if(!n) return;
+        els[id].classList.toggle('dim', !!lane && n.lane!==lane && n.lane!=='sys');
+        els[id].classList.toggle('active', id===activeId);
+      });
+      wires.forEach(function(w){
+        var hot = activeId && w.to===activeId;
+        var fl=N[w.realFrom].lane, tl=N[w.realTo].lane;
+        var dim = lane && fl!==lane && tl!==lane;
+        w.path.classList.toggle('hot', !!hot);
+        w.path.setAttribute('marker-end','url(#'+uid+'-ah-'+(hot?'hot':w.kind)+')');
+        w.path.classList.toggle('dim', !!dim && !hot);
+        if(w.label) w.label.classList.toggle('dim', !!dim && !hot);
+      });
+    }
+    return {els:els, draw:draw, paint:paint};
+  }
+
+  // ── cover: the full diagram ──
+  var fullSpec=[]; CH.forEach(function(c,i){ if(!c) return; fullSpec.push({stage:i}); c.rows.forEach(function(r){ fullSpec.push(r); }); });
+  var coverLane='';
+  var full=buildChart(document.getElementById('chart-all'), fullSpec, function(id){ go(CHOF[id], id); }, function(ch){ go(ch); });
+  document.querySelectorAll('#cover .chip').forEach(function(c){
+    c.addEventListener('click', function(){
+      coverLane=c.dataset.lane;
+      document.querySelectorAll('#cover .chip').forEach(function(x){ x.setAttribute('aria-pressed', x===c?'true':'false'); });
+      full.paint(null, coverLane);
+    });
+  });
+  document.getElementById('start').addEventListener('click', function(){ go(1); });
+  document.querySelectorAll('.excbox').forEach(function(b){
+    b.addEventListener('change', function(){
+      document.body.classList.toggle('no-exc', !this.checked);
+      document.querySelectorAll('.excbox').forEach(function(x){ x.checked=b.checked; });
+    });
+  });
+
+  // ── chapter view ──
+  var ctWrap=document.getElementById('ctiles'), ctEls=[];
+  CH.forEach(function(c,i){
+    if(!c) return;
+    var b=el('button','ct','<i>'+i+'</i><span>'+c.t+'</span>'); b.type='button'; b.title='Chapter '+i+': '+c.t;
+    b.addEventListener('click', function(){ go(i); });
+    ctWrap.appendChild(b); ctEls[i]=b;
+  });
+  var one=null, curCh=0, curId=null;
+
+  function chapterSpec(ch){
+    var ids={}; CH[ch].rows.forEach(function(r){ r.forEach(function(id){ ids[id]=1; }); });
+    var ins=[], outs=[], seen={};
+    EDGES.forEach(function(e){
+      if(!ids[e[0]] && ids[e[1]] && e[2]!=='exc' && !seen['in:'+e[0]]){ seen['in:'+e[0]]=1; ins.push({id:e[0],key:'in:'+e[0],dir:'in'}); }
+      if(ids[e[0]] && !ids[e[1]] && e[2]!=='exc' && !seen['out:'+e[1]]){ seen['out:'+e[1]]=1; outs.push({id:e[1],key:'out:'+e[1],dir:'out'}); }
+    });
+    var spec=[];
+    if(ins.length) spec.push({ghosts:ins});
+    CH[ch].rows.forEach(function(r){ spec.push(r); });
+    if(outs.length) spec.push({ghosts:outs});
+    return spec;
+  }
+  function li(a){ return '<ul>'+a.map(function(x){ return '<li>'+x+'</li>'; }).join('')+'</ul>'; }
+  function renderPane(ch){
+    var c=CH[ch], ids=[]; c.rows.forEach(function(r){ r.forEach(function(id){ ids.push(id); }); });
+    var lanes={}; ids.forEach(function(id){ lanes[N[id].lane]=1; });
+    var statuses=ids.filter(function(id){ return N[id].status; }).map(function(id){ return N[id].status; });
+    var h='<div class="kick">Chapter '+ch+' of 8 · '+c.p+'</div><h2>'+c.t+'</h2><p class="intro">'+c.intro+'</p>';
+    h+='<div class="who-row">'+Object.keys(lanes).map(function(l){ return '<span style="--c:var(--'+l+');--cbg:var(--'+l+'-bg)">'+LANES[l].name+'</span>'; }).join('')+'</div>';
+    if(statuses.length) h+='<div class="stbox">Status the group sees: '+statuses.map(function(s){ return '<b>'+s+'</b>'; }).join(' → ')+'</div>';
+    h+='<div class="steps">'+ids.map(function(id){
+      var n=N[id], d=n.d;
+      var body='<p>'+d.what+'</p>';
+      if(d.statuses) body+='<h4>The statuses</h4><div class="statuses">'+d.statuses.map(function(s){ return '<div><b style="color:'+s[2]+'">'+s[0]+'</b><span>'+s[1]+'</span></div>'; }).join('')+'</div>';
+      if(d.paper) body+='<h4>Paper evidence</h4><div class="paper">📄 '+d.paper+'</div>';
+      if(d.rules) body+='<h4>Rules the system enforces</h4>'+li(d.rules);
+      if(d.out) body+='<h4>What can happen next</h4>'+li(d.out);
+      return '<div class="step" data-step="'+id+'" style="--c:var(--'+n.lane+');--cbg:var(--'+n.lane+'-bg)"><button type="button" aria-expanded="false"><span class="num">'+stepNo(id)+'</span><span class="t"><small>'+LANES[n.lane].name+'</small><b>'+n.title+'</b></span><span class="chev">›</span></button><div class="body">'+body+'</div></div>';
+    }).join('')+'</div>';
+    document.getElementById('pane-in').innerHTML=h;
+    document.querySelectorAll('#pane-in .step > button').forEach(function(b){
+      b.addEventListener('click', function(){ var id=b.parentNode.dataset.step; select(curId===id && b.parentNode.classList.contains('open') ? null : id, false); });
+    });
+    document.getElementById('pc-pos').textContent='Chapter '+ch+' of 8';
+    document.getElementById('pc-prev').disabled=ch===1;
+    var nx=document.getElementById('pc-next');
+    nx.innerHTML = ch===8 ? '⤢ Full diagram' : 'Next ▶';
+  }
+  function select(id, scrollPane){
+    curId=id;
+    document.querySelectorAll('#pane-in .step').forEach(function(s){
+      var on=s.dataset.step===id; s.classList.toggle('open', on); s.querySelector('button').setAttribute('aria-expanded', on);
+      if(on && scrollPane!==false) s.scrollIntoView({block:'nearest', behavior:'smooth'});
+    });
+    if(one) one.paint(id, '');
+  }
+  function go(ch, id){
+    if(!CH[ch]) return;
+    curCh=ch;
+    if(location.hash!=='#chapter-'+ch) history.pushState({ch:ch}, '', '#chapter-'+ch);
+    show('chapter');
+    ctEls.forEach(function(b,i){ if(b) b.classList.toggle('here', i===ch); });
+    one=buildChart(document.getElementById('chart-one'), chapterSpec(ch), function(nid){ select(nid, true); });
+    renderPane(ch);
+    var first=id || CH[ch].rows[0][0];
+    select(first, false);
+    window.scrollTo(0,0); document.getElementById('pane').scrollTop=0;
+    one.draw(); one.paint(first,'');
+    requestAnimationFrame(function(){ one.draw(); });
+  }
+  function show(v){
+    document.body.dataset.view=v;
+    var bar=document.getElementById(v==='cover'?'cover-bar':'chapter-bar');
+    document.documentElement.style.setProperty('--sticky', bar.offsetHeight+'px');
+    var c=(v==='cover')?full:one; if(c) c.draw();
+  }
+  function toCover(){ if(location.hash) history.pushState({}, '', location.pathname+location.search); show('cover'); full.paint(null, coverLane); }
+  document.getElementById('back-cover').addEventListener('click', toCover);
+  document.getElementById('pc-prev').addEventListener('click', function(){ go(curCh-1); });
+  document.getElementById('pc-next').addEventListener('click', function(){ if(curCh===8) toCover(); else go(curCh+1); });
+  document.addEventListener('keydown', function(e){
+    if(document.body.dataset.view!=='chapter' || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+    if(e.key==='ArrowRight'){ if(curCh<8) go(curCh+1); e.preventDefault(); }
+    else if(e.key==='ArrowLeft'){ if(curCh>1) go(curCh-1); e.preventDefault(); }
+    else if(e.key==='Escape') toCover();
+  });
+  new ResizeObserver(function(){
+    var v=document.body.dataset.view, bar=document.getElementById(v==='cover'?'cover-bar':'chapter-bar');
+    document.documentElement.style.setProperty('--sticky', bar.offsetHeight+'px');
+  }).observe(document.body);
+
+  // links like #chapter-3 open that chapter; Back returns to wherever you were
+  function route(){
+    var m=/^#chapter-([1-8])$/.exec(location.hash);
+    if(m){ var ch=+m[1]; if(document.body.dataset.view!=='chapter' || ch!==curCh) go(ch); }   // hash already matches, so go() adds no history
+    else { show('cover'); full.paint(null, coverLane); }
+  }
+  window.addEventListener('popstate', route);
+  window.addEventListener('load', function(){ full.draw(); });
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ full.draw(); if(one) one.draw(); });
+  route();
+})();
+</script>
+</body>
+</html>

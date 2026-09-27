@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Follow the Data</title>
+<meta name="description" content="A PAMOJA story in eight chapters: how one group's loan becomes live, trusted data, captured once at the source and shared with every party in seconds.">
+<style>
+  :root{
+    --ground:#eef1ea; --card:#ffffff; --card-2:#f5f7f1;
+    --ink:#17241d; --muted:#5b6b60; --faint:#8a978c;
+    --line:#dbe0d5; --line-strong:#c6cdbe;
+    --primary:#1c5a3f; --primary-soft:#dcebe1;
+    --chair:#1c5a3f; --lga:#2f6f7d; --fi:#a8741f; --tam:#4a5b74; --sys:#6b4f7a;
+    --chair-bg:#e3efe6; --lga-bg:#e1eef0; --fi-bg:#f5ead3; --tam-bg:#e4e8ef; --sys-bg:#ece4f0;
+    --ok:#2f7d4f; --warn:#b9791b; --bad:#b23b2e; --info:#2f5f9e;
+    /* the network canvas is dark in both themes */
+    --net:#0e1a16; --net-2:#13241e; --grid:rgba(120,200,160,.07); --wire:#2a4a3d; --glow:#5fe0a0;
+    --p-chair:#6fd39c; --p-lga:#6cc6d6; --p-fi:#f0bd5a; --p-tam:#a9b8dc; --p-hub:#c9a8e6;
+    --shadow:0 1px 2px rgba(20,40,28,.06),0 8px 24px -12px rgba(20,40,28,.22);
+    --shadow-lg:0 2px 6px rgba(20,40,28,.10),0 30px 70px -28px rgba(20,40,28,.38);
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0d1411; --card:#15201a; --card-2:#111a15;
+      --ink:#eaf0e8; --muted:#9db0a4; --faint:#6f8175; --line:#243029; --line-strong:#31413a;
+      --primary:#57b485; --primary-soft:#173226;
+      --chair:#57b485; --lga:#5aa7b6; --fi:#d7a441; --tam:#8a9cc0; --sys:#b092c0;
+      --chair-bg:#14271d; --lga-bg:#12262a; --fi-bg:#2a2112; --tam-bg:#1a1f2a; --sys-bg:#231b28;
+      --ok:#4bbd7a; --warn:#d99f3a; --bad:#e0705f; --info:#7aa6e0;
+      --net:#08110d; --net-2:#0d1a14;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -14px rgba(0,0,0,.6);
+      --shadow-lg:0 2px 6px rgba(0,0,0,.5),0 30px 70px -28px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0d1411; --card:#15201a; --card-2:#111a15;
+    --ink:#eaf0e8; --muted:#9db0a4; --faint:#6f8175; --line:#243029; --line-strong:#31413a;
+    --primary:#57b485; --primary-soft:#173226;
+    --chair:#57b485; --lga:#5aa7b6; --fi:#d7a441; --tam:#8a9cc0; --sys:#b092c0;
+    --chair-bg:#14271d; --lga-bg:#12262a; --fi-bg:#2a2112; --tam-bg:#1a1f2a; --sys-bg:#231b28;
+    --ok:#4bbd7a; --warn:#d99f3a; --bad:#e0705f; --info:#7aa6e0;
+    --net:#08110d; --net-2:#0d1a14;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--ground);color:var(--ink);font:15px/1.5 var(--sans);-webkit-text-size-adjust:100%}
+  button{font:inherit;color:inherit}
+
+  /* ── top: title + the eight chapter tiles ── */
+  .top{display:flex;align-items:center;gap:18px;padding:10px 22px;border-bottom:1px solid var(--line);background:var(--card)}
+  .brand{flex:none;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+  .brand small{display:block;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--primary)}
+  .brand b{font-family:var(--serif);font-size:20px;font-weight:600}
+  .chapters{flex:1;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px;min-width:0}
+  .ctile{position:relative;text-align:left;border:1px solid var(--line);background:var(--card-2);border-radius:10px;padding:6px 8px 7px;cursor:pointer;min-width:0;overflow:hidden;transition:all .2s}
+  .ctile:hover{border-color:var(--primary)}
+  .ctile i{display:block;font-style:normal;font:800 10.5px var(--mono);color:var(--faint)}
+  .ctile span{display:block;font-size:12px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ctile::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--primary);transition:width .4s}
+  .ctile.past::after{width:100%}
+  .ctile.here{background:var(--primary);border-color:var(--primary);color:#fff}
+  .ctile.here i{color:rgba(255,255,255,.75)}
+
+  /* ── layout ── */
+  .wrap{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(340px,1fr);min-height:calc(100vh - 66px)}
+  .left{display:flex;flex-direction:column;min-width:0;padding:16px 10px 16px 22px;gap:12px}
+
+  /* ── the network ── */
+  .stage{position:relative;width:100%;aspect-ratio:1000/540;border-radius:18px;overflow:hidden;box-shadow:var(--shadow-lg);
+    background:radial-gradient(ellipse at 50% 50%,var(--net-2),var(--net) 70%)}
+  .stage::before{content:"";position:absolute;inset:0;background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:28px 28px}
+  .stage svg{position:absolute;inset:0;width:100%;height:100%}
+  .ov{position:absolute;inset:0;pointer-events:none}
+  .wire{fill:none;stroke:var(--wire);stroke-width:2.5}
+  .flow{fill:none;stroke-width:2;stroke-dasharray:2 14;stroke-linecap:round;opacity:.55;animation:flow 1.6s linear infinite}
+  @keyframes flow{to{stroke-dashoffset:-32}}
+  .stage.offline .flow{opacity:0}
+  .stage.offline .wire{stroke-dasharray:4 10;opacity:.5}
+  .trail{fill:none;stroke-width:4;stroke-linecap:round;filter:drop-shadow(0 0 5px currentColor)}
+
+  .node{position:absolute;transform:translate(-50%,-50%);width:22%;min-width:150px;background:#13221c;border:1px solid rgba(255,255,255,.12);border-top:3px solid var(--pc);
+    border-radius:14px;padding:9px 11px 10px;color:#e8f1ec;transition:opacity .5s,box-shadow .4s}
+  .node .hd{display:flex;align-items:center;gap:8px}
+  .node .ic{font-size:20px;line-height:1}
+  .node b{display:block;font-size:13px;line-height:1.15}
+  .node .hd small{display:block;font-size:10.5px;color:rgba(232,241,236,.62);line-height:1.2}
+  .node .scr{margin-top:7px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:5px 7px;font:11.5px/1.35 var(--mono);color:var(--pc);min-height:34px;transition:background .3s}
+  .node .scr em{display:block;font-style:normal;color:rgba(232,241,236,.5);font-size:10px}
+  .node.dim{opacity:.38}
+  .node.lit{box-shadow:0 0 0 1px var(--pc),0 0 28px -4px var(--pc)}
+  .node.ping .scr{background:rgba(255,255,255,.14)}
+  .stage.offline .node{border-top-color:rgba(255,255,255,.25)}
+
+  .hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:23%;min-width:170px;text-align:center;border-radius:16px;padding:12px 10px;
+    background:linear-gradient(160deg,#2a2536,#15281f);border:1px solid rgba(201,168,230,.45);color:#f1ecf7;transition:opacity .8s,transform .8s,box-shadow .3s}
+  .hub .ic{font-size:24px}
+  .hub b{display:block;font-size:14px}
+  .hub small{display:block;font-size:11px;color:rgba(241,236,247,.7)}
+  .hub.write{box-shadow:0 0 0 2px var(--p-hub),0 0 44px 4px rgba(201,168,230,.55)}
+  .stage.offline .hub{opacity:0;transform:translate(-50%,-50%) scale(.7)}
+  .saved{position:absolute;left:50%;top:calc(50% + 58px);transform:translate(-50%,0);font:700 11.5px var(--mono);color:var(--glow);white-space:nowrap;opacity:0;transition:opacity .3s}
+  .saved.in{opacity:1}
+
+  .pkt{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:6px;background:#0b1511;border:1px solid var(--pc);color:var(--pc);box-shadow:0 0 18px -2px var(--pc);
+    font:700 11.5px var(--mono);padding:4px 9px;border-radius:999px;white-space:nowrap;z-index:3}
+  .pkt::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--pc);box-shadow:0 0 8px var(--pc)}
+  .paper{position:absolute;transform:translate(-50%,-50%);font:700 11.5px var(--sans);color:#f3eee3;background:rgba(243,238,227,.1);border:1px dashed rgba(243,238,227,.55);border-radius:8px;padding:4px 9px;white-space:nowrap;transition:all .6s;z-index:2}
+  .paper.digit{color:var(--glow);border-style:solid;border-color:var(--glow);background:rgba(95,224,160,.12)}
+  .clock{position:absolute;right:12px;top:10px;font:700 11.5px var(--mono);color:rgba(232,241,236,.75);background:rgba(0,0,0,.35);border-radius:999px;padding:3px 10px}
+  .badge{position:absolute;left:12px;top:10px;font:800 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:3px 10px;background:rgba(95,224,160,.15);color:var(--glow)}
+  .stage.offline .badge{background:rgba(255,255,255,.08);color:rgba(232,241,236,.6)}
+  .replay{position:absolute;right:12px;bottom:10px;pointer-events:auto;font:700 11.5px var(--sans);color:rgba(232,241,236,.8);background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:4px 11px;cursor:pointer}
+  .replay:hover{color:#fff;border-color:var(--glow)}
+
+  .card{position:absolute;inset:0;display:grid;place-items:center;text-align:center;background:rgba(6,14,10,.78);color:#fff;opacity:0;pointer-events:none;transition:opacity .45s;z-index:5}
+  .card.in{opacity:1}
+  .card small{display:block;font-size:12px;font-weight:800;letter-spacing:.3em;text-transform:uppercase;color:var(--glow)}
+  .card b{display:block;font-family:var(--serif);font-size:clamp(26px,4.2vw,50px);font-weight:600;line-height:1.1;margin:.3em .5em}
+  .card span{font-size:clamp(13px,1.6vw,17px);opacity:.8}
+
+  /* ── the record: the hero ── */
+  .record{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);overflow:hidden}
+  .record h3{margin:0;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);display:flex;align-items:center;gap:8px}
+  .record h3 i{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px var(--chair-bg);font-style:normal}
+  .fields{padding:12px 14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 14px;align-content:start}
+  .fields h3{grid-column:1/-1}
+  .fld small{display:block;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+  .fld b{display:block;font:700 13.5px/1.3 var(--mono);color:var(--ink);border-radius:5px;transition:background .6s;margin:0 -4px;padding:0 4px}
+  .fld b.empty{color:var(--line-strong)}
+  .fld b.flash{background:color-mix(in srgb,var(--glow) 40%,transparent)}
+  .pill{display:inline-block;font:800 12px var(--sans);border-radius:999px;padding:2px 9px;background:var(--tone-bg,var(--card-2));color:var(--tone,var(--muted))}
+  .log{border-left:1px solid var(--line);padding:12px 14px;background:var(--card-2);min-width:0}
+  .log ol{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+  .log li{font-size:12.5px;line-height:1.35;animation:rise .4s ease}
+  .log li time{display:block;font:700 10.5px var(--mono);color:var(--faint)}
+  .log li:first-child{color:var(--ink);font-weight:600}
+  .log li:not(:first-child){color:var(--muted)}
+  @keyframes rise{from{opacity:0;transform:translateY(6px)}}
+
+  /* ── the story ── */
+  .right{display:flex;flex-direction:column;min-height:0;border-left:1px solid var(--line);background:var(--card);position:sticky;top:0;height:100vh;height:100dvh}
+  .story{flex:1;overflow:auto;padding:22px 24px 12px}
+  .kicker{font-size:11.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--primary)}
+  .story h2{font-family:var(--serif);font-size:26px;line-height:1.15;font-weight:600;margin:.2rem 0 .7rem}
+  .narr{font-size:16px;line-height:1.6;margin:0 0 14px;animation:rise .5s ease}
+  .talk{display:flex;flex-direction:column;gap:10px}
+  .line{display:flex;gap:10px;align-items:flex-start;animation:rise .35s ease}
+  .av{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;color:#fff;background:var(--c);box-shadow:0 0 0 3px var(--cbg)}
+  .bub{background:var(--cbg);border-radius:4px 14px 14px 14px;padding:8px 12px}
+  .bub small{display:block;font-size:11px;font-weight:800;color:var(--c);margin-bottom:1px}
+  .bub small em{font-style:normal;font-weight:600;color:var(--muted)}
+  .bub.sys{background:var(--card-2);border:1px dashed var(--line-strong);font:13.5px/1.45 var(--mono)}
+  .data{margin-top:16px;border-radius:12px;padding:10px 13px;font-size:14px;background:var(--primary-soft);animation:rise .45s ease}
+  .data b{display:block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--primary);margin-bottom:2px}
+  .endbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+
+  /* scene tiles + back / next */
+  .nav{border-top:1px solid var(--line);padding:12px 16px 14px;display:flex;flex-direction:column;gap:10px}
+  .nav h4{margin:0;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+  .stiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}
+  .stile{text-align:left;border:1px solid var(--line);background:var(--card-2);border-radius:10px;padding:6px 9px;cursor:pointer;font-size:12.5px;font-weight:700;line-height:1.25;display:flex;gap:7px;align-items:flex-start}
+  .stile i{flex:none;font-style:normal;font:800 10.5px/1.6 var(--mono);color:var(--faint)}
+  .stile:hover{border-color:var(--primary)}
+  .stile.seen{color:var(--muted)}
+  .stile.seen i::after{content:" ✓";color:var(--ok)}
+  .stile.here{background:var(--primary-soft);border-color:var(--primary);color:var(--ink)}
+  .stile.here i{color:var(--primary)}
+  .bn{display:flex;gap:8px;align-items:center}
+  .bn .count{margin:0 auto;font-size:12.5px;color:var(--muted);font-weight:700}
+  .btn{font-size:14px;font-weight:700;border-radius:10px;border:1px solid var(--line-strong);background:var(--card);padding:9px 14px;cursor:pointer;text-decoration:none;color:var(--ink);display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{border-color:var(--primary)}
+  .btn:disabled{opacity:.35;cursor:default}
+  .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+
+  /* cover */
+  .cover{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px 20px;overflow:auto;transition:opacity .5s;color:#eef5f0;
+    background:radial-gradient(ellipse at 50% 35%,#16302a,#08110d 70%)}
+  .cover::before{content:"";position:fixed;inset:0;background-image:linear-gradient(rgba(120,200,160,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(120,200,160,.07) 1px,transparent 1px);background-size:28px 28px;pointer-events:none}
+  .cover.gone{opacity:0;pointer-events:none}
+  .cover .in{position:relative;max-width:960px;text-align:center}
+  .cover small{font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#5fe0a0}
+  .cover h1{font-family:var(--serif);font-size:clamp(36px,6vw,64px);line-height:1.05;font-weight:600;margin:.3em 0 .3em}
+  .cover p{font-size:17px;color:rgba(238,245,240,.75);max-width:660px;margin:0 auto 22px}
+  .cast{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 22px;text-align:left}
+  .cast>div{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-top:3px solid var(--pc);border-radius:14px;padding:10px 12px}
+  .cast .ic{font-size:20px}
+  .cast b{display:block;font-size:14px;margin-top:2px}
+  .cast span{display:block;font-size:12.5px;color:rgba(238,245,240,.65);line-height:1.35}
+  .cover h5{margin:0 0 10px;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(238,245,240,.55)}
+  .ctiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;text-align:left}
+  .ctiles button{text-align:left;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:12px 14px;cursor:pointer;color:#eef5f0;transition:all .2s}
+  .ctiles button:hover{background:rgba(95,224,160,.12);border-color:#5fe0a0;transform:translateY(-2px)}
+  .ctiles i{display:block;font-style:normal;font:800 11px var(--mono);color:#5fe0a0}
+  .ctiles b{display:block;font-family:var(--serif);font-size:18px;font-weight:600;line-height:1.2;margin:2px 0}
+  .ctiles span{display:block;font-size:12.5px;color:rgba(238,245,240,.65);line-height:1.35}
+  .ctiles .first{grid-column:1/-1;background:#2f8f62;border-color:#2f8f62;text-align:center}
+  .ctiles .first:hover{background:#34a06d}
+  .ctiles .first b{font-family:var(--sans);font-size:17px;font-weight:800}
+  .ctiles .first span{color:rgba(255,255,255,.8)}
+  .cover .alt{display:block;margin-top:16px;font-size:13.5px;color:rgba(238,245,240,.6)}
+  .cover .alt a{color:#5fe0a0;font-weight:700}
+
+  @media (max-width:1100px){ .ctile span{font-size:11px} }
+  @media (max-width:980px){
+    .top{flex-direction:column;align-items:stretch;gap:8px;padding:10px 14px}
+    .chapters{grid-template-columns:repeat(8,minmax(0,1fr))}
+    .ctile{padding:5px 0;text-align:center}
+    .ctile span{display:none}
+    .ctile i{font-size:12px}
+    .wrap{display:block}
+    .left{padding:12px 12px 0}
+    .right{position:static;height:auto;border-left:0}
+    .story{padding:18px 16px 10px}
+    .nav{position:sticky;bottom:0;background:var(--card);box-shadow:0 -8px 20px -12px rgba(0,0,0,.25)}
+    .stiles{display:flex;overflow-x:auto;padding-bottom:2px}
+    .stile{flex:none;max-width:170px}
+    .cast{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .ctiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .record{grid-template-columns:1fr}
+    .log{border-left:0;border-top:1px solid var(--line)}
+  }
+  @media (max-width:640px){
+    .stage{aspect-ratio:1000/1180}
+    .node{width:46%;min-width:0;padding:6px 8px}
+    .node .ic{font-size:15px}
+    .node b{font-size:11.5px}
+    .node .hd small,.node .scr em{display:none}
+    .node .scr{font-size:10px;min-height:0;margin-top:5px}
+    .hub{width:44%;min-width:0;padding:8px 6px}
+    .hub small{display:none}
+    .saved{top:calc(50% + 38px);font-size:10px}
+    .badge{display:none}
+    .clock{right:auto;left:50%;top:auto;bottom:6px;transform:translateX(-50%);font-size:10px}
+    .replay{right:auto;left:50%;bottom:auto;top:6px;transform:translateX(-50%);font-size:10.5px;padding:2px 9px}
+    .pkt{font-size:10px;padding:3px 7px}
+    .fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .ctiles{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+
+<div class="cover" id="cover">
+  <div class="in">
+    <small>A PAMOJA story in eight chapters</small>
+    <h1>Follow the Data</h1>
+    <p>One savings group borrows TZS 3,000,000. Every fact about that loan is captured once, where it happens, and reaches everyone who needs it within seconds. This is the story of that data, and of the four people who create it.</p>
+    <div class="cast" id="cast"></div>
+    <h5>Choose where to begin</h5>
+    <div class="ctiles" id="ctiles"></div>
+    <span class="alt">Prefer a diagram? <a href="flowchart.html">Open the flowchart</a></span>
+  </div>
+</div>
+
+<header class="top">
+  <button class="brand" id="home" title="Back to the start page"><small>PAMOJA CMG Loan Tracker</small><b>Follow the Data</b></button>
+  <nav class="chapters" id="chapters" aria-label="Chapters"></nav>
+</header>
+
+<div class="wrap">
+  <div class="left">
+    <div class="stage offline" id="stage">
+      <svg id="net" preserveAspectRatio="none" aria-hidden="true"><g id="wires"></g><g id="trails"></g></svg>
+      <div class="ov" id="ov">
+        <div class="hub" id="hub"><div class="ic">🗄️</div><b>The shared record</b><small>one source of truth · checked · time-stamped</small></div>
+        <div class="saved" id="saved"></div>
+        <button class="replay" id="replay" title="Play this scene's data movement again">↻ Replay scene</button>
+      </div>
+      <div class="badge" id="mode">Paper era</div>
+      <div class="clock" id="clock"></div>
+      <div class="card" id="ccard"><div><small id="cc-k"></small><b id="cc-t"></b><span id="cc-s"></span></div></div>
+    </div>
+
+    <section class="record" aria-label="The group's live record">
+      <div class="fields" id="fields"><h3><i></i>The live record · Tumaini Women</h3></div>
+      <div class="log"><h3>Event log</h3><ol id="log"></ol></div>
+    </section>
+  </div>
+
+  <aside class="right">
+    <div class="story" id="story" aria-live="polite"></div>
+    <nav class="nav" aria-label="Scenes">
+      <h4 id="stitle">Scenes in this chapter</h4>
+      <div class="stiles" id="stiles"></div>
+      <div class="bn">
+        <button class="btn" id="prev">◀ Back</button>
+        <span class="count" id="count"></span>
+        <button class="btn primary" id="next">Next ▶</button>
+      </div>
+    </nav>
+  </aside>
+</div>
+
+<script>
+(function(){
+  var REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // requestAnimationFrame stops in a background tab; timers keep a scene from freezing half-way
+  function frame(f){ if(document.hidden) setTimeout(function(){ f(performance.now()); }, 16); else requestAnimationFrame(f); }
+
+  // ── the four endpoints, and who works at each ──
+  var NODES={
+    P:{ic:'📱',title:'Chairperson’s phone',who:'Mama Neema · Tumaini Women',c:'chair',pc:'var(--p-chair)'},
+    C:{ic:'💻',title:'Council dashboard',who:'Mr Juma · LGA officer',c:'lga',pc:'var(--p-lga)'},
+    L:{ic:'🏦',title:'Lender portal',who:'Baraka · Kilima Bank',c:'fi',pc:'var(--p-fi)'},
+    T:{ic:'🗺️',title:'National dashboard',who:'Bi. Asha · TAMISEMI',c:'tam',pc:'var(--p-tam)'}
+  };
+  var CAST={
+    neema:{name:'Mama Neema',role:'Chairperson',c:'chair',ini:'N'},
+    juma:{name:'Mr Juma',role:'LGA officer',c:'lga',ini:'J'},
+    baraka:{name:'Baraka',role:'Loans officer, Kilima Bank',c:'fi',ini:'B'},
+    asha:{name:'Bi. Asha',role:'TAMISEMI',c:'tam',ini:'A'},
+    sys:{name:'PAMOJA',role:'the shared record',c:'sys',ini:'◆'}
+  };
+  var POS={P:[14,50],C:[50,14],L:[86,50],T:[50,86]};
+  var POS_M={P:[25,17],C:[75,17],L:[75,82],T:[25,82]};   // phones: the four screens in the corners
+
+  var CH=[
+    {k:'Prologue',t:'From paper to data',s:'Why a shared record'},
+    {k:'Chapter 1',t:'Lenders are chosen',s:'TAMISEMI authorises; every council sees it'},
+    {k:'Chapter 2',t:'The group registers',s:'Captured on a phone, verified by the council'},
+    {k:'Chapter 3',t:'A lender is appointed',s:'One click connects group and bank'},
+    {k:'Chapter 4',t:'The group meets and saves',s:'Every meeting becomes data'},
+    {k:'Chapter 5',t:'The group asks for a loan',s:'The record makes the case'},
+    {k:'Chapter 6',t:'The money arrives',s:'The disbursal is recorded, and confirmed'},
+    {k:'Chapter 7',t:'Repaying, month by month',s:'Reported by the group, confirmed against the bank'},
+    {k:'Chapter 8',t:'Everyone sees the same numbers',s:'One record, four screens, no copying'}
+  ];
+  var TONES={warn:['var(--warn)','var(--fi-bg)'],ok:['var(--ok)','var(--chair-bg)'],info:['var(--info)','var(--tam-bg)'],none:['var(--muted)','var(--card-2)']};
+  var FIELDS=[['group','Group'],['status','Status'],['lender','Lender'],['members','Members'],['meetings','Meetings · quorate'],['savings','Savings'],['loan','Loan terms'],['repaid','Confirmed repaid'],['owed','Still owed']];
+
+  // ── the story ──
+  // t: tile title · at: clock · f: lit endpoints · pk: data packet [from, [to...], label], always via the shared record
+  // paper: [endpoint, paper, the data it becomes] · rec: record changes · log: event · scr: what each screen shows
+  var S=[
+    {ch:0,t:'The paper era',offline:true,f:['P','C','L','T'],at:'Before PAMOJA',
+     scr:{P:'📒 exercise book in a tin box',C:'📨 waiting for paper forms',L:'📁 photocopies, weeks late',T:'📊 last year’s totals'},
+     narr:'Before, Tumaini Women’s records lived in an exercise book. Totals were added by hand, copied onto forms and carried to the council. By the time a figure reached Dodoma it was months old, and nobody could check where it came from.',
+     lines:[['neema','Every month I copy the same numbers three times.'],['juma','And I only see them when someone brings the paper.'],['asha','Our national figures are always a year behind.']],
+     data:'Four parties, four copies of the truth, none of them current.'},
+    {ch:0,t:'One shared record',online:true,f:['P','C','L','T'],at:'With PAMOJA',
+     narr:'PAMOJA puts one shared record in the middle. Each person keeps working on their own screen: a phone, a laptop, a bank portal, a national dashboard. Every fact they enter is checked, time-stamped and saved once, then shown to whoever is entitled to see it.',
+     lines:[['sys','Capture once, at the source. Check it on entry. Share it in seconds.']],
+     data:'Watch the live record below the network. It starts empty, and by the end it tells the whole story of the loan.'},
+
+    {ch:1,t:'A lender is authorised',f:['T','C','L'],at:'Mon 2 Feb 2026 · 09:12',
+     narr:'In Dodoma, Bi. Asha authorises Kilima Bank to lend to community groups. She does it on her dashboard, and that one change is all it takes.',
+     lines:[['asha','Kilima Bank: authorised.'],['sys','Kilima Bank can now sign in. Every council can now appoint it.']],
+     pk:['T',['C','L'],'lender · AUTHORISED'],scr:{C:'Lender list updated: +Kilima Bank',L:'Access granted'},
+     log:'TAMISEMI authorised Kilima Bank',
+     data:'No letter goes out: the council’s list of lenders updates the moment she saves. A suspension would lock the lender out just as fast.'},
+
+    {ch:2,t:'Captured on a phone',f:['P'],at:'Sat 14 Feb 2026 · 15:40',
+     narr:'At the group’s meeting, Mama Neema registers Tumaini Women on her phone, one or two questions per screen, in Kiswahili.',
+     lines:[['sys','Kikundi kina wanachama wangapi? (How many members?)'],['neema','22'],['sys','✓ between 5 and 30 · ✓ phone format · ✓ NIDA: 20 digits · ✓ not already registered']],
+     scr:{P:'Registration · 14 fields ✓'},
+     data:'The data is checked while it is typed, not weeks later in an office. Mistakes are caught at the source.'},
+    {ch:2,t:'A number in seconds',f:['P','C'],at:'Sat 14 Feb 2026 · 15:46',
+     narr:'She presses Register. A group number, C1024, comes back at once, and the new group appears in Mr Juma’s queue at the council.',
+     lines:[['neema','We have a number already!'],['juma','And I can see them. Twenty-two members, Kisongo village.']],
+     pk:['P',['C'],'registration · 14 fields'],scr:{P:'C1024 · pending verification',C:'New in queue: C1024'},
+     rec:{group:'C1024 · Tumaini Women',status:['Pending verification','warn'],members:'22 · quorum 80%'},
+     log:'C1024 registered by the chairperson'},
+    {ch:2,t:'Verified by the council',f:['C','P'],at:'Tue 17 Feb 2026 · 10:05',
+     narr:'Mr Juma checks the paper registration pack against the data. He logs its receipt with a reference number, then approves.',
+     lines:[['juma','Pack received, reference RP-0931. Everything matches. Approved.'],['neema','The app says we are active!']],
+     paper:['C','📄 registration pack','✓ receipt · RP-0931'],
+     pk:['C',['P'],'verification · APPROVED'],scr:{C:'C1024 approved',P:'Active ✓ · dashboard unlocked'},
+     rec:{status:['Registered, no lender','info']},log:'Council verified C1024 (pack RP-0931)',
+     data:'The paper still exists, but now its receipt is data too: who confirmed it, when, and under which reference.'},
+
+    {ch:3,t:'Group and bank connected',f:['C','P','L'],at:'Tue 17 Feb 2026 · 10:11',
+     narr:'Six minutes later, Mr Juma appoints a lender from TAMISEMI’s list. The group and the bank are connected in the same instant.',
+     lines:[['juma','Lender for C1024: Kilima Bank, Usa River branch.'],['baraka','Tumaini Women just appeared in my portfolio.']],
+     pk:['C',['P','L'],'lender appointed'],scr:{P:'Lender: Kilima Bank',L:'New group: C1024'},
+     rec:{lender:'Kilima Bank',status:['Lender assigned','info']},log:'Kilima Bank appointed to C1024',
+     data:'From now on the bank reads the group’s record directly, and only this bank: no other lender can see it.'},
+
+    {ch:4,t:'Share rules locked',f:['P','L'],at:'Sat 28 Feb 2026 · 15:02',
+     narr:'Neema fixes the group’s share rules once: one share is worth TZS 2,000, and a member may buy up to five at a meeting.',
+     lines:[['sys','Share value TZS 2,000 · max 5 per member · 🔒 locked']],
+     pk:['P',['L'],'share rules · locked'],scr:{P:'Share rules locked'},
+     rec:{savings:0},log:'Share rules set and locked',
+     data:'Because the rules can’t change later, every savings figure in the record means the same thing, month after month.'},
+    {ch:4,t:'Every meeting is data',f:['P','C','L'],at:'Sat 28 Feb 2026 · 16:20',
+     narr:'After each meeting, Neema enters attendance, shares bought, repayments into the group and loans given out. The app checks the quorum there and then.',
+     lines:[['sys','19 of 22 attended · 18 needed · ✓ quorum met']],
+     seq:[{at:'Sat 28 Feb 2026 · 16:20',pk:['P',['C','L'],'meeting #1'],rec:{meetings:'1 · 1',savings:80000}},
+          {at:'Sat 25 Apr 2026 · 16:05',pk:['P',['C','L'],'meeting #5'],rec:{meetings:'5 · 5',savings:410000}},
+          {at:'Sat 1 Aug 2026 · 16:31',pk:['P',['C','L'],'meeting #12'],rec:{meetings:'12 · 12',savings:980000}},
+          {at:'Sat 31 Oct 2026 · 16:12',pk:['P',['C','L'],'meeting #18'],rec:{meetings:'18 · 18',savings:1420000}}],
+     scr:{C:'C1024 · meeting data in',L:'C1024 · savings trend ↑'},log:'18 meetings recorded, all quorate',
+     data:'Each meeting takes a couple of minutes to enter, and the council and the bank see it the moment it is saved. Nobody retypes anything.'},
+    {ch:4,t:'A meeting below quorum',f:['P','C','L'],at:'Sat 28 Nov 2026 · 15:48',
+     narr:'One stormy afternoon only fourteen members come.',
+     lines:[['sys','14 of 22 attended · 18 needed · ✗ quorum not met. Recorded, but no loan decisions today.'],['neema','Then we decide nothing big today.']],
+     pk:['P',['C','L'],'meeting #19 · not quorate'],
+     rec:{meetings:'19 · 18',savings:1480000},log:'Meeting #19 below quorum',
+     data:'The rule lives in the data: only a meeting that met its quorum can later be chosen for a loan decision.'},
+
+    {ch:5,t:'The application',f:['P','L','C'],at:'Sat 23 Jan 2027 · 16:10',
+     narr:'Five meetings later the group is ready. Neema enters its savings, its years together, the amount it wants (TZS 3,000,000) and what for: seed and a maize mill.',
+     lines:[['sys','Requested ≈ 1.6× savings. Attached automatically: 22 members · 24 meetings · 23 quorate · no earlier loan.'],['neema','Tuma. Send it.']],
+     pk:['P',['L','C'],'application + group history'],scr:{P:'Application sent',L:'New application: C1024'},
+     rec:{meetings:'24 · 23',savings:1850000,status:['Applied','info']},log:'Loan application: TZS 3,000,000',
+     data:'The bank doesn’t have to take the group’s word for it: two years of meetings arrive with the application, straight from the record.'},
+    {ch:5,t:'The decision',f:['L','P','C'],at:'Wed 27 Jan 2027 · 11:30',
+     narr:'Baraka reads the application together with the group’s history. He logs the paper application form and approves, with the terms.',
+     lines:[['baraka','Steady attendance, steady saving. Approved: TZS 3,000,000, 1.5% a month, 12 months, TZS 3,540,000 to repay.']],
+     paper:['L','📄 application form','✓ receipt · AF-2217'],
+     pk:['L',['P','C'],'decision · APPROVED + terms'],scr:{L:'C1024 approved',P:'Offer: TZS 3,000,000'},
+     rec:{status:['Approved','ok'],loan:'3,000,000 · 1.5%/mo · 12 mo'},log:'Kilima Bank approved C1024',
+     data:'The terms are data, not a line in a letter: amount, rate, months and total repayable feed every later calculation.'},
+    {ch:5,t:'Accepted in a quorate meeting',f:['P','L','C'],at:'Sat 6 Feb 2027 · 16:02',
+     narr:'The group decides together at a meeting where 20 of 22 are present. Neema records the acceptance against that meeting and logs the offer letter.',
+     lines:[['neema','We accept. Recorded against today’s meeting, 20 present.'],['sys','✓ meeting #25 met its quorum · decision linked to it']],
+     paper:['P','📄 offer letter','✓ receipt logged'],
+     pk:['P',['L','C'],'acceptance · meeting #25'],scr:{P:'Accepted',L:'C1024 accepted'},
+     rec:{status:['Accepted','ok'],meetings:'25 · 24'},log:'Group accepted at quorate meeting #25',
+     data:'The record proves the decision was taken properly: which meeting, how many were present, and that the quorum was met.'},
+
+    {ch:6,t:'Disbursed',f:['L','P','C','T'],at:'Tue 9 Feb 2027 · 14:18',
+     narr:'Baraka logs the group’s minutes and signed contract, pays the loan into the group’s account through the bank’s own systems, and records the disbursal.',
+     lines:[['baraka','Disbursed: TZS 3,000,000 to account ****4471.']],
+     paper:['L','📄 minutes + contract','✓ receipts logged'],
+     pk:['L',['P','C','T'],'disbursal · TZS 3,000,000'],scr:{P:'TZS 3,000,000 disbursed',C:'C1024 · disbursed',T:'Arusha DC · +1 active loan'},
+     rec:{status:['Disbursed','info'],owed:3540000,repaid:0},log:'TZS 3,000,000 disbursed to C1024',
+     data:'Money moves through the bank. The fact that it moved (amount, date, account) moves through PAMOJA, and reaches Dodoma the same afternoon.'},
+    {ch:6,t:'Receipt confirmed',f:['P','L'],at:'Tue 9 Feb 2027 · 16:40',
+     narr:'The credit shows on the group’s account, and Neema confirms it.',
+     lines:[['neema','Pesa imefika. The money has arrived; confirmed.']],
+     pk:['P',['L'],'receipt confirmed'],scr:{L:'C1024 confirmed receipt'},log:'Group confirmed the funds arrived',
+     data:'Both sides of the transfer are now on the record. If the group hadn’t confirmed within five days, the app would flag it.'},
+
+    {ch:7,t:'Repayment reported',f:['P','L'],at:'Sat 13 Mar 2027 · 15:55',
+     narr:'The instalment is TZS 295,000 a month. The treasurer pays it at the bank, and at the meeting Neema records it with the deposit slip number.',
+     lines:[['neema','Paid in full. Slip KB/2027/0417.'],['sys','Reported · waiting for the bank to confirm']],
+     pk:['P',['L'],'repayment reported · 295,000'],scr:{P:'Reported · awaiting bank',L:'To confirm: KB/2027/0417'},
+     log:'Repayment reported: TZS 295,000',
+     data:'A reported payment is the group’s claim. It doesn’t reduce the balance yet.'},
+    {ch:7,t:'Confirmed against the bank',f:['L','P','C','T'],at:'Mon 15 Mar 2027 · 09:20',
+     narr:'Baraka matches the slip to the bank’s own statement and confirms the amount and the value date.',
+     lines:[['baraka','On the statement: TZS 295,000, value date 13 March. Confirmed.']],
+     paper:['L','🧾 bank statement line','✓ ref ST-88410'],
+     pk:['L',['P','C','T'],'CONFIRMED · 295,000'],scr:{P:'✓ confirmed',C:'C1024 · on track',T:'Arusha · on track'},
+     rec:{repaid:295000,owed:3245000,status:['Active: on track','ok']},log:'Bank confirmed TZS 295,000',
+     data:'Only money confirmed against the bank’s statement counts. That is why every screen can trust the balance.'},
+    {ch:7,t:'The loop turns',f:['P','L','C','T'],at:'Apr–Jun 2027',
+     narr:'Month after month the same loop turns: pay, report, confirm.',
+     lines:[['sys','Month 2 ✓ · Month 3 ✓ · Month 4 ✓']],
+     seq:[{at:'Sat 10 Apr 2027',pk:['P',['L'],'reported · 295,000']},{at:'Mon 12 Apr 2027',pk:['L',['P','C','T'],'CONFIRMED'],rec:{repaid:590000,owed:2950000}},
+          {at:'Mon 10 May 2027',pk:['L',['P','C','T'],'CONFIRMED'],rec:{repaid:885000,owed:2655000}},
+          {at:'Mon 14 Jun 2027',pk:['L',['P','C','T'],'CONFIRMED'],rec:{repaid:1180000,owed:2360000}}],
+     log:'Months 2 to 4 confirmed'},
+    {ch:7,t:'Behind, flagged in seconds',f:['P','C','L','T'],at:'Sat 17 Jul 2027 · 16:00',
+     narr:'Then the rains come late. In month five the group records a meeting, but no payment. Nobody has to raise the alarm: the record recalculates the status on its own.',
+     lines:[['sys','Status: behind. Confirmed repayments are below 90% of what is due by now.'],['juma','I can see C1024 has slipped. I’ll join their next meeting.'],['baraka','Same here. We’ll talk after the harvest.']],
+     pk:['H',['P','C','L','T'],'status → BEHIND'],scr:{P:'Status: behind',C:'⚠ C1024 behind',L:'⚠ C1024 behind',T:'Arusha · 1 behind'},
+     rec:{status:['Active: behind','warn']},log:'Status changed: behind',
+     data:'The council and the bank saw the slip within seconds, not at the next quarterly report.'},
+    {ch:7,t:'Back on track',f:['P','L','C','T'],at:'Mon 16 Aug 2027 · 10:02',
+     narr:'The harvest comes in, and the group pays two instalments at once.',
+     lines:[['neema','Two instalments: TZS 590,000.'],['baraka','Confirmed. Back on track.']],
+     pk:['L',['P','C','T'],'CONFIRMED · 590,000'],scr:{P:'✓ back on track',C:'C1024 · on track',T:'Arusha · on track'},
+     rec:{repaid:1770000,owed:1770000,status:['Active: on track','ok']},log:'Bank confirmed TZS 590,000'},
+
+    {ch:8,t:'Four screens, one record',f:['P','C','L','T'],at:'Mon 16 Aug 2027 · 10:02',all:'C1024 · on track · TZS 1,770,000 owed',
+     narr:'Four people, four screens, one record. None of them typed the others’ numbers, and all of them see the same answer at the same moment.',
+     lines:[['asha','Arusha region, by district, live.'],['juma','Every group in my council on one screen.'],['baraka','My portfolio by status, and payments to confirm.'],['neema','Our balance, our next due date, our savings.']],
+     data:'Statuses come from the data: On track · Behind · Overdue (past the deadline) · Delinquent (over 120 days past it) · Completed.'},
+    {ch:8,t:'Months 7 to 12',f:['P','L','C','T'],at:'Sep 2027 – Feb 2028',
+     narr:'Six more months of the same loop: pay, report, confirm.',
+     lines:[['sys','Months 7 to 12 ✓']],
+     seq:[{at:'Oct 2027',pk:['L',['P','C','T'],'CONFIRMED'],rec:{repaid:2360000,owed:1180000}},{at:'Dec 2027',pk:['L',['P','C','T'],'CONFIRMED'],rec:{repaid:2950000,owed:590000}},{at:'Feb 2028',pk:['L',['P','C','T'],'CONFIRMED'],rec:{repaid:3540000,owed:0}}],
+     log:'Months 7 to 12 confirmed'},
+    {ch:8,t:'Loan completed',f:['P','C','L','T'],at:'Mon 14 Feb 2028 · 09:41',all:'C1024 · COMPLETED ✓',
+     narr:'The last instalment is confirmed, and the loan closes on every screen at once.',
+     lines:[['baraka','Final instalment confirmed. Loan complete.'],['neema','Tumeweza! We did it.'],['juma','Well done, Tumaini Women.'],['asha','One more loan repaid, and we knew it the same morning.']],
+     pk:['H',['P','C','L','T'],'status → COMPLETED'],
+     rec:{status:['Completed','ok']},log:'Loan completed',
+     data:'Tumaini Women now has something it never had on paper: a verified, complete credit history, ready for its next loan.',
+     end:true}
+  ];
+
+  // ── build the network ──
+  var stage=document.getElementById('stage'), ov=document.getElementById('ov'), net=document.getElementById('net');
+  var NSV='http://www.w3.org/2000/svg';
+  function sv(tag,a,p){ var e=document.createElementNS(NSV,tag); for(var k in a) e.setAttribute(k,a[k]); if(p) p.appendChild(e); return e; }
+  var nodeEl={};
+  Object.keys(NODES).forEach(function(k){
+    var n=NODES[k], d=document.createElement('div'); d.className='node'; d.style.setProperty('--pc',n.pc);
+    d.innerHTML='<div class="hd"><span class="ic">'+n.ic+'</span><div><b>'+n.title+'</b><small>'+n.who+'</small></div></div><div class="scr"><em>screen</em><span>—</span></div>';
+    ov.appendChild(d); nodeEl[k]=d;
+  });
+  function pos(){ return window.innerWidth<=640?POS_M:POS; }
+  function layout(){
+    var p=pos(), w=stage.clientWidth, h=stage.clientHeight;
+    net.setAttribute('viewBox','0 0 '+w+' '+h);
+    Object.keys(NODES).forEach(function(k){ nodeEl[k].style.left=p[k][0]+'%'; nodeEl[k].style.top=p[k][1]+'%'; });
+    var g=document.getElementById('wires'); g.innerHTML='';
+    Object.keys(NODES).forEach(function(k){
+      var d='M'+(p[k][0]/100*w)+','+(p[k][1]/100*h)+' L'+(w/2)+','+(h/2);
+      sv('path',{d:d,'class':'wire',id:'w-'+k},g);
+      sv('path',{d:d,'class':'flow',stroke:NODES[k].pc},g);
+    });
+  }
+  new ResizeObserver(layout).observe(stage); layout();
+
+  // ── the record ──
+  var fieldsEl=document.getElementById('fields'), fieldB={};
+  FIELDS.forEach(function(f){
+    var d=document.createElement('div'); d.className='fld'; d.innerHTML='<small>'+f[1]+'</small><b class="empty">—</b>';
+    fieldsEl.appendChild(d); fieldB[f[0]]=d.querySelector('b');
+  });
+  var shownNum={};
+  function money(n){ return 'TZS '+Math.round(n).toLocaleString('en-US'); }
+  function setField(k, v, anim){
+    var b=fieldB[k]; if(!b) return;
+    b.classList.remove('empty');
+    if(k==='status'){ var t=TONES[v[1]]||TONES.none; b.innerHTML='<span class="pill" style="--tone:'+t[0]+';--tone-bg:'+t[1]+'">'+v[0]+'</span>'; }
+    else if(typeof v==='number'){
+      var from=shownNum[k]||0; shownNum[k]=v;
+      if(!anim||REDUCED) b.textContent=money(v);
+      else { var t0=performance.now(); (function step(t){ var q=Math.min(1,(t-t0)/900), e=1-Math.pow(1-q,3); b.textContent=money(from+(v-from)*e); if(q<1) frame(step); })(t0); }
+    } else b.textContent=v;
+    if(anim){ b.classList.add('flash'); setTimeout(function(){ b.classList.remove('flash'); }, 1200); }
+  }
+  function applyRec(r, anim){ if(!r) return; for(var k in r) setField(k, r[k], anim); }
+  function resetRec(){ shownNum={}; FIELDS.forEach(function(f){ var b=fieldB[f[0]]; b.className='empty'; b.textContent='—'; }); }
+  var logEl=document.getElementById('log'), LOG=[];
+  function renderLog(){ logEl.innerHTML=LOG.slice(0,5).map(function(e){ return '<li><time>'+e[0]+'</time>'+e[1]+'</li>'; }).join('') || '<li><time>—</time>No events yet</li>'; }
+  function pushLog(at, text){ LOG.unshift([at,text]); renderLog(); }
+  function logAt(s){ return s.seq ? s.seq[s.seq.length-1].at : s.at; }   // a montage is logged when it ends
+
+  function setScreen(k, text, at, ping){
+    var n=nodeEl[k]; n.querySelector('.scr').innerHTML='<em>'+at+'</em><span>'+text+'</span>';
+    if(ping){ n.classList.add('ping'); setTimeout(function(){ n.classList.remove('ping'); }, 700); }
+  }
+  // Rebuild the record, the log and the screens exactly as they stood before scene idx.
+  function stateBefore(idx){
+    resetRec(); LOG=[]; var SCR={};
+    for(var i=0;i<idx;i++){
+      var s=S[i];
+      (s.seq||[]).forEach(function(q){ applyRec(q.rec,false); });
+      applyRec(s.rec,false);
+      if(s.log) LOG.unshift([logAt(s), s.log]);
+      if(s.online) Object.keys(NODES).forEach(function(k){ SCR[k]=['live','connected ✓']; });
+      for(var k in (s.scr||{})) if(!s.offline) SCR[k]=[s.at, s.scr[k]];
+      if(s.all) Object.keys(NODES).forEach(function(k){ SCR[k]=[s.at, s.all]; });
+    }
+    renderLog();
+    Object.keys(NODES).forEach(function(k){ setScreen(k, SCR[k]?SCR[k][1]:'—', SCR[k]?SCR[k][0]:'screen', false); });
+  }
+
+  // ── motion ──
+  var token=0;
+  function alive(my){ return my===token; }
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, REDUCED?Math.min(ms,40):ms); }); }
+  function move(k, inbound, label, color, my, dur){
+    var path=document.getElementById('w-'+k), len=path.getTotalLength();
+    var pk=document.createElement('div'); pk.className='pkt'; pk.style.setProperty('--pc',color); pk.textContent=label; ov.appendChild(pk);
+    var tr=sv('path',{d:path.getAttribute('d'),'class':'trail',stroke:color,style:'color:'+color,'stroke-dasharray':len,'stroke-dashoffset':inbound?len:-len},document.getElementById('trails'));
+    dur=REDUCED?0:dur;
+    return new Promise(function(res){
+      var t0=performance.now();
+      (function step(now){
+        if(!alive(my)){ pk.remove(); tr.remove(); return res(); }
+        var q=dur?Math.min(1,(now-t0)/dur):1, e=q<.5?2*q*q:1-Math.pow(-2*q+2,2)/2;
+        var pt=path.getPointAtLength(inbound? len*e : len*(1-e)), w=stage.clientWidth, h=stage.clientHeight;
+        pk.style.left=(pt.x/w*100)+'%'; pk.style.top=(pt.y/h*100)+'%';
+        tr.setAttribute('stroke-dashoffset', inbound ? len-len*e : -(len-len*e));
+        if(q<1) frame(step);
+        else { pk.remove(); tr.style.transition='opacity .6s'; tr.style.opacity=0; setTimeout(function(){ tr.remove(); }, 600); res(); }
+      })(t0);
+    });
+  }
+  var hub=document.getElementById('hub'), saved=document.getElementById('saved');
+  async function packet(p, my, fast, at, scr){
+    var from=p[0], to=p[1], label=p[2], dur=fast?650:1100;
+    var color = from==='H' ? 'var(--p-hub)' : NODES[from].pc;
+    if(from!=='H'){ await move(from, true, label, color, my, dur); if(!alive(my)) return; }
+    hub.classList.add('write');
+    saved.textContent=from==='H'?'◆ recalculated from confirmed data':'✓ checked · saved · '+(at||'').split('·').pop().trim();
+    saved.classList.add('in');
+    await sleep(fast?250:450); hub.classList.remove('write'); if(!alive(my)) return;
+    await Promise.all(to.map(function(k){ return move(k, false, label, color, my, dur).then(function(){
+      if(alive(my) && scr && scr[k]) setScreen(k, scr[k], at, true);
+    }); }));
+    setTimeout(function(){ saved.classList.remove('in'); }, 900);
+  }
+  function paperToData(pp, my){
+    var p=pos()[pp[0]], el=document.createElement('div'); el.className='paper'; el.textContent=pp[1];
+    var dy=p[1]<45?15:(p[1]>55?-15:-17);
+    el.style.left=p[0]+'%'; el.style.top=(p[1]+dy)+'%'; ov.appendChild(el);
+    return sleep(900).then(function(){ if(!alive(my)){ el.remove(); return; } el.classList.add('digit'); el.textContent=pp[2]; return sleep(900); })
+      .then(function(){ setTimeout(function(){ el.style.opacity=0; setTimeout(function(){ el.remove(); }, 600); }, 1400); });
+  }
+  function focus(list){ Object.keys(NODES).forEach(function(k){ nodeEl[k].classList.toggle('lit', list.indexOf(k)>=0); nodeEl[k].classList.toggle('dim', list.indexOf(k)<0); }); }
+
+  // ── story panel ──
+  var story=document.getElementById('story');
+  function lineEl(who, text){
+    var c=CAST[who], d=document.createElement('div'); d.className='line';
+    d.style.setProperty('--c','var(--'+c.c+')'); d.style.setProperty('--cbg','var(--'+c.c+'-bg)');
+    d.innerHTML='<div class="av">'+c.ini+'</div><div class="bub'+(who==='sys'?' sys':'')+'"><small>'+c.name+' <em>· '+c.role+'</em></small><div class="txt"></div></div>';
+    d.querySelector('.txt').textContent=text;
+    return d;
+  }
+  // the conversation appears line by line, quickly; the reader sets the pace with Next
+  async function say(lines, my){
+    var talk=story.querySelector('.talk');
+    for(var i=0;i<lines.length;i++){
+      if(!alive(my)) return;
+      talk.appendChild(lineEl(lines[i][0], lines[i][1]));
+      await sleep(500);
+    }
+  }
+
+  // ── chapter tiles (top) and scene tiles (bottom right) ──
+  var chapWrap=document.getElementById('chapters'), ctiles=[];
+  CH.forEach(function(c,i){
+    if(i===0) return;
+    var b=document.createElement('button'); b.className='ctile'; b.type='button';
+    b.innerHTML='<i>'+i+'</i><span>'+c.t+'</span>'; b.title=c.k+': '+c.t;
+    b.addEventListener('click', function(){ go(S.findIndex(function(x){ return x.ch===i; })); });
+    chapWrap.appendChild(b); ctiles[i]=b;
+  });
+  var seen={};
+  function renderNav(i){
+    var s=S[i];
+    ctiles.forEach(function(b,ch){ if(!b) return; b.classList.toggle('here', ch===s.ch); b.classList.toggle('past', ch<s.ch); });
+    var box=document.getElementById('stiles'); box.innerHTML='';
+    document.getElementById('stitle').textContent=CH[s.ch].k+' · scenes';
+    S.forEach(function(x,j){
+      if(x.ch!==s.ch) return;
+      var b=document.createElement('button'); b.type='button'; b.className='stile'+(j===i?' here':'')+(seen[j]&&j!==i?' seen':'');
+      b.innerHTML='<i>'+(j+1)+'</i><span>'+x.t+'</span>';
+      b.addEventListener('click', function(){ go(j); });
+      box.appendChild(b);
+    });
+    var prev=document.getElementById('prev'), next=document.getElementById('next');
+    prev.disabled=i===0;
+    next.disabled=i===S.length-1;
+    var nx=S[i+1];
+    next.textContent = !nx ? 'The end' : (nx.ch!==s.ch ? 'Chapter '+nx.ch+' ▶' : 'Next ▶');
+    document.getElementById('count').textContent='Scene '+(i+1)+' of '+S.length;
+  }
+
+  // ── open a scene ──
+  var idx=0;
+  function chapterCard(ch){
+    var c=CH[ch], card=document.getElementById('ccard');
+    document.getElementById('cc-k').textContent=c.k; document.getElementById('cc-t').textContent=c.t; document.getElementById('cc-s').textContent=c.s;
+    card.classList.add('in'); return sleep(1300).then(function(){ card.classList.remove('in'); return sleep(250); });
+  }
+  async function go(i, replay){
+    if(i<0||i>=S.length) return;
+    var my=++token, s=S[i], from=idx;
+    idx=i; seen[i]=true;
+    ov.querySelectorAll('.pkt,.paper').forEach(function(e){ e.remove(); });
+    document.getElementById('trails').innerHTML=''; hub.classList.remove('write'); saved.classList.remove('in');
+    document.getElementById('ccard').classList.remove('in');
+    stateBefore(i);
+    var offline=S.slice(0,i+1).every(function(x){ return !x.online; });
+    stage.classList.toggle('offline', offline);
+    document.getElementById('mode').textContent=offline?'Paper era':'Live · PAMOJA';
+    document.getElementById('clock').textContent=s.at||'';
+    renderNav(i);
+    var c=CH[s.ch];
+    story.innerHTML='<div class="kicker">'+c.k+(c.s?' · '+c.s:'')+'</div><h2>'+s.t+'</h2><p class="narr">'+s.narr+'</p><div class="talk"></div>';
+    story.scrollTop=0; focus(s.f);
+    if(s.offline) Object.keys(s.scr).forEach(function(k){ setScreen(k, s.scr[k], 'paper', false); });
+
+    // a chapter card only when arriving at a chapter's first scene by moving forward
+    if(!replay && s.ch>0 && S[i-1] && S[i-1].ch!==s.ch && (i===from+1 || S.findIndex(function(x){ return x.ch===s.ch; })===i)){
+      await chapterCard(s.ch); if(!alive(my)) return;
+    }
+    var words=say(s.lines||[], my);
+    if(s.online){ await sleep(400); if(!alive(my)) return; stage.classList.remove('offline'); document.getElementById('mode').textContent='Live · PAMOJA';
+      Object.keys(NODES).forEach(function(k,j){ setTimeout(function(){ if(alive(my)) setScreen(k,'connected ✓','live',true); }, 300+j*250); }); }
+    if(s.paper){ await paperToData(s.paper, my); if(!alive(my)) return; }
+    if(s.pk){ await packet(s.pk, my, false, s.at, s.scr); if(!alive(my)) return; }
+    else if(s.scr && !s.offline) Object.keys(s.scr).forEach(function(k){ setScreen(k, s.scr[k], s.at, true); });
+    if(s.seq){
+      for(var q=0;q<s.seq.length;q++){
+        var it=s.seq[q]; document.getElementById('clock').textContent=it.at;
+        if(it.pk){ await packet(it.pk, my, true, it.at, null); if(!alive(my)) return; }
+        applyRec(it.rec, true); await sleep(200);
+      }
+      if(s.scr) Object.keys(s.scr).forEach(function(k){ setScreen(k, s.scr[k], s.seq[s.seq.length-1].at, true); });
+    }
+    applyRec(s.rec, true);
+    if(s.all) Object.keys(NODES).forEach(function(k,j){ setTimeout(function(){ if(alive(my)) setScreen(k, s.all, s.at, true); }, j*200); });
+    if(s.log) pushLog(logAt(s), s.log);
+    await words; if(!alive(my)) return;
+    if(s.data){ var d=document.createElement('div'); d.className='data'; d.innerHTML='<b>'+(s.ch===0?'The idea':'What the data does')+'</b>'+s.data; story.appendChild(d); }
+    if(s.end){
+      var e=document.createElement('div'); e.className='endbtns';
+      e.innerHTML='<button class="btn primary" id="again">↺ Start again</button><a class="btn" href="flowchart.html">See it as a flowchart →</a>';
+      story.appendChild(e); document.getElementById('again').addEventListener('click', function(){ seen={}; go(0); });
+    }
+  }
+
+  document.getElementById('prev').addEventListener('click', function(){ go(idx-1); });
+  document.getElementById('next').addEventListener('click', function(){ go(idx+1); });
+  document.getElementById('replay').addEventListener('click', function(){ go(idx, true); });
+  document.getElementById('home').addEventListener('click', function(){ token++; document.getElementById('cover').classList.remove('gone'); });
+  document.addEventListener('keydown', function(e){
+    if(!document.getElementById('cover').classList.contains('gone')) return;
+    if(e.key==='ArrowRight'){ go(idx+1); e.preventDefault(); }
+    else if(e.key==='ArrowLeft'){ go(idx-1); e.preventDefault(); }
+  });
+
+  // ── the cover: cast, then chapter tiles to start from ──
+  var castEl=document.getElementById('cast');
+  ['P','C','L','T'].forEach(function(k){
+    var n=NODES[k], parts=n.who.split(' · '), d=document.createElement('div'); d.style.setProperty('--pc',n.pc);
+    d.innerHTML='<span class="ic">'+n.ic+'</span><b>'+parts[0]+'</b><span>'+parts[1]+' · '+n.title+'</span>';
+    castEl.appendChild(d);
+  });
+  var ct=document.getElementById('ctiles');
+  CH.forEach(function(c,i){
+    var b=document.createElement('button'); b.type='button'; if(i===0) b.className='first';
+    b.innerHTML = i===0 ? '<b>Start from the beginning ▶</b><span>Prologue: from paper to data</span>'
+                        : '<i>'+c.k+'</i><b>'+c.t+'</b><span>'+c.s+'</span>';
+    b.addEventListener('click', function(){ document.getElementById('cover').classList.add('gone'); go(S.findIndex(function(x){ return x.ch===i; })); });
+    ct.appendChild(b);
+  });
+  stateBefore(0); focus(['P','C','L','T']); renderNav(0);
+})();
+</script>
+</body>
+</html>
